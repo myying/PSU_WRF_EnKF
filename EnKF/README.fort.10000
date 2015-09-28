@@ -1,0 +1,13 @@
+in the fort.10000 file. The entries (columns from left to right) are:
+
+1      obs type
+2-7    lat, lon, height, i, j, k, 
+8 9    horizontal ROI, vertical, ROI, 
+10 11  observation (y^o), obs error, 
+12     obs prior mean (H \bar{x}^f)
+13     obs posterior mean (H \bar{x}^a)
+14     observation prior spread (sqrt{H P^f H^T})
+15     observation posterior spread (sqrt{H P^f H^T}), before relaxation (the effect of relaxation will not be reflected here)
+
+
+So now you can gather all fort.10000 files for each assimilation cycle and perform some screening (taking the subset of these observations w.r.t. time/height/region) and then calculate prior/posterior RMSEs and consistency ratios with the output.

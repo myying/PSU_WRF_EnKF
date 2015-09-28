@@ -1,0 +1,142 @@
+#!/bin/bash
+. $WORK/DA/util.sh
+rundir=$1/run
+
+if [ ! -d $rundir ]; then echo "$rundir doesn't exist"; exit; fi
+
+for t in `ls $rundir |grep 20`; do
+  echo "==== `wrf_time_string $t` ===="
+  
+for c in obsproc icbc enkf 4dvar perturb_ic wrf_ens wrf_window wrf_window1 wrf; do
+  if [ -d $rundir/$t/$c ]; then
+     stat=`cat $rundir/$t/$c/stat`
+     printf "%12s" "$c"
+     case $stat in
+         waiting) echo -e "\e[7;33mwaiting\e[0m" ;;
+         running) echo -e "\e[7;32mrunning\e[0m" ;;
+         complete) echo -e "\e[7mcomplete\e[0m" ;;
+         error) echo -e "\e[7;31merror\e[0m" ;;
+     esac
+     if [[ $stat == "running" ]]; then
+       case $c in
+         icbc)
+           if [ -f $rundir/$t/$c/geogrid.log ]; then
+             echo -e "\e[7mgeogrid\e[0m"
+             echo "`cat $rundir/$t/$c/geogrid.log |tail -n3`"
+           fi
+           if [ -f $rundir/$t/$c/ungrib.log ]; then
+             echo -e "\e[7mungrib\e[0m"
+             echo "`cat $rundir/$t/$c/ungrib.log |tail -n3`"
+           fi
+           if [ -f $rundir/$t/$c/metgrid.log ]; then
+             echo -e "\e[7mmetgrid\e[0m"
+             echo "`cat $rundir/$t/$c/metgrid.log |tail -n3`"
+           fi
+           if [ -f $rundir/$t/$c/rsl.error.0000 ]; then
+             echo -e "\e[7mreal\e[0m"
+             echo "`cat $rundir/$t/$c/rsl.error.0000 |tail -n3`"
+           fi
+           ;;
+         wrf)
+           echo "`tail -n5 $rundir/$t/$c/rsl.error.0000`"
+           ;;
+         wrf_window)
+           echo "`tail -n5 $rundir/$t/$c/rsl.error.0000`"
+           ;;
+         wrf_window1)
+           echo "`tail -n5 $rundir/$t/$c/rsl.error.0000`"
+           ;;
+         obsproc)
+           echo "`tail -n5 $rundir/$t/$c/obsproc.log`"
+           ;;
+         perturb_ic)
+           for m in `ls $rundir/$t/$c/$n |grep 0`; do
+             echo "$m (`tail -n3 $rundir/$t/$c/$n/$m/rsl.error.0000`)"
+           done
+           ;;
+         enkf)
+           for dm in `/bin/ls $rundir/$t/$c |grep 'd[0-9][0-9]'`; do
+             echo -e "\e[7m$dm\e[0m"
+             if [ ! -f $rundir/$t/$c/$dm/enkf.log ]; then
+               echo "preparing... "
+               ls -l $rundir/$t/$c/$dm/fort.9*
+             else
+               if [ ! -z "`tail -n3 $rundir/$t/$c/$dm/enkf.log |grep Successful`" ]; then
+                 echo -e "\e[7menkf.mpi done\e[0m"
+                 if [ -d $rundir/$t/$c/$dm/replace_mean ]; then
+                   echo -e "\e[7mReplacing ensemble mean\e[0m"
+                   if [ -f $rundir/$t/$c/$dm/replace_mean/replace_mean.log ]; then
+                     tail -n3 $rundir/$t/$c/$dm/replace_mean/replace_mean.log
+                   fi
+                 fi
+               else
+                 tail -n3 $rundir/$t/$c/$dm/enkf.log
+               fi
+             fi
+           done
+           ;;
+         4dvar)
+           for dm in `/bin/ls $rundir/$t/$c |grep 'd[0-9][0-9]'`; do
+             echo -e "\e[7m$dm\e[0m"
+             if [ -f $rundir/$t/$c/$dm/stage0 ]; then
+               if [ `cat $rundir/$t/$c/$dm/stage0` == "complete" ]; then
+                 echo -e "\e[7mStage0\e[0m: Preparing input files ...................complete"
+               else
+                 echo -e "\e[7mStage0\e[0m: Preparing input files ..................."
+               fi
+               if [ -f $rundir/$t/$c/$dm/stage1 ]; then 
+                 if [ `cat $rundir/$t/$c/$dm/stage1` == "complete" ]; then
+                   echo -e "\e[7mStage1\e[0m: First outer loop ........................complete"
+                 else
+                   echo -e "\e[7mStage1\e[0m: First outer loop ........................"
+                 fi
+               fi
+               for i in `seq 1 100`; do
+                 if [ -f $rundir/$t/$c/$dm/stage2_inner$i ]; then
+                   if [ `cat $rundir/$t/$c/$dm/stage2_inner$i` == "complete" ]; then
+                     echo -e "\e[7mStage2\e[0m: Extra inner loop ($i), iterations = `cat $rundir/$t/$c/$dm/stage2_rsl.error.0000 |grep 'back from adjoint integrate' |wc -l` ...complete" 
+                   else
+                     echo -e "\e[7mStage2\e[0m: Extra inner loop ($i), iterations = `cat $rundir/$t/$c/$dm/rsl.error.0000 |grep 'back from adjoint integrate' |wc -l` ..."
+                   fi
+                 fi
+                 if [ -f $rundir/$t/$c/$dm/stage2_outer$i ]; then
+                   if [ `cat $rundir/$t/$c/$dm/stage2_outer$i` == "complete" ]; then
+                     echo -e "\e[7mStage2\e[0m: Extra outer loop ($i) ....complete"
+                   else
+                     echo -e "\e[7mStage2\e[0m: Extra outer loop ($i) ...."
+                   fi             
+                 fi
+               done
+               if [ -f $rundir/$t/$c/$dm/rsl.error.0000 ]; then
+                 tail -n3 $rundir/$t/$c/$dm/rsl.error.0000
+               fi
+             fi
+           done
+           ;;
+         wrf_ens)
+           for m in `/bin/ls $rundir/$t/$c |grep '^[0-9][0-9][0-9]$'`; do
+             if [[ -f $rundir/$t/$c/$m/rsl.error.0000 ]]; then
+               rsltail=`tail -n1 $rundir/$t/$c/$m/rsl.error.0000`
+             fi
+             if [[ -z $rsltail ]]; then mstat="\e[0;31mwaiting\e[0m"; fi
+             if [[ $rsltail ]]; then mstat="\e[0;32mrunning\e[0m: $rsltail"; fi
+             if [[ `echo $rsltail |grep SUCCESS` ]]; then mstat=complete; fi
+             echo -e "$m ($mstat)"
+           done
+           for i in `/bin/ls $rundir/$t/$c |grep mean`; do
+             if [ -d $rundir/$t/$c/$i ]; then
+               echo -e "\e[7mCalculating $i\e[0m"
+               if [ -f $rundir/$t/$c/$i/ensemble_mean.log ]; then
+                 tail -n3 $rundir/$t/$c/$i/ensemble_mean.log
+               fi
+             fi
+           done
+           ;;
+       esac
+     fi
+  fi
+  done
+  echo ""
+done
+
+date

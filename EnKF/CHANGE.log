@@ -1,0 +1,41 @@
+Changelog of PSU-WRF-EnKF codes:
+
+Code history before 2012-10: no detailed record, only some hints in the header of main.f, copied as below:
+!   INITIATED BY FUQING ZHANG on 10/31/2001
+!   Last modified  Fuqing Zhang 11/9/01
+!   Last modified  Fuqing Zhang 12/31/02 for jan2000 storm enkf
+!   Last modified by Altug Aksoy 04/02/2003 for sounding assimilation (output & sounding spacing parts)
+!   Last modified by Altug Aksoy 04/09/2003 for parameterization of assimilated/updated variables
+!   Last modified by Altug Aksoy 05/21/2003 for correlation coefficient changes in ENKF.f
+!   Adapted to WRF by Zhiyong Meng  06/2005
+!   Added Radar data assimilation by Yonghui Weng 03/2006
+!   Added Hurricane Position and Intensity data assimilation by Yonghui Weng 01/2007
+!   Added MPI by Yonghui Weng 02/2007
+
+2012-10: Jon Poterjoy, fixed negative Q bug in enkf.f
+                       changes made to obs_io.f
+
+2012-12: Yue Ying, large modification of the algorithm. Affected code: enkf.f main.f sub_enkf_util.f
+                   Description of algorithm added to header of enkf.f
+2013-1 : Yue Ying, added parallelization to the update zone km(:,:,:), added namelist "parallel".
+                   Affected code: enkf.f main.f sub_enkf_util.f module_structure.f xb.f namelist.enkf
+     Status quo: 1. calculate y=Hx before update
+                 2. domain decomposed to limite cpu memory usage
+                 3. update zone decomposed to parallelized the computation of kalman gain
+                 4. recv/send (point to point) inter-cpu communication used to minimize data traffic
+                 5. state vector data structure kept (i,j,k), and block wise operation are used instead
+                    of using loops, to save time.
+                 6. random permutation of observation sequence can be used.
+2013-5: Yue Ying, subroutine ensemble_mean deprecated.
+2014-3: Bug fixs: 1. obs_io.f: assign wind direction error to wind speed fixed, in a lot of places data(n,k,2,2)
+                  2. obs_io.f: raw%gts sorting, select data closest to model levels fixed
+                  3. obs_io.f: missing grid_id values for a lot of subroutines fixed (useful for ngxn calculation in cal_roi.f, for Radar obs)
+2014-4: minor bug fix: ens perturbation not calculated if obs%num==0, causing trouble.
+2014-7: Yunji Zhang: 1. In calculation of T2 (part of yf) from state vector x can use model prognostics either T/Qv or Theta/Td.Affected: xb.f
+                     2. Add TBLS SMOIS as state vector, fix the calculation of kk (num of vertical levels) of these variables. Affected: sub_enkf_util.f, enkf.f, wrf_var_dimension soubroutine.
+        Michael Ying: added filter diagnostics outputs, including prior/posterior RMSEs, consistency ratio.
+                     3. Added data type GPSPW, affected xb obs_io namelist
+                     4. getting rid of sta= and numlevs= in obs_io, replace with allocatable arrays.
+2014-9:           minor bug fix: kick_off index is messed up is using random_order, fixed;
+2014-12:          Added satellite radiance observation, using CRTM as forward model.
+2015-3:           fixed OSSE component. use_ideal_obs works with use_sounding.

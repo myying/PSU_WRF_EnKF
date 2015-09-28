@@ -1,0 +1,172 @@
+# A sample namelist file used for enkf.mpi - an Ensemble Kalman Filter
+# description of variables:
+
+ &enkf_parameter
+ numbers_en   = 10,       #number of ensemble members
+ expername    = 'test ',  #name of the experiment, if 'hurricane', the obs position will be modified according to obs time, hurricane translation speed and the analysis time, using interpolation.
+ enkfvar      = 'T         ', 'W         ', 'U         ', 'V         ', 'QVAPOR    ', 'QCLOUD    ', 'QRAIN     ', 'PH        ', 'MU        ', 'PSFC      ', 'P         ', 'PHB       ', 'PB        ', 'MUB       ', 'U10       ', 'V10       ', # name of the variables put in state vector x, they are used in calculation of HBH' and kalman gain.
+ updatevar    = 'T         ', 'W         ', 'U         ', 'V         ', 'QVAPOR    ', 'QCLOUD    ', 'QRAIN     ', 'PH        ', 'MU        ', 'PSFC      ', 'P         ', 'U10       ', 'V10       ', # name of the variables to be updated with kalman filter.
+# update_is,ie,js,je,ks,ke: the start/end indices of region to have updated x,
+# s = start index, e = end index
+# i = x-direction, east-west
+# j = y-direction, north-south
+# k = z-direction
+# The updated region could have discontinuity along the border, if it is smaller than the whole domain.
+# usually we update the whole domain. this is only used for avoiding updating the layer near B.C. (wrf has a nudging layer there).
+ update_is    = 2,
+ update_ie    = 301,
+ update_js    = 2,
+ update_je    = 301,
+ update_ks    = 1,
+ update_ke    = 42,
+ inflate      = 1.0,    # inflation factor, used to inflate perturbations. 
+ relax_opt    = 0,        # relaxation methods:
+                          # 0: relax-to-prior-perturbation (Zhang et al 2004)
+                          # 1: relax-to-prior-spread       (Whitaker and Hamill 2012)
+ relax_adaptive = .false., # for relax_opt=1 (RTPS) turn on adaptive if set to true.
+                          # (ACR method, Ying and Zhang 2014)
+                          #
+ mixing       = 0.0,    # mixing factor, used to blend analysis with first guess.
+ random_order = .true., # to assimilate observations randomly if true.
+ print_detail = 1,      # for debugging use.
+ /
+
+# parallel setup
+# we recommend setting nmcpu = numbers_en + 1, and nicpu njcpu to extra cpus available, so that
+# num of total cpus (nprocs) = nmcpu * nicpu * njcpu. The reasonable nicpu and njcpu is that makes decomposed
+# domain about the size of updated zone of an obs (roi), i.e. if roi=40, and domain is 100*100 grid points,
+# we can have nicpu, njcpu= 2, 2
+ &parallel
+ manual_parallel = .false., # If true, the following ni, nj and nk are read. If false, the code will automatically
+                            # calculate nm, ni, nj and nk
+ nmcpu  = 1,  # number of cpus used in n_members' dimension (how many groups members are divided into)
+ nicpu  = 1,  # number of cpus used in x direction for decomposing the domain
+ njcpu  = 1,  # number of cpus used in y direction for decomposing the domain
+ /
+# assimilation of simulated/idealized data
+ &osse
+ use_ideal_obs    = .false.,
+ gridobs_is   = 0,
+ gridobs_ie   = 0,
+ gridobs_js   = 0,
+ gridobs_je   = 0,
+ gridobs_ks   = 0,
+ gridobs_ke   = 0,
+ gridobs_int_x= 0,
+ gridobs_int_k= 0,
+ use_simulated= .false.,
+ /
+
+# ROI: radius of influence. used in calculation of localization factor.
+# hroi_ = horizontal roi (in i and j direction)
+# vroi_ = vertical roi
+# their units are the equivalent number of grid points in the outermost domain (d01). 
+# e.g. for d01, hroi=10 means a radius of 10 grid points, 
+# while for d02, hroi=10 means 10 grid points in d01, so it is 30 grid points in d02.
+# Note: if the grid ratio is not 3, you may want to edit the code: cal_hroi in cal_roi.f 
+
+# datathin_ = factor used to thin the data, the larger the less obs assimilated.
+
+# assimilation of hurricane best track data
+# need the best track file (downloaded from jtwc or nhc) named "hurricane_best_track" in the rundir
+ &hurricane_PI 
+ use_hurricane_PI  = .false.,
+ hroi_hurricane_PI = 60,
+ vroi_hurricane_PI = 42,
+ /
+
+# assimilation of GTS data, usually in little_r format (processed with obsproc)
+# need the obs file named "obs_3dvar_${ccyymmddhhiiss}" in the rundir
+# ccyymmddhhiiss = year month day hour minute second of the data
+
+ &surface_obs
+ use_surface      = .false.,
+ datathin_surface = 10,
+ hroi_surface     = 30,
+ vroi_surface     = 42,
+ /
+
+ &sounding_obs
+ use_sounding      = .false.,
+ datathin_sounding = 9,
+ hroi_sounding     = 30,
+ vroi_sounding     = 42,
+ /
+
+ &profiler_obs
+ use_profiler      = .false.,
+ datathin_profiler = 9,
+ hroi_profiler     = 30,
+ vroi_profiler     = 42,
+ /
+
+ &aircft_obs
+ use_aircft      = .false.,
+ datathin_aircft = 2,
+ hroi_aircft     = 30,
+ vroi_aircft     = 42,
+ /
+ 
+ &metar_obs
+ use_metar      = .false.,
+ datathin_metar = 2,
+ hroi_metar     = 30,
+ vroi_metar     = 42,
+ /
+
+ &sfcshp_obs
+ use_sfcshp      = .false.,
+ datathin_sfcshp = 0,
+ hroi_sfcshp     = 50,
+ vroi_sfcshp     = 42,
+ /
+
+ &spssmi_obs
+ use_spssmi      = .false.,
+ datathin_spssmi = 2,
+ hroi_spssmi     = 30,
+ vroi_spssmi     = 42,
+ /
+
+ &atovs_obs
+ use_atovs      = .false.,
+ datathin_atovs = 9,
+ hroi_atovs     = 20,
+ vroi_atovs     = 42,
+ /
+
+ &satwnd_obs
+ use_satwnd      = .false.,
+ datathin_satwnd = 9,
+ hroi_satwnd     = 45,
+ vroi_satwnd     = 42,
+ /
+
+ &gpspw_obs
+ use_gpspw      = .true.,
+ datathin_gpspw = 0,
+ hroi_gpspw     = 360,
+ vroi_gpspw     = 25,
+ /
+
+# assimilation of land-based radar data, need "radar_data.info" file describing the radar site.
+# and a superob-formatted data file named "$RadarName_$ccyymmddhh_so". $RadarName can be found
+# in radar_data.info
+ &radar_obs
+ radar_number   = 1,
+ use_radar_rf   = .false.,
+ use_radar_rv   = .false.,     # radial velocity
+ datathin_radar = 9,
+ hroi_radar     = 45,
+ vroi_radar     = 42,
+ /
+
+# assimilation of airborne doppler radar data, usually in superob format.
+# need data file named "airborne_${ccyymmddhhii}_so" in the rundir
+ &airborne_radar   
+ use_airborne_rf   = .false.,
+ use_airborne_rv   = .true.,
+ datathin_airborne = 9,
+ hroi_airborne     = 80,
+ vroi_airborne     = 40,
+ /
