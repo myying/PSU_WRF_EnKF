@@ -196,7 +196,7 @@ CPU choreography
 If `total_ntasks` is smaller, the runs will complete in more than one batchs.
 
   For EnKF/4DVar, due to larger memory demand we need to use smaller ppn, say `enkf_ppn=4` (`HOSTPPN=16`).
-`enkf_ntasks=NMCPU*NICPU*NJCPU` and is usually set to (`NUM_ENS`+1)*1*1 (no domain decomposition). If `total_ntasks`
+`enkf_ntasks=NMCPU*NICPU*NJCPU` and is usually set to (`NUM_ENS`+1)\*1\*1 (no domain decomposition). If `total_ntasks`
 is set to `NUM_ENS*HOSTPPN` (`NUM_ENS` nodes), 3 EnKFs can be run simultaneously with each EnKF occupying 
 (`NUM_ENS`+1) CPUs or (`NUM_ENS`+1)/(`HOSTPPN`/`enkf_ppn`) nodes.
 
