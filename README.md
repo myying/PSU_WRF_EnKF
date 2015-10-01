@@ -231,6 +231,7 @@ Test case - Hurricane Katrina (2005)
 A sample configuration file has been setup for the Katrina case: config/katrina_enkf
 
 Test case data set can be found here: http://hfip.psu.edu/yxy159/katrinaTestData.tar
+
 Once you completed steps 1 and 2, set DATA_DIR to the test data directory, then just submit/execute run_cycle.sh.
 
 
