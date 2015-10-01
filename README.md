@@ -148,31 +148,31 @@ Notes on some specific functionalities:
 
 Boundary condition file
 -----------------------
-At DATE_START, a wrfbdy_d01 file contains time steps form DATE_START to DATE_END is created. The update/
-perturbation of boundary condition all happen to the same file, but at different time steps (n_1 option in
-WRF_BC_v2.1_alltime). A different copy is made for each member wrfbdy_d01_<member_id> and for different
-purpose: wrfbdy_d01 is for module_wrf_window.sh, wrfbdy_d01_window is for module_wrf_window1.sh.
+At `DATE_START`, a `wrfbdy_d01` file contains time steps form `DATE_START` to `DATE_END` is created. The update/
+perturbation of boundary condition all happen to the same file, but at different time steps (`n_1` option in
+WRF_BC_v2.1_alltime). A different copy is made for each member `wrfbdy_d01_<member_id>` and for different
+purpose: `wrfbdy_d01` is for `module_wrf_window.sh`, `wrfbdy_d01_window` is for `module_wrf_window1.sh`.
 
 Analysis time is different for EnKF/4DVar
 -----------------------------------------
-  In run_cycle.sh DATE starts from DATE_START and loops over all assimilation cycles (DATE_CYCLE_START to 
-DATE_CYCLE_END). The analysis time for EnKF is $DATE and for 4DVar is $DATE+$OBS_WIN_MIN. [OBS_WIN_MIN 
-OBS_WIN_MAX] defines the window in which observations are assimilated for the current cycle. For example,
-if the window is [-3 3] and DATE=6, the EnKF component will assimilate data from 3 to 9 and assume they are
+  In `run_cycle.sh` `DATE` starts from `DATE_START` and loops over all assimilation cycles (`DATE_CYCLE_START` to 
+`DATE_CYCLE_END`). The analysis time for EnKF is `$DATE` and for 4DVar is `$DATE+$OBS_WIN_MIN`. [`OBS_WIN_MIN` 
+`OBS_WIN_MAX`] defines the window in which observations are assimilated for the current cycle. For example,
+if the window is [-3 3] and `DATE`=6, the EnKF component will assimilate data from 3 to 9 and assume they are
 all valid at 6, while 4DVar will assimilate observations 3, 4, ..., 9 (7 bins) so that observations are
-assimilated at the correct time. The bin size can be adjusted by MINUTES_PER_SLOT(1). All numbers in hour 
+assimilated at the correct time. The bin size can be adjusted by `MINUTES_PER_SLOT(1)`. All numbers in hour 
 units in this paragraph, but in minutes in configuration files.
 
   For hybrid method, extra wrf runs are necessary to match the different analysis times:
-  1) previous module_wrf_ens.sh will save ensemble at DATE+OBS_WIN_MIN and calculate mean -> fg
-  2) module_wrf_window1.sh integrates fg to DATE+OBS_WIN_MAX -> fg02
-  3) module_wrf_window.sh integrates 4DVar analysis at DATE+OBS_WIN_MIN to DATE -> replace ensemble mean
+  1) previous `module_wrf_ens.sh` will save ensemble at `DATE`+`OBS_WIN_MIN` and calculate mean -> fg
+  2) `module_wrf_window1.sh` integrates fg to `DATE+OBS_WIN_MAX` -> fg02
+  3) `module_wrf_window.sh` integrates 4DVar analysis at `DATE`+`OBS_WIN_MIN` to `DATE` -> replace ensemble mean
 
 E4DVar vs 4DEnVar
 -----------------
   The difference between 4DEnVar and E4DVar is that 4DEnVar uses a set of ensemble perturbations to approximate
 U(t)=M(t)U, therefore not using tangent linear and adjoint models. To generate ensemble perturbations, an 
-extra ensemble forecast is run through the observation window (module_wrf_ens_window1.sh). E4DVar only need
+extra ensemble forecast is run through the observation window (`module_wrf_ens_window1.sh`). E4DVar only need
 ep at the beginning of observation window, while 4DEnVar needs ep for all observation bins.
 
 Nested domains
@@ -191,17 +191,17 @@ fixed domain runs.
 
 CPU choreography
 ----------------
-  Ensemble forecast requires NUM_ENS*wrf_ntasks, all cpus on a node are utilized: wrf_ppn=HOSTPPN. If 
-run_cycle.sh header specifies total_ntasks=NUM_ENS*wrf_ntasks, all runs will complete at the same time. 
-If total_ntasks is smaller, the runs will complete in more than one batchs.
+  Ensemble forecast requires `NUM_ENS`*`wrf_ntasks`, all cpus on a node are utilized: `wrf_ppn=HOSTPPN`. If 
+`run_cycle.sh` header specifies `total_ntasks=NUM_ENS*wrf_ntasks`, all runs will complete at the same time. 
+If `total_ntasks` is smaller, the runs will complete in more than one batchs.
 
-  For EnKF/4DVar, due to larger memory demand we need to use smaller ppn, say enkf_ppn=4 (HOSTPPN=16).
-enkf_ntasks=NMCPU*NICPU*NJCPU and is usually set to (NUM_ENS+1)*1*1 (no domain decomposition). If total_ntasks
-is set to NUM_ENS*HOSTPPN (NUM_ENS nodes), 3 EnKFs can be run simultaneously with each EnKF occupying 
-(NUM_ENS+1) CPUs or (NUM_ENS+1)/(HOSTPPN/enkf_ppn) nodes.
+  For EnKF/4DVar, due to larger memory demand we need to use smaller ppn, say `enkf_ppn=4` (`HOSTPPN=16`).
+`enkf_ntasks=NMCPU*NICPU*NJCPU` and is usually set to (`NUM_ENS`+1)*1*1 (no domain decomposition). If `total_ntasks`
+is set to `NUM_ENS*HOSTPPN` (`NUM_ENS` nodes), 3 EnKFs can be run simultaneously with each EnKF occupying 
+(`NUM_ENS`+1) CPUs or (`NUM_ENS`+1)/(`HOSTPPN`/`enkf_ppn`) nodes.
 
   So far, no choreography designed for hybrid runs, since 4DVar and EnKF can be run simultaneously, it's hard 
-to avoid conflicts over resources. So recommend using JOB_SUBMIT_MODE=2 for hybrid runs.
+to avoid conflicts over resources. So recommend using `JOB_SUBMIT_MODE=2` for hybrid runs.
 
 --------------------------------------------------------------------------------------------------------------
 
@@ -209,29 +209,29 @@ Installation tips and test case:
 
 1. Unpackage and compile all necessary code packages
 
-2. Modify run_cycle.sh header to assign CPU resources. The header should conform to your system's requirements.
-   Modify the total_ntasks part (the name of system variable may be different).
-   If necessary, modify job_submit.sh or even add your own execution lines.
+2. Modify `run_cycle.sh` header to assign CPU resources. The header should conform to your system's requirements.
+   Modify the `total_ntasks` part (the name of system variable may be different).
+   If necessary, modify `job_submit.sh` or even add your own execution lines.
 
 3. Modify configuration files to setup your experiment, change paths to the code packages, data files.
    Some model/DA options are given in the configuration file, if you want to personalize an option that's not
    in the configuration file, go modify the corresponding namelist generator/ module.
    The lowest part assigns CPU usage to different components (WRF runs, EnKF, 4DVar, etc)
 
-4. Submit/execute run_cycle.sh
+4. Submit/execute `run_cycle.sh`
 
-5. Check job status either by looking at standard error/output from run_cycle.sh, or use jstat to get a more
+5. Check job status either by looking at standard error/output from `run_cycle.sh`, or use `jstat` to get a more
    dynamic look of each component's status
 
-6. Once completed, you will have analysis for each assimilation cycle, then run_forecast.sh to run forecast 
+6. Once completed, you will have analysis for each assimilation cycle, then `run_forecast.sh` to run forecast 
    from these analyses.
 
 Test case - Hurricane Katrina (2005)
 ------------------------------------
-A sample configuration file has been setup for the Katrina case: config/katrina_enkf
+A sample configuration file has been setup for the Katrina case: `config/katrina_enkf`
 
 Test case data set can be found here: http://hfip.psu.edu/yxy159/katrinaTestData.tar
 
-Once you completed steps 1 and 2, set DATA_DIR to the test data directory, then just submit/execute run_cycle.sh.
+Once you completed steps 1 and 2, set `DATA_DIR` to the test data directory, then just submit/execute `run_cycle.sh`.
 
 
