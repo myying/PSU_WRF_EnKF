@@ -191,7 +191,7 @@ fixed domain runs.
 
 CPU choreography
 ----------------
-  Ensemble forecast requires `NUM_ENS`*`wrf_ntasks`, all cpus on a node are utilized: `wrf_ppn=HOSTPPN`. If 
+  Ensemble forecast requires `NUM_ENS`\*`wrf_ntasks`, all cpus on a node are utilized: `wrf_ppn=HOSTPPN`. If 
 `run_cycle.sh` header specifies `total_ntasks=NUM_ENS*wrf_ntasks`, all runs will complete at the same time. 
 If `total_ntasks` is smaller, the runs will complete in more than one batchs.
 
