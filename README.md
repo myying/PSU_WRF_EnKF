@@ -4,22 +4,22 @@ PSU WRF Ensemble-Variational Data Assimilation System
 
 Codes and Authors:
 ------------------
-    Control Scripts:        Michael Ying (yxy159@psu.edu), Jonathan Poterjoy, Yonghui Weng.
-                            Last updated 2015/01/20
+Control Scripts:        Michael Ying (yxy159@psu.edu), Jonathan Poterjoy, Yonghui Weng.
+                        Last updated 2015/01/20
 
-    EnKF component code:    Fuqing Zhang, Yonghui Weng, Michael Ying, Jonathan Poterjoy.
-                            Last updated 2014/08/01
+EnKF component code:    Fuqing Zhang, Yonghui Weng, Michael Ying, Jonathan Poterjoy.
+                        Last updated 2014/08/01
 
-    4DVar compoent:         WRFDA package from NCAR.
+4DVar compoent:         WRFDA package from NCAR.
 
-    WRF model:              from NCAR
+WRF model:              from NCAR
 
-    WRFDA_4denvar:          WRFDA code modified for 4DEnVar: Jonathan Poterjoy.
+WRFDA_4denvar:          WRFDA code modified for 4DEnVar: Jonathan Poterjoy.
 
-    MULTI_INC:              utility programs for running multi-incremental 4DVar
+MULTI_INC:              utility programs for running multi-incremental 4DVar
 
-    WRF_BC_v2.1_alltime:    WRF_BC_v2.1 modified by Zhiyong Meng to update/perturb lateral boundary condition
-                          at a given time.
+WRF_BC_v2.1_alltime:    WRF_BC_v2.1 modified by Zhiyong Meng to update/perturb lateral boundary condition
+                        at a given time.
 
 --------------------------------------------------------------------------------------------------------------
 
@@ -27,120 +27,120 @@ List of components
 
 Top level files:
 ----------------
-     config/katrina_enkf           configuration file(s), see README.config for details
+ config/katrina_enkf           configuration file(s), see README.config for details
 
-     run_cycle.sh                  runs cycling DA from DATE_START (initialization step) to DATE_CYCLE_END
+ run_cycle.sh                  runs cycling DA from DATE_START (initialization step) to DATE_CYCLE_END
 
-     run_forecast.sh               runs forecast from analyses at each cycle to DATE_END
+ run_forecast.sh               runs forecast from analyses at each cycle to DATE_END
 
-     run_gen_be.sh                 runs the model and calculate be.dat from outputs using gen_be package
+ run_gen_be.sh                 runs the model and calculate be.dat from outputs using gen_be package
 
-     gen_be/                       WRFDA gen_be package modified to allow parallelization
+ gen_be/                       WRFDA gen_be package modified to allow parallelization
 
 Namelists generators:
 ---------------------
-     namelist_wps.sh               creates namelist.wps for WPS input
+ namelist_wps.sh               creates namelist.wps for WPS input
 
-     namelist_wrf.sh               creates namelist.input for WRF input.
-                                   usage: namelist_wrf.sh use_for domain_id
-                                   use_for=wrf    - for WRF runs (all domains)
-                                   use_for=wrfvar - for da_wrfvar.exe (1 domain)
-                                   use_for=ndown  - for ndown.exe (2 domains, parent and child)
+ namelist_wrf.sh               creates namelist.input for WRF input.
+                               usage: namelist_wrf.sh use_for domain_id
+                               use_for=wrf    - for WRF runs (all domains)
+                               use_for=wrfvar - for da_wrfvar.exe (1 domain)
+                               use_for=ndown  - for ndown.exe (2 domains, parent and child)
 
-     namelist_wrfvar.sh            creates namelist.input for da_wrfvar.exe (the &wrfvar parts)
+ namelist_wrfvar.sh            creates namelist.input for da_wrfvar.exe (the &wrfvar parts)
 
-     namelist_obsproc.sh           creates namelist.obsproc for obsproc.exe 
+ namelist_obsproc.sh           creates namelist.obsproc for obsproc.exe 
 
 Modules:
 --------
-     module_icbc.sh                runs geogrid.exe ungrib.exe and metgrid.exe from WPS and real.exe from WRF 
-                                   to prepare initial and boundary conditions.
-                                   input:  first guess ($FG_DIR) geog ($GEOG_DIR)
-                                   output: $WORK_DIR/rc/$DATE/wrfbdy_d01|wrfinput_d0?
+ module_icbc.sh                runs geogrid.exe ungrib.exe and metgrid.exe from WPS and real.exe from WRF 
+                               to prepare initial and boundary conditions.
+                               input:  first guess ($FG_DIR) geog ($GEOG_DIR)
+                               output: $WORK_DIR/rc/$DATE/wrfbdy_d01|wrfinput_d0?
 
-     module_obsproc.sh             runs obsproc.exe to create LITTLE_R formatted inputs for EnKF and WRFDA
-                                   input: raw observations data (NCAR_LITTLE_R, MADIS, BUFR, ...)
-                                   output: $WORK_DIR/obs/$DATE/obs_gts_<time>.3DVAR|4DVAR
-                                   Note: if data is preprocessed, this module can be omitted.
+ module_obsproc.sh             runs obsproc.exe to create LITTLE_R formatted inputs for EnKF and WRFDA
+                               input: raw observations data (NCAR_LITTLE_R, MADIS, BUFR, ...)
+                               output: $WORK_DIR/obs/$DATE/obs_gts_<time>.3DVAR|4DVAR
+                               Note: if data is preprocessed, this module can be omitted.
 
-     module_perturb_ic.sh          for generating ensemble perturbations.
-                                   input: be.dat, $WORK_DIR/rc/$DATE/wrfinput_d01
-                                   output: 100 random perturbations (rc/random_samples) and 
-                                           the first NUM_ENS becomes the initial ensemble. 
-                                   If having nested domains, the perturbations are nested down to create 
-                                   wrfinput files for the nested domains.
+ module_perturb_ic.sh          for generating ensemble perturbations.
+                               input: be.dat, $WORK_DIR/rc/$DATE/wrfinput_d01
+                               output: 100 random perturbations (rc/random_samples) and 
+                                       the first NUM_ENS becomes the initial ensemble. 
+                               If having nested domains, the perturbations are nested down to create 
+                               wrfinput files for the nested domains.
 
-     module_enkf.sh                runs the EnKF component.
-                                   input: observations, 
-                                          $WORK_DIR/fc/$PREVDATE/wrfinput_<domain_id>_<DATE>_<member_id>
-                                   output: $WORK_DIR/fc/$DATE/wrfinput_<domain_id>_<member_id>
-                                   If coupled with 4DVar, the ensemble mean is replaced with 4DVar analysis
-                                   If REPLACE_MEAN=true, the ensemble mean is also replaced with specified
-                                   file.
+ module_enkf.sh                runs the EnKF component.
+                               input: observations, 
+                                      $WORK_DIR/fc/$PREVDATE/wrfinput_<domain_id>_<DATE>_<member_id>
+                               output: $WORK_DIR/fc/$DATE/wrfinput_<domain_id>_<member_id>
+                               If coupled with 4DVar, the ensemble mean is replaced with 4DVar analysis
+                               If REPLACE_MEAN=true, the ensemble mean is also replaced with specified
+                               file.
 
-     module_4dvar.sh               runs the 4DVar component.
-                                   input: observations, fg fg02, ep (if coupled with EnKF)
-                                   output: $WORK_DIR/fc/$DATE/wrfinput_<domain_id>_<DATE+OBS_WIN_MIN>
+ module_4dvar.sh               runs the 4DVar component.
+                               input: observations, fg fg02, ep (if coupled with EnKF)
+                               output: $WORK_DIR/fc/$DATE/wrfinput_<domain_id>_<DATE+OBS_WIN_MIN>
 
-     module_wrf_ens.sh             runs ensemble forecast to next EnKF analysis time.
-                                   The boundary condition is perturbed using random_samples.
-                                   input: $WORK_DIR/fc/$DATE/wrfinput_<domain_id>_<member_id>
-                                          $WORK_DIR/fc/wrfbdy_d01_<member_id>
-                                   output: $WORK_DIR/fc/$DATE/wrfinput_<domain_id>_<NEXTDATE>_<member_id>
+ module_wrf_ens.sh             runs ensemble forecast to next EnKF analysis time.
+                               The boundary condition is perturbed using random_samples.
+                               input: $WORK_DIR/fc/$DATE/wrfinput_<domain_id>_<member_id>
+                                      $WORK_DIR/fc/wrfbdy_d01_<member_id>
+                               output: $WORK_DIR/fc/$DATE/wrfinput_<domain_id>_<NEXTDATE>_<member_id>
 
-     module_wrf_window.sh          runs wrf forecast from 4DVar analysis
-                                   input: $WORK_DIR/fc/$DATE/wrfinput_<domain_id>_<DATE+OBS_WIN_MIN>
-                                          $WORK_DIR/fc/wrfbdy_d01
-                                   output: $WORK_DIR/fc/$DATE/wrfinput_<domain_id>_<DATE> (coupled with EnKF)
-                                        or $WORK_DIR/fc/$DATE/wrfinput_<domain_id>_<NEXTDATE+OBS_WIN_MIN> 
-                                        (4DVar only)
+ module_wrf_window.sh          runs wrf forecast from 4DVar analysis
+                               input: $WORK_DIR/fc/$DATE/wrfinput_<domain_id>_<DATE+OBS_WIN_MIN>
+                                      $WORK_DIR/fc/wrfbdy_d01
+                               output: $WORK_DIR/fc/$DATE/wrfinput_<domain_id>_<DATE> (coupled with EnKF)
+                                    or $WORK_DIR/fc/$DATE/wrfinput_<domain_id>_<NEXTDATE+OBS_WIN_MIN> 
+                                    (4DVar only)
 
-     module_wrf_window1.sh         runs wrf forecast across observation window
-                                   input: $WORK_DIR/fc/$PREVDATE/wrfinput_<domain_id>_<DATE+OBS_WIN_MIN>
-                                          $WORK_DIR/fc/wrfbdy_d01_window
-                                   output: $WORK_DIR/fc/$PREVDATE/wrfinput_<domain_id>_<DATE+OBS_WIN_MAX>
+ module_wrf_window1.sh         runs wrf forecast across observation window
+                               input: $WORK_DIR/fc/$PREVDATE/wrfinput_<domain_id>_<DATE+OBS_WIN_MIN>
+                                      $WORK_DIR/fc/wrfbdy_d01_window
+                               output: $WORK_DIR/fc/$PREVDATE/wrfinput_<domain_id>_<DATE+OBS_WIN_MAX>
 
-     module_wrf_ens_window1.sh     runs ensemble forecast across observation window (preparing for ep*)
-                                   input: $WORK_DIR/fc/$PREVDATE/wrfinput_<domain_id>_<DATE+OBS_WIN_MIN>_<member_id>
-                                          $WORK_DIR/fc/wrfbdy_d01_window_<member_id>
-                                   output: $WORK_DIR/fc/$PREVDATE/wrfinput_<domain_id>_<bin_date>_window1_<member_id>
-                                           bin_date=DATE+[OBS_WIN_MIN:MINUTES_PER_SLOT:OBS_WIN_MAX]
+ module_wrf_ens_window1.sh     runs ensemble forecast across observation window (preparing for ep*)
+                               input: $WORK_DIR/fc/$PREVDATE/wrfinput_<domain_id>_<DATE+OBS_WIN_MIN>_<member_id>
+                                      $WORK_DIR/fc/wrfbdy_d01_window_<member_id>
+                               output: $WORK_DIR/fc/$PREVDATE/wrfinput_<domain_id>_<bin_date>_window1_<member_id>
+                                       bin_date=DATE+[OBS_WIN_MIN:MINUTES_PER_SLOT:OBS_WIN_MAX]
                                
   
  Note: A schematic work flow diagram can be found at http://hfip.psu.edu/yxy159/PSU_DA_system_work_flow.jpg 
 
 Utilities:
 ----------
-     jstat                         provides a real-time summary of job status
-                                   usage: jstat $WORK_DIR
+ jstat                         provides a real-time summary of job status
+                               usage: jstat $WORK_DIR
 
-     job_submit.sh                 submit and run jobs (currently supported clusters: stampede and jet)
-                                   Two possible job submit modes:
-                                   If $JOB_SUBMIT_MODE=1: run_cycle.sh is submitted into queue, it requestes
-                                   resources and job_submit.sh executes program. The scheduling (choreograph)
-                                   of jobs are taken care of in each module.
-                                   If $JOB_SUBMIT_MODE=2: run_cycle.sh is executed directly, and job_submit.sh
-                                   creates separate run scripts and submit them. The scheduling is done by the
-                                   queue.
-                                                                 
-     util.sh                       utility functions including math, time calculation, work flow control, etc.
+ job_submit.sh                 submit and run jobs (currently supported clusters: stampede and jet)
+                               Two possible job submit modes:
+                               If $JOB_SUBMIT_MODE=1: run_cycle.sh is submitted into queue, it requestes
+                               resources and job_submit.sh executes program. The scheduling (choreograph)
+                               of jobs are taken care of in each module.
+                               If $JOB_SUBMIT_MODE=2: run_cycle.sh is executed directly, and job_submit.sh
+                               creates separate run scripts and submit them. The scheduling is done by the
+                               queue.
+                                                             
+ util.sh                       utility functions including math, time calculation, work flow control, etc.
 
-     util_change_nc_att.ncl        ncl script that changes ncfile global attribute values
+ util_change_nc_att.ncl        ncl script that changes ncfile global attribute values
 
-     util_linint_nc_time.ncl       ncl script that interpolates a ncfile in time
+ util_linint_nc_time.ncl       ncl script that interpolates a ncfile in time
 
-     calc_domain_moves.sh          calculates the preset move steps for nested inner domains that follows storm, 
-                                   move is defined by input tcvitals data ($TCVITALS_DIR)
+ calc_domain_moves.sh          calculates the preset move steps for nested inner domains that follows storm, 
+                               move is defined by input tcvitals data ($TCVITALS_DIR)
 
-     calc_ij_parent_start.sh       calculates initial nested domain locations in the parent domain according to 
-                                   tcvitals data
+ calc_ij_parent_start.sh       calculates initial nested domain locations in the parent domain according to 
+                               tcvitals data
 
-     multi_physics_draw.sh         if multi-physics ensemble is used, this randomly assign physics options in 
-                                   module_perturb_ic.sh. The following namelist_wrf.sh will read wrfinput files
-                                   to get options instead of from configuration file.
+ multi_physics_draw.sh         if multi-physics ensemble is used, this randomly assign physics options in 
+                               module_perturb_ic.sh. The following namelist_wrf.sh will read wrfinput files
+                               to get options instead of from configuration file.
 
-     multi_physics_reset.sh        for deterministic runs, this resets the physics options to that defined in 
-                                   the configuration file for wrfinput files.
+ multi_physics_reset.sh        for deterministic runs, this resets the physics options to that defined in 
+                               the configuration file for wrfinput files.
 
 --------------------------------------------------------------------------------------------------------------
 
