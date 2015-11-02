@@ -13,12 +13,8 @@ wait_for_module ../icbc
 echo running > stat
 
 export start_date=$DATE
-#if [ $DATE == $DATE_START ]; then
-#  export run_minutes=`diff_time $DATE_START $DATE_END`
-#else
-#  export run_minutes=$run_minutes_forecast
-#fi
-  export run_minutes=$run_minutes_forecast
+export run_minutes=$run_minutes_forecast
+
 
 for i in 1; do
   touch rsl.error.0000
@@ -27,10 +23,13 @@ for i in 1; do
   ln -fs $WRF_DIR/run/* .
   rm -f namelist.*
 
-  for n in `seq 1 $MAX_DOM`; do
-    dm=d`expr $n + 100 |cut -c2-`
-    ln -fs ../../../rc/$DATE/wrfinput_$dm .
-  done
+#  for n in `seq 1 $MAX_DOM`; do
+#    dm=d`expr $n + 100 |cut -c2-`
+#    ln -fs ../../../rc/$DATE/wrfinput_$dm .
+#  done
+  ln -fs $WORK/DYNAMO/9km_run/wrfout_d01_`wrf_time_string $DATE` wrfinput_d01
+  ncl $SCRIPT_DIR/util_change_nc_att.ncl 'ncfile="wrfinput_d01"' 'attname="I_PARENT_START"' 'attvalue=1'
+  ncl $SCRIPT_DIR/util_change_nc_att.ncl 'ncfile="wrfinput_d01"' 'attname="J_PARENT_START"' 'attvalue=1'
   ln -fs ../../../rc/$DATE_START/wrfbdy_d01 .
   if [[ $SST_UPDATE == 1 ]]; then
     ln -fs ../../../rc/$DATE_START/wrflowinp_d?? .

@@ -9,6 +9,7 @@ if [[ `cat stat` == "complete" ]]; then exit; fi
 #Check dependency
 wait_for_module ../icbc ../../$DATE_START/perturb_ic
 wait_for_module ../../$PREVDATE/wrf_ens
+if [[ $JOB_SUBMIT_MODE == 1 ]]; then wait_for_module ../wrf_window1; fi
 
 echo running > stat
 
@@ -65,7 +66,8 @@ EOF
   ln -fs ../../../../fc/$DATE_START/wrfinput_d01_`expr $((RANDOM%($NUM_ENS-1)+1)) + 1000 |cut -c2-` random_draw
   ln -fs ../../../../rc/$DATE_START/wrfinput_d01 random_mean
 
-  $SCRIPT_DIR/job_submit.sh 1 $tid $HOSTPPN ./update_wrf_bc.exe >& update_wrf_bc.log &
+#  $SCRIPT_DIR/job_submit.sh 1 $tid $HOSTPPN ./update_wrf_bc.exe >& update_wrf_bc.log &
+  ./update_wrf_bc.exe >& update_wrf_bc.log
 
   tid=$((tid+1))
   if [[ $tid == $nt ]]; then
@@ -99,7 +101,7 @@ for NE in `seq 1 $NUM_ENS`; do
 
   for n in `seq 1 $MAX_DOM`; do
     dm=d`expr $n + 100 |cut -c2-`
-    ln -fs ../../../../fc/$DATE/wrfinput_${dm}_`wrf_time_string $start_date`_$id wrfinput_$dm
+    ln -fs ../../../../fc/$PREVDATE/wrfinput_${dm}_`wrf_time_string $start_date`_$id wrfinput_$dm
   done
   ln -fs ../../../../fc/wrfbdy_d01_window_$id wrfbdy_d01
 
@@ -127,15 +129,23 @@ for NE in `seq 1 $NUM_ENS`; do
   watch_log $id/rsl.error.0000 SUCCESS 1 $rundir
   e_offset=`seq $OBS_WIN_MIN $MINUTES_PER_SLOT $OBS_WIN_MAX`
   for i in $e_offset; do
-    outdate=`advance_time $NEXTDATE $i`
-    outfile=$id/wrfinput_d01_`wrf_time_string $outdate`
-    mv $outfile $WORK_DIR/fc/$DATE/wrfinput_d01_`wrf_time_string $outdate`_window_$id
-    if [ $MAX_DOM -gt 1 ]; then
-      for n in `seq 2 $MAX_DOM`; do
+    outdate=`advance_time $DATE $i`
+    if [ $outdate -eq $start_date ]; then
+      for n in `seq 1 $MAX_DOM`; do
         dm=d`expr $n + 100 |cut -c2-`
-        outfile=$id/wrfout_${dm}_`wrf_time_string $outdate`
-        mv $outfile $WORK_DIR/fc/$DATE/wrfinput_${dm}_`wrf_time_string $outdate`_window_$id
+        outfile=$WORK_DIR/fc/$PREVDATE/wrfinput_${dm}_`wrf_time_string $start_date`_$id
+        ln -fs $outfile $WORK_DIR/fc/$DATE/wrfinput_${dm}_`wrf_time_string $start_date`_window_$id
       done
+    else
+      outfile=$id/wrfinput_d01_`wrf_time_string $outdate`
+      mv $outfile $WORK_DIR/fc/$DATE/wrfinput_d01_`wrf_time_string $outdate`_window_$id
+      if [ $MAX_DOM -gt 1 ]; then
+        for n in `seq 2 $MAX_DOM`; do
+          dm=d`expr $n + 100 |cut -c2-`
+          outfile=$id/wrfout_${dm}_`wrf_time_string $outdate`
+          mv $outfile $WORK_DIR/fc/$DATE/wrfinput_${dm}_`wrf_time_string $outdate`_window_$id
+        done
+      fi
     fi
   done
 done

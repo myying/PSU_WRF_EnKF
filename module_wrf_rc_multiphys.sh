@@ -30,6 +30,8 @@ for i in 1; do
   for n in `seq 1 $MAX_DOM`; do
     dm=d`expr $n + 100 |cut -c2-`
     ln -fs ../../../rc/$DATE/wrfinput_$dm .
+######
+    $SCRIPT_DIR/multi_physics_draw.sh wrfinput_$dm >& multi_physics_draw.log
   done
   ln -fs ../../../rc/$DATE_START/wrfbdy_d01 .
   if [[ $SST_UPDATE == 1 ]]; then
@@ -40,9 +42,9 @@ for i in 1; do
     cp $WORK_DIR/rc/$DATE/ij_parent_start_4dvar ij_parent_start
     cp $WORK_DIR/rc/$DATE/domain_moves_4dvar domain_moves
   fi
-  if $MULTI_PHYS_ENS; then
-    $SCRIPT_DIR/multi_physics_reset.sh >& multi_physics_reset.log
-  fi
+#  if $MULTI_PHYS_ENS; then
+#    $SCRIPT_DIR/multi_physics_reset.sh >& multi_physics_reset.log
+#  fi
   $SCRIPT_DIR/namelist_wrf.sh wrf > namelist.input
 
   $SCRIPT_DIR/job_submit.sh $wrf_single_ntasks 0 $HOSTPPN ./wrf.exe >& wrf.log

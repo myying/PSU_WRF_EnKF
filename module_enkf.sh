@@ -6,7 +6,11 @@ if [[ ! -d $rundir ]]; then mkdir -p $rundir; echo waiting > $rundir/stat; fi
 cd $rundir
 if [[ `cat stat` == "complete" ]]; then exit; fi
 
-wait_for_module ../../$PREVDATE/wrf_ens ../obsproc
+wait_for_module ../../$PREVDATE/wrf_ens #../obsproc
+if [[ $JOB_SUBMIT_MODE == 1 ]]; then 
+  wait_for_module ../icbc
+  if $RUN_4DVAR; then  wait_for_module ../4dvar ../wrf_window; fi
+fi
 
 #Run EnKF
 echo running > stat
@@ -38,8 +42,10 @@ for n in $domlist; do
 #  #airborne radar superobs
 #  ln -fs $DATA_DIR/so/${DATE}_all.so_ass airborne_${DATE}_so
 
-  #link truth for OSSE
-  ln -fs $WORK/data/DYNAMO/3km_run_9km/wrfout_d01_`wrf_time_string $DATE` fort.80010
+  ln -fs $OBS_DIR/obs_gts_`wrf_time_string $DATE`.3DVAR.$OBS_TYPE obs_3dvar_${DATE}00
+
+#  #link truth for OSSE
+#  ln -fs $WORK/data/DYNAMO/3km_run_9km/wrfout_d01_`wrf_time_string $DATE` fort.80010
 
   $SCRIPT_DIR/namelist_enkf.sh $n > namelist.enkf
   cd ..

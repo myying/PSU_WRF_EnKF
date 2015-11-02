@@ -28,7 +28,7 @@ for i in `seq 1 $nm`; do
 
   ln -fs $WRFDA_DIR/run/LANDUSE.TBL .
   ln -fs $WRFDA_DIR/var/build/da_wrfvar.exe .
-  cp $WORK_DIR/rc/$DATE/wrfinput_d?? .
+  cp $WORK_DIR/fc/$DATE_START/wrfinput_d?? .
   ln -fs wrfinput_d01 fg
   if [[ $CV_OPTIONS == 3 ]]; then
     ln -fs $WRFDA_DIR/var/run/be.dat.cv3 be.dat
@@ -56,12 +56,35 @@ for i in `seq 1 $nm`; do
 done
 wait
 
-#perturbed ensemble members
 for NE in `seq 1 $NUM_ENS`; do
   id=`expr $NE + 1000 |cut -c2-`
   watch_log $id/rsl.error.0000 successfully 1 $rundir
   mv $id/wrfvar_output $WORK_DIR/fc/$DATE/wrfinput_d01_$id
 done
+
+#recenter ensemble to first guess
+if [[ ! -d replace_mean ]]; then mkdir -p replace_mean; fi
+cd replace_mean
+  for NE in `seq 1 $NUM_ENS`; do
+    id=`expr $NE + 1000 |cut -c2-`
+    ln -fs $WORK_DIR/fc/$DATE/wrfinput_d01_$id fort.`expr 80010 + $NE`
+    cp fort.`expr 80010 + $NE` fort.`expr 90010 + $NE`
+  done
+  ln -fs $WORK_DIR/fc/$DATE_START/wrfinput_d01 fort.70010
+  ln -fs $ENKF_DIR/replace_mean.exe .
+  ./replace_mean.exe $NUM_ENS >& replace_mean.log
+  watch_log replace_mean.log Successful 1 $rundir
+  for NE in `seq 1 $NUM_ENS`; do
+    id=`expr $NE + 1000 |cut -c2-`
+    mv fort.`expr 90010 + $NE` $WORK_DIR/fc/$DATE/wrfinput_d01_$id
+  done
+cd ..
+
+###
+#for NE in `seq 1 $NUM_ENS`; do
+#  id=`expr $NE + 1000 |cut -c2-`
+#  cp $WORK_DIR/fc/$DATE_START/wrfinput_d01 $WORK_DIR/fc/$DATE/wrfinput_d01_$id
+#done
 
 if [ $DATE == $DATE_START ]; then
   #nest down perturbations for inner domains
@@ -106,12 +129,13 @@ if [ $DATE == $DATE_START ]; then
   fi
 
   #if using multi-physics ensemble, randomly assign physics options
-  for NE in `seq 1 $NUM_ENS`; do
-    id=`expr $NE + 1000 |cut -c2-`
-    if $MULTI_PHYS_ENS; then
-      $SCRIPT_DIR/multi_physics_draw.sh $WORK_DIR/fc/$DATE/wrfinput_d??_$id >& multi_physics_draw.log
-    fi
-  done
+  if $MULTI_PHYS_ENS; then
+    for NE in `seq 1 $NUM_ENS`; do
+      id=`expr $NE + 1000 |cut -c2-`
+      $SCRIPT_DIR/multi_physics_randraw.sh $WORK_DIR/fc/$DATE/wrfinput_d??_$id >& multi_physics_draw.log
+    done
+#    $SCRIPT_DIR/multi_physics_draw.sh $NUM_ENS $WORK_DIR/fc/$DATE >& multi_physics_draw.log
+  fi
 fi
 
 echo complete > stat

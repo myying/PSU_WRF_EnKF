@@ -37,8 +37,8 @@ integer, dimension(8)  :: rvalues
 real :: gaussdev
 integer :: gridobs_ks, gridobs_ke, gridobs_int_k, k_levels
 integer :: gridobs_js, gridobs_je, gridobs_is, gridobs_ie, gridobs_int_x
-real :: rh_error,z_error,spd_error,dir_error, t_error,td_error,qpc_error
-real :: obs_q,obs_pres,obs_temp,mean_qv
+real :: rh_error,z_error,spd_error,dir_error, t_error,td_error
+real :: obs_q,obs_pres,obs_temp
 
 character (len=14) :: tstr
 character (len=80) :: dt
@@ -54,7 +54,7 @@ gridobs_js=1
 gridobs_je=222
 gridobs_ks=1
 gridobs_ke=44
-gridobs_int_x=10
+gridobs_int_x=40
 gridobs_int_k=1
 
 !get truth wrfout fields
@@ -138,35 +138,35 @@ each_fmt(1:180)=' '
 each_fmt(1:j-i)=fmt_fmt(i+1:j)
 read(10,*)
 
-do n = 1, total
-   read(10, fmt=info_fmt) platform,date,name,obs_level,latitude,longitude,elevation,id
-   read(10, fmt=srfc_fmt) slp(1),qcint(1),slp(3),pw(1),qcint(2),pw(3)
-   tstr=date(1:4)//date(6:7)//date(9:10)//date(12:13)//date(15:16)//date(18:19)
-   read(tstr,'(i14)') t1
-   tstr=times(1:4)//times(6:7)//times(9:10)//times(12:13)//times(15:16)//times(18:19)
-   read(tstr,'(i14)') t2
-   if ( platform(4:6).eq.'88 ' ) then
-     if(t1.lt.t2) then
-       total1=total1+1
-       satob1=satob1+1
-     else
-       total2=total2+1
-       satob2=satob2+1
-     endif
-   endif
-   if ( platform(4:6).eq.'35 ' ) then
-     if(t1.lt.t2) then
-       total1=total1+1
-       temp1=temp1+1
-     else
-       total2=total2+1
-       temp2=temp2+1
-     endif
-   endif
-   do k = 1, obs_level
-     read(10,*)
-   enddo
-enddo
+!do n = 1, total
+!   read(10, fmt=info_fmt) platform,date,name,obs_level,latitude,longitude,elevation,id
+!   read(10, fmt=srfc_fmt) slp(1),qcint(1),slp(3),pw(1),qcint(2),pw(3)
+!   tstr=date(1:4)//date(6:7)//date(9:10)//date(12:13)//date(15:16)//date(18:19)
+!   read(tstr,'(i14)') t1
+!   tstr=times(1:4)//times(6:7)//times(9:10)//times(12:13)//times(15:16)//times(18:19)
+!   read(tstr,'(i14)') t2
+!   if ( platform(4:6).eq.'88 ' ) then
+!     if(t1.lt.t2) then
+!       total1=total1+1
+!       satob1=satob1+1
+!     else
+!       total2=total2+1
+!       satob2=satob2+1
+!     endif
+!   endif
+!   if ( platform(4:6).eq.'35 ' ) then
+!     if(t1.lt.t2) then
+!       total1=total1+1
+!       temp1=temp1+1
+!     else
+!       total2=total2+1
+!       temp2=temp2+1
+!     endif
+!   endif
+!   do k = 1, obs_level
+!     read(10,*)
+!   enddo
+!enddo
 close(10)
 
 !count ideal soundings
@@ -227,129 +227,129 @@ do i=1,16
 end do
 
 !write observations
-do n=1,total
-   read(10, fmt=info_fmt)platform,date,name,obs_level,latitude,longitude,elevation,id
-   read(10, fmt=srfc_fmt)slp(1),qcint(1),slp(3),pw(1),qcint(2),pw(3)
-   tstr=date(1:4)//date(6:7)//date(9:10)//date(12:13)//date(15:16)//date(18:19)
-   read(tstr,'(i14)') t1
-   tstr=times(1:4)//times(6:7)//times(9:10)//times(12:13)//times(15:16)//times(18:19)
-   read(tstr,'(i14)') t2
-
-   if ( platform(4:6)=='88 ' .or. platform(4:6)=='35 ') then
-     call latlon_to_ij(proj,latitude,longitude,obs_ii,obs_jj)
-     i1 = int( obs_ii )
-     j1 = int( obs_jj )
-     dx  = obs_ii-real(i1)
-     dxm = real(i1+1)-obs_ii
-     dy  = obs_jj-real(j1)
-     dym = real(j1+1)-obs_jj
-     mu1 = dym*(dx*mu(i1+1,j1  ) + dxm*mu(i1,j1  )) + dy*(dx*mu(i1+1,j1+1) + dxm*mu(i1,j1+1))
-     mub1 = dym*(dx*mub(i1+1,j1  ) + dxm*mub(i1,j1  )) + dy*(dx*mub(i1+1,j1+1) + dxm*mub(i1,j1+1))
-     qvt(1:kx) = dym*(dx*qall(i1+1,j1,1:kx) + dxm*qall(i1,j1,1:kx)) + dy*(dx*qall(i1+1,j1+1,1:kx) + dxm*qall(i1,j1+1,1:kx))
-     ptt(1:kx) = dym*(dx*pt(i1+1,j1,1:kx) + dxm*pt(i1,j1,1:kx)) + dy*(dx*pt(i1+1,j1+1,1:kx) + dxm*pt(i1,j1+1,1:kx))
-     zgt(1:kx+1) = dym*(dx*zg(i1+1,j1,1:kx+1) + dxm*zg(i1,j1,1:kx+1)) + dy*(dx*zg(i1+1,j1+1,1:kx+1) + dxm*zg(i1,j1+1,1:kx+1))
-     call eta_to_pres(znw0(1:kx+1), mu1+mub1, qvt(1:kx), zgt(1:kx+1), ptt(1:kx)+to, kx, pres(1:kx))
+!do n=1,total
+!   read(10, fmt=info_fmt)platform,date,name,obs_level,latitude,longitude,elevation,id
+!   read(10, fmt=srfc_fmt)slp(1),qcint(1),slp(3),pw(1),qcint(2),pw(3)
+!   tstr=date(1:4)//date(6:7)//date(9:10)//date(12:13)//date(15:16)//date(18:19)
+!   read(tstr,'(i14)') t1
+!   tstr=times(1:4)//times(6:7)//times(9:10)//times(12:13)//times(15:16)//times(18:19)
+!   read(tstr,'(i14)') t2
+!
+!   if ( platform(4:6)=='88 ' .or. platform(4:6)=='35 ') then
+!     call latlon_to_ij(proj,latitude,longitude,obs_ii,obs_jj)
+!     i1 = int( obs_ii )
+!     j1 = int( obs_jj )
+!     dx  = obs_ii-real(i1)
+!     dxm = real(i1+1)-obs_ii
+!     dy  = obs_jj-real(j1)
+!     dym = real(j1+1)-obs_jj
+!     mu1 = dym*(dx*mu(i1+1,j1  ) + dxm*mu(i1,j1  )) + dy*(dx*mu(i1+1,j1+1) + dxm*mu(i1,j1+1))
+!     mub1 = dym*(dx*mub(i1+1,j1  ) + dxm*mub(i1,j1  )) + dy*(dx*mub(i1+1,j1+1) + dxm*mub(i1,j1+1))
+!     qvt(1:kx) = dym*(dx*qall(i1+1,j1,1:kx) + dxm*qall(i1,j1,1:kx)) + dy*(dx*qall(i1+1,j1+1,1:kx) + dxm*qall(i1,j1+1,1:kx))
+!     ptt(1:kx) = dym*(dx*pt(i1+1,j1,1:kx) + dxm*pt(i1,j1,1:kx)) + dy*(dx*pt(i1+1,j1+1,1:kx) + dxm*pt(i1,j1+1,1:kx))
+!     zgt(1:kx+1) = dym*(dx*zg(i1+1,j1,1:kx+1) + dxm*zg(i1,j1,1:kx+1)) + dy*(dx*zg(i1+1,j1+1,1:kx+1) + dxm*zg(i1,j1+1,1:kx+1))
+!     call eta_to_pres(znw0(1:kx+1), mu1+mub1, qvt(1:kx), zgt(1:kx+1), ptt(1:kx)+to, kx, pres(1:kx))
 !     if (platform(4:6)=='35 ' .or. platform(4:6)=='88 ' ) then  !screening
 !       if(slp(1).ne.-888888.) then !slp
 !       endif
 !       if(pw(1).ne.-888888.) then !pw
 !       endif
 !     endif
-     if(t1.lt.t2) then
-       ounit=11
-     else
-       ounit=12
-     endif
-     write(ounit,fmt=info_fmt)platform,date,name,obs_level,latitude,longitude,elevation,id
-     write(ounit, fmt=srfc_fmt)slp(1),qcint(1),slp(3),pw(1),qcint(2),pw(3)
-   endif
-
-   do k = 1, obs_level
-     read(10, fmt=each_fmt)((obs_data(i,1),qcint(i),obs_data(i,3)),i=1,7)
-     if ( platform(4:6)=='88 ' .or. platform(4:6)=='35 ' ) then    !screening
-        call to_zk(obs_data(1,1), pres(1:kx), obs_kk, kx)
-        if ( obs_kk .lt. 1. ) obs_kk = 1.
-        k1  = int( obs_kk )
-        dz  = obs_kk-real(k1)
-        dzm = real(k1+1)-obs_kk
-        if (obs_data(1,1).ne.-888888. .and. obs_kk.ge.1. .and. obs_kk.le.real(kx)) then
-          if (obs_data(2,1).ne.-888888.) then  !wind
-             if(obs_ii-i1==0.5) then
-               worku(1:2)=dym*u(i1+1,j1,k1:k1+1) + dy*u(i1+1,j1+1,k1:k1+1)
-             elseif(obs_ii-i1>0.5) then
-               worku(1:2) = dym*( u(i1+1,j1,k1:k1+1)*(dxm+0.5)+u(i1+2,j1,k1:k1+1)*(dx-0.5) ) + &
-                            dy *( u(i1+1,j1+1,k1:k1+1)*(dxm+0.5)+u(i1+2,j1+1,k1:k1+1)*(dx-0.5) )
-             elseif(obs_ii-i1<0.5) then
-               worku(1:2) = dym*( u(i1,j1,k1:k1+1)*(dxm-0.5)+u(i1+1,j1,k1:k1+1)*(dx+0.5) ) + &
-                            dy *( u(i1,j1+1,k1:k1+1)*(dxm-0.5)+u(i1+1,j1+1,k1:k1+1)*(dx+0.5) )
-             endif
-             if(obs_jj-j1==0.5) then
-               workv(1:2) = v(i1,j1+1,k1:k1+1)*dxm + v(i1+1,j1+1,k1:k1+1)*dx
-             elseif(obs_jj-j1>0.5) then
-               workv(1:2) = dxm*( v(i1,j1+1,k1:k1+1)*(dym+0.5) +v(i1,j1+2,k1:k1+1)*(dy-0.5) ) + &
-                            dx *( v(i1+1,j1+1,k1:k1+1)*(dym+0.5) +v(i1+1,j1+2,k1:k1+1)*(dy-0.5) )
-             elseif(obs_jj-j1<0.5) then
-               workv(1:2) = dxm*( v(i1,j1,k1:k1+1)*(dym-0.5) +v(i1,j1+1,k1:k1+1)*(dy+0.5) ) + &
-                            dx *( v(i1+1,j1,k1:k1+1)*(dym-0.5) +v(i1+1,j1+1,k1:k1+1)*(dy+0.5) )
-             endif
-             if(obs_kk.le.1.) then
-               gridu=worku(1); gridv=workv(1)
-             else
-               gridu=dzm*worku(1)+dz*worku(2)
-               gridv=dzm*workv(1)+dz*workv(2)
-             endif
-             call gridwind_to_truewind(longitude,proj,gridu,gridv,trueu,truev)
-             call date_and_time(rdate, rtime, rzone, rvalues)
-             trueu = trueu + obs_data(2,3)*gaussdev(sum(rvalues))
-             truev = truev + obs_data(2,3)*gaussdev(sum(rvalues))
-             call uv_to_dirspd(trueu,truev,obs_data(3,1),obs_data(2,1))
-          endif
-          if (obs_data(5,1).ne.-888888.) then  !T
-             do m = k1,k1+1
-                work(m-k1+1) = theta_to_temp(ptt(m)+to, pres(m))
-             enddo
-             if ( obs_kk .le. 1. ) then
-               obs_data(5,1) = work(1)
-             else
-               obs_data(5,1) = dzm*work(1)+dz*work(2)
-             endif
-             call date_and_time(rdate, rtime, rzone, rvalues)
-             obs_data(5,1) = obs_data(5,1) + obs_data(5,3)*gaussdev(sum(rvalues))
-          endif
-          if (obs_data(6,1).ne.-888888.) then  !TD
-             do m = k1,k1+1
-                work(m-k1+1) = mixrat_to_tdew(qvt(m), pres(m))
-             enddo
-             if ( obs_kk .le. 1. ) then
-               obs_data(6,1) = work(1)
-             else
-               obs_data(6,1) = dzm*work(1)+dz*work(2)
-             endif
-             call date_and_time(rdate, rtime, rzone, rvalues)
-             obs_data(6,1) = obs_data(6,1) + obs_data(6,3)*gaussdev(sum(rvalues))
-          endif
-          if (obs_data(7,1).ne.-888888.) then  !RH
-             do m = k1,k1+1
-                work(m-k1+1) = theta_to_temp(ptt(m)+to, pres(m))
-                work(m-k1+1) = rel_humidity(qvt(m),work(m-k1+1), pres(m))
-             enddo
-             if ( obs_kk .le. 1. ) then
-               obs_data(7,1) = work(1)
-             else
-               obs_data(7,1) = dzm*work(1)+dz*work(2)
-             endif
-             call date_and_time(rdate, rtime, rzone, rvalues)
-             obs_data(7,1) = obs_data(7,1) + obs_data(7,3)*gaussdev(sum(rvalues))
-             if(obs_data(7,1)<0.) obs_data(7,1)=0.
-             if(obs_data(7,1)>100.) obs_data(7,1)=100.
-          endif
-        else
-          obs_data(:,1)=-888888.
-        endif
-        write(ounit, fmt=each_fmt)((obs_data(i,1),qcint(i),obs_data(i,3)),i=1,7)
-     endif
-   enddo
-end do
+!     if(t1.lt.t2) then
+!       ounit=11
+!     else
+!       ounit=12
+!     endif
+!     write(ounit,fmt=info_fmt)platform,date,name,obs_level,latitude,longitude,elevation,id
+!     write(ounit, fmt=srfc_fmt)slp(1),qcint(1),slp(3),pw(1),qcint(2),pw(3)
+!   endif
+!
+!   do k = 1, obs_level
+!     read(10, fmt=each_fmt)((obs_data(i,1),qcint(i),obs_data(i,3)),i=1,7)
+!     if ( platform(4:6)=='88 ' .or. platform(4:6)=='35 ' ) then    !screening
+!        call to_zk(obs_data(1,1), pres(1:kx), obs_kk, kx)
+!        if ( obs_kk .lt. 1. ) obs_kk = 1.
+!        k1  = int( obs_kk )
+!        dz  = obs_kk-real(k1)
+!        dzm = real(k1+1)-obs_kk
+!        if (obs_data(1,1).ne.-888888. .and. obs_kk.ge.1. .and. obs_kk.le.real(kx)) then
+!          if (obs_data(2,1).ne.-888888.) then  !wind
+!             if(obs_ii-i1==0.5) then
+!               worku(1:2)=dym*u(i1+1,j1,k1:k1+1) + dy*u(i1+1,j1+1,k1:k1+1)
+!             elseif(obs_ii-i1>0.5) then
+!               worku(1:2) = dym*( u(i1+1,j1,k1:k1+1)*(dxm+0.5)+u(i1+2,j1,k1:k1+1)*(dx-0.5) ) + &
+!                            dy *( u(i1+1,j1+1,k1:k1+1)*(dxm+0.5)+u(i1+2,j1+1,k1:k1+1)*(dx-0.5) )
+!             elseif(obs_ii-i1<0.5) then
+!               worku(1:2) = dym*( u(i1,j1,k1:k1+1)*(dxm-0.5)+u(i1+1,j1,k1:k1+1)*(dx+0.5) ) + &
+!                            dy *( u(i1,j1+1,k1:k1+1)*(dxm-0.5)+u(i1+1,j1+1,k1:k1+1)*(dx+0.5) )
+!             endif
+!             if(obs_jj-j1==0.5) then
+!               workv(1:2) = v(i1,j1+1,k1:k1+1)*dxm + v(i1+1,j1+1,k1:k1+1)*dx
+!             elseif(obs_jj-j1>0.5) then
+!               workv(1:2) = dxm*( v(i1,j1+1,k1:k1+1)*(dym+0.5) +v(i1,j1+2,k1:k1+1)*(dy-0.5) ) + &
+!                            dx *( v(i1+1,j1+1,k1:k1+1)*(dym+0.5) +v(i1+1,j1+2,k1:k1+1)*(dy-0.5) )
+!             elseif(obs_jj-j1<0.5) then
+!               workv(1:2) = dxm*( v(i1,j1,k1:k1+1)*(dym-0.5) +v(i1,j1+1,k1:k1+1)*(dy+0.5) ) + &
+!                            dx *( v(i1+1,j1,k1:k1+1)*(dym-0.5) +v(i1+1,j1+1,k1:k1+1)*(dy+0.5) )
+!             endif
+!             if(obs_kk.le.1.) then
+!               gridu=worku(1); gridv=workv(1)
+!             else
+!               gridu=dzm*worku(1)+dz*worku(2)
+!               gridv=dzm*workv(1)+dz*workv(2)
+!             endif
+!             call gridwind_to_truewind(longitude,proj,gridu,gridv,trueu,truev)
+!             call date_and_time(rdate, rtime, rzone, rvalues)
+!             trueu = trueu + obs_data(2,3)*gaussdev(sum(rvalues))
+!             truev = truev + obs_data(2,3)*gaussdev(sum(rvalues))
+!             call uv_to_dirspd(trueu,truev,obs_data(3,1),obs_data(2,1))
+!          endif
+!          if (obs_data(5,1).ne.-888888.) then  !T
+!             do m = k1,k1+1
+!                work(m-k1+1) = theta_to_temp(ptt(m)+to, pres(m))
+!             enddo
+!             if ( obs_kk .le. 1. ) then
+!               obs_data(5,1) = work(1)
+!             else
+!               obs_data(5,1) = dzm*work(1)+dz*work(2)
+!             endif
+!             call date_and_time(rdate, rtime, rzone, rvalues)
+!             obs_data(5,1) = obs_data(5,1) + obs_data(5,3)*gaussdev(sum(rvalues))
+!          endif
+!          if (obs_data(6,1).ne.-888888.) then  !TD
+!             do m = k1,k1+1
+!                work(m-k1+1) = mixrat_to_tdew(qvt(m), pres(m))
+!             enddo
+!             if ( obs_kk .le. 1. ) then
+!               obs_data(6,1) = work(1)
+!             else
+!               obs_data(6,1) = dzm*work(1)+dz*work(2)
+!             endif
+!             call date_and_time(rdate, rtime, rzone, rvalues)
+!             obs_data(6,1) = obs_data(6,1) + obs_data(6,3)*gaussdev(sum(rvalues))
+!          endif
+!          if (obs_data(7,1).ne.-888888.) then  !RH
+!             do m = k1,k1+1
+!                work(m-k1+1) = theta_to_temp(ptt(m)+to, pres(m))
+!                work(m-k1+1) = rel_humidity(qvt(m),work(m-k1+1), pres(m))
+!             enddo
+!             if ( obs_kk .le. 1. ) then
+!               obs_data(7,1) = work(1)
+!             else
+!               obs_data(7,1) = dzm*work(1)+dz*work(2)
+!             endif
+!             call date_and_time(rdate, rtime, rzone, rvalues)
+!             obs_data(7,1) = obs_data(7,1) + obs_data(7,3)*gaussdev(sum(rvalues))
+!             if(obs_data(7,1)<0.) obs_data(7,1)=0.
+!             if(obs_data(7,1)>100.) obs_data(7,1)=100.
+!          endif
+!        else
+!          obs_data(:,1)=-888888.
+!        endif
+!        write(ounit, fmt=each_fmt)((obs_data(i,1),qcint(i),obs_data(i,3)),i=1,7)
+!     endif
+!   enddo
+!end do
 close(10)
 
 !ideal soundings
@@ -369,7 +369,7 @@ do i = gridobs_is, gridobs_ie, gridobs_int_x
    end if
 
    call ij_to_latlon(proj,real(i),real(j),latitude,longitude)
-   write(ounit,fmt=info_fmt) 'FM-131 TOVS ',times1,'Synthetic sounding from truth ',k_levels,&
+   write(ounit,fmt=info_fmt) 'FM-35 TEMP  ',times1,'Synthetic sounding from truth ',k_levels,&
                           latitude,longitude,-888888.,'IDEAL                            '
    write(ounit,fmt=srfc_fmt)-888888.000,-88,200.00,-888888.000,-88,0.200
    do k = gridobs_ks, gridobs_ke, gridobs_int_k
@@ -386,52 +386,43 @@ do i = gridobs_is, gridobs_ie, gridobs_int_x
      qcint(4)=0
      obs_data(4,3)=z_error(obs_pres)
 
-     mean_qv=1000*sum(qv(:,:,k))/(ix*jx)
-
-!     !Wind
-!     gridu=0.5*(u(i,j,k)+u(i+1,j,k))
-!     gridv=0.5*(v(i,j,k)+v(i,j+1,k))
-!     call gridwind_to_truewind(longitude,proj,gridu,gridv,trueu,truev)
-!     qcint(2)=0
-!     qcint(3)=0
-!     obs_data(2,3)=spd_error(obs_pres)
-!     obs_data(3,3)=dir_error(obs_pres)
-!     call date_and_time(rdate, rtime, rzone, rvalues)
-!     trueu = trueu + obs_data(2,3)*gaussdev(sum(rvalues))
-!     truev = truev + obs_data(2,3)*gaussdev(sum(rvalues))
-!     call uv_to_dirspd(trueu,truev,obs_data(3,1),obs_data(2,1))
+     !Wind
+     gridu=0.5*(u(i,j,k)+u(i+1,j,k))
+     gridv=0.5*(v(i,j,k)+v(i,j+1,k))
+     call gridwind_to_truewind(longitude,proj,gridu,gridv,trueu,truev)
+     qcint(2)=0
+     qcint(3)=0
+     obs_data(2,3)=spd_error(obs_pres)
+     obs_data(3,3)=dir_error(obs_pres)
+     call date_and_time(rdate, rtime, rzone, rvalues)
+     trueu = trueu + obs_data(2,3)*gaussdev(sum(rvalues))
+     truev = truev + obs_data(2,3)*gaussdev(sum(rvalues))
+     call uv_to_dirspd(trueu,truev,obs_data(3,1),obs_data(2,1))
 
      !T
      qcint(5)=0
-     obs_data(5,3)=t_error(obs_pres)
+     obs_data(5,3)=1.0 !t_error(obs_pres)
      obs_data(5,1)=theta_to_temp(pt(i,j,k)+to, obs_pres)
      call date_and_time(rdate, rtime, rzone, rvalues)
      obs_data(5,1) = obs_data(5,1) + obs_data(5,3)*gaussdev(sum(rvalues))
 
      !TD, RH
-     if(obs_pres.ge.20000 .and. mod(k,2).eq.0) then
+!     if(obs_pres.ge.20000 .and. mod(k,2).eq.0) then
+       qcint(6)=0
+       qcint(7)=0
        obs_temp=theta_to_temp(pt(i,j,k)+to, obs_pres)
        obs_q=qv(i,j,k)+qr(i,j,k)+qc(i,j,k)
-
-       qcint(6)=0
-       obs_data(6,3)=td_error(obs_pres)
+       obs_data(6,3)=1.0 !td_error(obs_pres)
+       obs_data(7,3)=rh_error(obs_pres)
        obs_data(6,1)=mixrat_to_tdew(obs_q, obs_pres)
+       obs_data(7,1)=rel_humidity(obs_q,obs_temp,obs_pres)
        call date_and_time(rdate, rtime, rzone, rvalues)
-       obs_data(6,1)=min(obs_data(6,1)+obs_data(6,3)*gaussdev(sum(rvalues)), obs_temp) !Td<=T
-
-       qcint(7)=0
-       !obs_data(7,1)=rel_humidity(obs_q,obs_temp,obs_pres)
-       !obs_data(7,3)=rh_error(obs_pres)
-       !call date_and_time(rdate, rtime, rzone, rvalues)
-       !obs_data(7,1)=obs_data(7,1)+obs_data(7,3)*gaussdev(sum(rvalues))
-       !if(obs_data(7,1)<0.) obs_data(7,1)=0.
-       !if(obs_data(7,1)>100.) obs_data(7,1)=100.
-       obs_data(7,1)=1000*qv(i,j,k)
-       obs_data(7,3)=mean_qv*qpc_error(obs_pres)/100
+       obs_data(6,1)=obs_data(6,1)+obs_data(6,3)*gaussdev(sum(rvalues))
        call date_and_time(rdate, rtime, rzone, rvalues)
-       obs_data(7,1)=obs_data(7,1)+obs_data(7,3)*gaussdev(sum(rvalues)) 
-
-     end if
+       obs_data(7,1)=obs_data(7,1)+obs_data(7,3)*gaussdev(sum(rvalues))
+       if(obs_data(7,1)<0.) obs_data(7,1)=0.
+       if(obs_data(7,1)>100.) obs_data(7,1)=100.
+!     end if
 
      write(ounit, fmt=each_fmt)((obs_data(m,1),qcint(m),obs_data(m,3)),m=1,7)
    enddo
@@ -532,21 +523,6 @@ do i=1,9
 enddo
 return
 end function rh_error
-
-function qpc_error(p)
-real, intent(in) :: p
-real, dimension(10) :: qpc_err_ref,p_ref 
-real qpc_error
-p_ref=(/100,150,200,250,300,400,500,700,850,1000/)*100
-qpc_err_ref=(/30,35,40,55,45,32,25,30,27,27/)
-if(p .le. p_ref(1)) qpc_error=qpc_err_ref(1)
-if(p .ge. p_ref(10)) qpc_error=qpc_err_ref(10)
-do i=1,9
-  if( p .gt. p_ref(i) .and. p .lt. p_ref(i+1) ) &
-     qpc_error = qpc_err_ref(i) + (qpc_err_ref(i+1)-qpc_err_ref(i))*(p-p_ref(i))/(p_ref(i+1)-p_ref(i))
-enddo
-return
-end function qpc_error
 
  function gaussdev(idum)
 ! Returns a normally distributed deviate with 0 mean and unit variance,

@@ -1170,13 +1170,9 @@ do n = 1, raw%gts%num
                data(ista,k,i,6) = raw%gts%td(n,k,i)
             enddo
 !................ convert rh to q and calculate q_error from rh_error
-!                 data(ista,k,i,7) = raw%gts%rh(n,k,i)
                call rel_humidity_to_q(raw%gts%pres(n,k,1), raw%gts%t(n,k,1), raw%gts%rh(n,k,1), data(ista,k,1,7), &
                                          raw%gts%t(n,k,3), raw%gts%rh(n,k,3), data(ista,k,3,7) ) 
                data(ista,k,2,7) = raw%gts%rh(n,k,2)
-!               call tdew_to_q(raw%gts%pres(n,k,1),raw%gts%td(n,k,1),data(ista,k,1,7), &
-!                              raw%gts%td(n,k,3), data(ista,k,3,7) )
-!               data(ista,k,2,7) = raw%gts%td(n,k,2)
          enddo
    endif
 enddo
@@ -1476,6 +1472,8 @@ character(len=12)                    :: fm
 character(len=6)                     :: pfile
 integer                              :: start_data, inter_data, iroi, ngxn
 
+
+
 !. get data
 sta = 0
 numlevs=0
@@ -1529,12 +1527,34 @@ do n = 1, raw%gts%num
                data(ista,k,i,4) = raw%gts%height(n,k,i)
                data(ista,k,i,5) = raw%gts%t(n,k,i)
                data(ista,k,i,6) = raw%gts%td(n,k,i)
+!!!HACK: obs_3dvar file rh entries contain Qv instead:
+               data(ista,k,i,7) = raw%gts%rh(n,k,i)
             enddo
 !................ convert rh to q and calculate q_error from rh_error
-!                 data(ista,k,i,7) = raw%gts%rh(n,k,i)
-               call rel_humidity_to_q(raw%gts%pres(n,k,1), raw%gts%t(n,k,1), raw%gts%rh(n,k,1), data(ista,k,1,7), &
-                                         raw%gts%t(n,k,3), raw%gts%rh(n,k,3), data(ista,k,3,7) ) 
-               data(ista,k,2,7) = raw%gts%rh(n,k,2)
+               !call rel_humidity_to_q(raw%gts%pres(n,k,1), raw%gts%t(n,k,1), raw%gts%rh(n,k,1), data(ista,k,1,7), &
+                                         !raw%gts%t(n,k,3), raw%gts%rh(n,k,3), data(ista,k,3,7) ) 
+               !data(ista,k,2,7) = raw%gts%rh(n,k,2)
+
+!tdew_to_q ( pres, td, q, td_error, q_error )
+               !call tdew_to_q(raw%gts%pres(n,k,1),raw%gts%td(n,k,1),data(ista,k,1,7), &
+                              !raw%gts%td(n,k,3), dum_q_err )
+!get prior mean td from wrf_file according to obs location
+   !call latlon_to_ij(proj,obs_lat(ista),obs_lon(ista), obs_ii,obs_jj) 
+   !i1 = int( obs_ii )
+   !j1 = int( obs_jj )
+   !dx  = obs_ii-real(i1)
+   !dxm = real(i1+1)-obs_ii
+   !dy  = obs_jj-real(j1)
+   !dym = real(j1+1)-obs_jj
+
+               !hx_q
+!recalculate obs_err using prior mean td
+               !call tdew_to_q(raw%gts%pres(n,k,1),mixrat_to_tdew(hx_q,raw%gts%pres()),dum_q, &
+                              !raw%gts%td(n,k,3), data(ista,k,3,7) )
+               !data(ista,k,2,7) = raw%gts%td(n,k,2)
+
+
+
          enddo
    endif
 enddo
@@ -1871,7 +1891,6 @@ do n = 1, raw%gts%num
             data(ista,i,6) = raw%gts%td(n,1,i)
          enddo
 !.......... convert rh to q and calculate q_error from rh_error
-!           data(ista,i,7) = raw%gts%rh(n,1,i)
          call rel_humidity_to_q(raw%gts%pres(n,1,1), raw%gts%t(n,1,1), raw%gts%rh(n,1,1), data(ista,1,7), &
                                  raw%gts%t(n,1,3), raw%gts%rh(n,1,3), data(ista,3,7) ) 
          data(ista,2,7) = raw%gts%rh(n,1,2)

@@ -129,7 +129,7 @@ character (len=80), intent(in) :: times
 ! var,cov = error variance,covariance of something
 ! y_hxm = y-hxm (the innovation vector, mean), hxa is the perturbation (of ensemble members).
 real      :: fac,d,alpha,var,cov,y_hxm,corr_coef
-real      :: var_a,var_b,m_d2,m_var_a,m_var_b, la,ka
+real      :: var_a,var_b,m_omb2,m_amb2,m_var_a,m_var_b, m_var_a1,m_var_b1, obserr,la,ka,cr
 real,dimension(numbers_en) :: hxa
 integer   :: ngx, ngz
 integer   :: i, j, k, m, n, iob, iiob, nob, ie, iunit,ounit,ii, jj, kk, is, it, ig, iv, i1,j1, itot
@@ -153,7 +153,8 @@ real, dimension(3)      :: center_xb
 real, dimension(ni,nj,nk,nv,nm), intent(inout) :: x
 real, dimension(ni,nj,nk,nv), intent(inout)    :: xm 
 real, dimension(ni,nj,nk,nv,nm)                :: xf
-real, dimension(ni,nj,nk,nv)                   :: xt, std_x,std_xf, relreduc
+real, dimension(ni,nj,nk,nv)       :: xt, std_x,std_xf,relreduc
+real, dimension(nk) :: obserr_k,obserr_count
 real, dimension(3,3,nk,nv,nm,nicpu*njcpu) :: xobsend, xob
 real, dimension(3,3,nk,nv) :: tmp, tmpsend
 real, dimension(obs%num) :: y
@@ -364,9 +365,9 @@ obs_assimilate_cycle : do it = 1,obs%num
    obstype = obs%type(iob)
    error = obs%err(iob)
    y_hxm = y(iob) - ya(iob,numbers_en+1)
-   if ( my_proc_id==0 ) write(*,'(a,i6,a,f10.2,a,f10.2,a,f8.2,a,f8.2,a,i4,a,i4,3f5.1)') &
-      'No.',iob,' '//obstype//' =',y(iob), ' ya=', ya(iob,numbers_en+1), ' y-ya=', y_hxm, &
-      ' err=',error,'hroi=',obs%roi(iob,1),'vroi=',obs%roi(iob,2),obs%position(iob,1:3)
+   if ( my_proc_id==0 ) write(*,'(a,i6,a,f10.2,a,f10.2,a,f8.2,a,f8.2,a,i4,a,i4)') &
+      'No.',iob,' '//obstype//' =',y(iob), ' prior=', ya(iob,numbers_en+1), ' omb=', y_hxm, &
+      ' obserr=',error,'hroi=',obs%roi(iob,1),'vroi=',obs%roi(iob,2)
    if( abs(y_hxm)>(error*5.) .and. &
        .not.(obstype=='min_slp   ' .or. obstype=='longtitude' .or. obstype=='latitude  ') ) then
       if ( my_proc_id==0 ) write(*,*)' ...kicked off for large error'
@@ -741,10 +742,6 @@ if ( my_proc_id == 0 ) write(*,'(a,f7.2,a)')' Assimilation tooks ', MPI_Wtime()-
 !---------------------------------------------------------------------------------
 ! IV. Diagnostics for filter performance.
 ! 1. assimilated obs information output to fort.10000.
-m_d2=0.0
-m_var_b=0.0
-m_var_a=0.0
-n=0
 do iob=1,obs%num
   call ij_to_latlon(proj, obs%position(iob,1), obs%position(iob,2), center_xb(1), center_xb(2))
   var_a=0.0
@@ -767,29 +764,102 @@ do iob=1,obs%num
       obs%position(iob,4), &            !height
       obs%position(iob,1:3), &          !grid location: i,j,k
       obs%roi(iob,1:2), &               !horizontal ROI (# of grid points), vertical ROI (# of layers)
-      y(iob), &                   !observation (y^o)
-      obs%err(iob), &                   !observation error variance (R)
-      yf(iob,numbers_en+1), &           !observation prior mean (H\bar{x}^f)
-      ya(iob,numbers_en+1), &           !observation posterior mean (H\bar{x}^a)
-      sqrt(var_b), &                    !observation prior spread (sqrt{H P^f H^T})
-      sqrt(var_a)                       !observation posterior spread (sqrt{H P^f H^T}) (before relaxation)
-  endif
-  !innovation statistics (used in adaptive relaxation)
-  if(kick_flag(iob)==0) then
-    n=n+1
-!    m_d2=m_d2+(y(iob)-ya(iob,numbers_en+1))*(ya(iob,numbers_en+1)-yf(iob,numbers_en+1))/(obs%err(iob))**2
-    m_d2=m_d2+(y(iob)-yf(iob,numbers_en+1))*(y(iob)-yf(iob,numbers_en+1))/(obs%err(iob))**2
-    m_var_b=m_var_b+var_b/(obs%err(iob)**2)
-    m_var_a=m_var_a+var_a/(obs%err(iob)**2)
+      y(iob), &                         !observation
+      obs%err(iob), &                   !observation error variance
+      yf(iob,numbers_en+1), &           !observation prior mean
+      ya(iob,numbers_en+1), &           !observation posterior mean 
+      sqrt(var_b), &                    !observation prior spread 
+      sqrt(var_a)                       !observation posterior spread (before relaxation)
   endif
 end do
-m_d2=m_d2/real(n)
-m_var_b=m_var_b/real(n)
-m_var_a=m_var_a/real(n)
 
 !---------------------------------------------------------------------------------
 ! V. Relaxation
 if ( my_proc_id==0 ) write(*,*)'Performing covariance relaxation...'
+
+  !ensemble spread in state space
+  std_x =0.0
+  std_xf=0.0
+  call MPI_Allreduce(sum( x**2,5), std_x,ni*nj*nk*nv,MPI_REAL,MPI_SUM,g_comm,ierr)
+  call MPI_Allreduce(sum(xf**2,5),std_xf,ni*nj*nk*nv,MPI_REAL,MPI_SUM,g_comm,ierr)
+  std_x =sqrt( std_x/real(numbers_en-1))
+  std_xf=sqrt(std_xf/real(numbers_en-1))
+
+
+  if(relax_adaptive) then
+    !innovation statistics
+    m_omb2=0.0
+    m_amb2=0.0
+    m_var_b=0.0
+    m_var_a=0.0
+    n=0
+    do iob=1,obs%num
+      obstype = obs%type(iob)
+      var_a=0.0
+      var_b=0.0
+      do ie=1,numbers_en
+        var_a=var_a+(ya(iob,ie)-ya(iob,numbers_en+1))**2
+        var_b=var_b+(yf(iob,ie)-yf(iob,numbers_en+1))**2
+      enddo
+      var_a=var_a/real(numbers_en-1)
+      var_b=var_b/real(numbers_en-1)
+      if( kick_flag(iob)==0 .and. obstype(10:10)=='T') then
+        n=n+1
+        m_omb2=m_omb2+(y(iob)-yf(iob,numbers_en+1))**2/(obs%err(iob))**2
+        m_amb2=m_amb2+(ya(iob,numbers_en+1)-yf(iob,numbers_en+1))**2/(obs%err(iob))**2
+        m_var_b=m_var_b+var_b/(obs%err(iob)**2)
+        m_var_a=m_var_a+var_a/(obs%err(iob)**2)
+      endif
+    enddo
+    m_omb2=m_omb2/real(n)
+    m_amb2=m_amb2/real(n)
+    m_var_b=m_var_b/real(n)
+    m_var_a=m_var_a/real(n)
+
+    !spread reduction (normalized by obserr)
+    obserr_k=0.0
+    obserr_count=0
+    do iob=1,obs%num
+      obstype=obs%type(iob)
+      k=int(obs%position(iob,3))      
+      if ( obstype(10:10)=='T' ) then
+        obserr_k(k)=obserr_k(k)+obs%err(iob)
+        obserr_count(k)=obserr_count(k)+1
+      endif
+    enddo
+    do m=1,nv
+      if(enkfvar(m)=='T         ') exit 
+    enddo
+    m_var_a1=0.0
+    m_var_b1=0.0
+    n=0
+    do k=1,kx
+      obserr=obserr_k(k)/obserr_count(k)
+      if(obserr>0 .and. obserr_count(k)>0) then
+        m_var_b1=m_var_b1+sum((std_xf(:,:,k,m)/obserr)**2)
+        m_var_a1=m_var_a1+sum(( std_x(:,:,k,m)/obserr)**2)
+        n=n+ix*jx
+      endif
+    enddo
+    m_var_b1=m_var_b1/real(n)
+    m_var_a1=m_var_a1/real(n)
+
+    !calculate adaptive relaxation coef
+    cr=sqrt((m_omb2-1.0-m_amb2)/m_var_a);
+    !cr=sqrt((m_omb2-1.0)/m_var_b);
+    la=max(cr,1.0)
+    ka=sqrt(m_var_b1)/sqrt(m_var_a1) 
+    !ka=sqrt(m_var_b)/sqrt(m_var_a)  !obs space rel reduc in spread
+    mixing=(la-1.0)/(ka-1)
+    if(my_proc_id==0) write(*,*) 'CR=',cr,' kappa=',ka,' mixing=',mixing
+
+!  if(gid==0) then
+!    call output(60001,ix,jx,kx,ni,nj,nk,nv,nm,s_comm,sid,iid,jid,std_xf,times)
+!    call output(60002,ix,jx,kx,ni,nj,nk,nv,nm,s_comm,sid,iid,jid,std_x,times)
+!    call output(60003,ix,jx,kx,ni,nj,nk,nv,nm,s_comm,sid,iid,jid,mixing*relreduc+1,times)
+!  endif
+
+  endif
 
 !---option1. relax to prior perturbation (Zhang et al. 2004)
 if(relax_opt==0) then
@@ -800,34 +870,10 @@ if(relax_opt==0) then
   enddo
 end if
 
-!---option2. relax to prior spread (Whitaker and Hamill 2012), adaptive version (ACR)
-!------inflation factor from innovation statistics
+!---option2. relax to prior spread (Whitaker and Hamill 2012)
 if(relax_opt==1) then
-  !------ensemble spread in state space
-  std_x =0.0
-  std_xf=0.0
-  call MPI_Allreduce(sum( x**2,5), std_x,ni*nj*nk*nv,MPI_REAL,MPI_SUM,g_comm,ierr)
-  call MPI_Allreduce(sum(xf**2,5),std_xf,ni*nj*nk*nv,MPI_REAL,MPI_SUM,g_comm,ierr)
-  std_x =sqrt( std_x/real(numbers_en-1))
-  std_xf=sqrt(std_xf/real(numbers_en-1))
-
-  relreduc=(std_xf-std_x)/std_x
+  relreduc=std_xf/std_x-1
   where(std_x==0.0) relreduc=0.0
-
-  !adaptively determine mixing coef
-  if(relax_adaptive) then
-    la=max(sqrt((m_d2-1.0)/m_var_b),1.0)
-    ka=(sqrt(m_var_b)-sqrt(m_var_a))/sqrt(m_var_a)
-    mixing=(la-1.0)/ka
-    if(my_proc_id==0) write(*,*) 'd2=',m_d2
-    if(my_proc_id==0) write(*,*) 'lambda=',la,' kappa=',ka,' mixing=',mixing
-  end if
-
-!  if(gid==0) then
-!    call output(60001,ix,jx,kx,ni,nj,nk,nv,nm,s_comm,sid,iid,jid,std_xf,times)
-!    call output(60002,ix,jx,kx,ni,nj,nk,nv,nm,s_comm,sid,iid,jid,std_x,times)
-!    call output(60003,ix,jx,kx,ni,nj,nk,nv,nm,s_comm,sid,iid,jid,mixing*relreduc+1,times)
-!  endif
 
   do n=1,nm
     ie=(n-1)*nmcpu+gid+1

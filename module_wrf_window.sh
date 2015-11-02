@@ -108,7 +108,7 @@ for i in 1; do
   fi
   $SCRIPT_DIR/namelist_wrf.sh wrf > namelist.input
 
-  $SCRIPT_DIR/job_submit.sh $wrf_ntasks 0 $HOSTPPN ./wrf.exe >& wrf.log
+  $SCRIPT_DIR/job_submit.sh $wrf_single_ntasks 0 $HOSTPPN ./wrf.exe >& wrf.log
 done
 
 #Check output
@@ -142,6 +142,13 @@ else
         cp $outfile $WORK_DIR/fc/$DATE/wrfinput_${dm}_`wrf_time_string $outdate`
       done
     fi
+  done
+##save wrfout as deterministic forecast input (4dvar only)
+  for n in `seq 1 $MAX_DOM`; do
+    dm=d`expr $n + 100 |cut -c2-`
+    outfile=wrfout_${dm}_`wrf_time_string $DATE`
+    watch_file $outfile 1 $rundir
+    cp $outfile $WORK_DIR/fc/$DATE/wrfinput_${dm}_`wrf_time_string $DATE`
   done
 fi
 

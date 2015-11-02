@@ -93,7 +93,7 @@ for i in 1; do
     cp $WORK_DIR/rc/$DATE/ij_parent_start_4dvar ij_parent_start
   fi
   $SCRIPT_DIR/namelist_wrf.sh wrf > namelist.input
-  $SCRIPT_DIR/job_submit.sh $wrf_ntasks 0 $HOSTPPN ./wrf.exe >& wrf.log
+  $SCRIPT_DIR/job_submit.sh $wrf_single_ntasks 0 $HOSTPPN ./wrf.exe >& wrf.log
 done
 
 #Check output

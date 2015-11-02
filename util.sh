@@ -74,7 +74,7 @@ function watch_log {
   l=0
   t=0
   until [ -f $logfile ]; do sleep 10 ; done
-  until [[ `tail -n5 $logfile |grep $keyword` ]]; do
+  until [[ `tail -n15 $logfile |grep $keyword` ]]; do
     sleep 1m
     l1=`cat $logfile |wc -l`
     if [ $l1 -eq $l ]; then

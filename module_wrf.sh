@@ -9,12 +9,11 @@ if [[ `cat stat` == "complete" ]]; then exit; fi
 
 #Check dependency
 wait_for_module ../icbc
-if $RUN_ENKF; then
+if $RUN_ENKF; then  
   wait_for_module ../enkf
+  if [ $JOB_SUBMIT_MODE == 1 ]; then  wait_for_module ../wrf_ens; fi
 fi
-if $RUN_4DVAR; then
-  wait_for_module ../4dvar
-fi
+if $RUN_4DVAR; then  wait_for_module ../4dvar ../wrf_window; fi
 
 echo running > stat
 
@@ -29,11 +28,15 @@ for i in 1; do
   ln -fs $WRF_DIR/run/* .
   rm -f namelist.*
 
-  ln -fs ../../../fc/$DATE/wrfinput_d01_mean wrfinput_d01  ####
-  for n in `seq 2 $MAX_DOM`; do
+#  ln -fs ../../../fc/$DATE/wrfinput_d01_mean wrfinput_d01  ####
+  for n in `seq 1 $MAX_DOM`; do
     dm=d`expr $n + 100 |cut -c2-`
-    if $RUN_ENKF; then
-      ln -fs ../../../fc/$DATE/wrfinput_${dm}_mean wrfinput_$dm
+    if $RUN_4DVAR; then
+      ln -fs ../../../fc/$DATE/wrfinput_${dm}_`wrf_time_string $DATE` wrfinput_$dm
+    else
+      if $RUN_ENKF; then
+        ln -fs ../../../fc/$DATE/wrfinput_${dm}_mean wrfinput_$dm
+      fi
     fi
   done
   ln -fs ../../../rc/$DATE_START/wrfbdy_d01 .
@@ -51,7 +54,7 @@ for i in 1; do
   fi
   $SCRIPT_DIR/namelist_wrf.sh wrf > namelist.input
 
-  $SCRIPT_DIR/job_submit.sh $wrf_ntasks 0 $HOSTPPN ./wrf.exe >& wrf.log
+  $SCRIPT_DIR/job_submit.sh $wrf_single_ntasks 0 $HOSTPPN ./wrf.exe >& wrf.log
 done
 
 #Check output

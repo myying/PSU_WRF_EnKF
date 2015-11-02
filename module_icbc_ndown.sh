@@ -91,13 +91,13 @@ echo "  Running ndown.exe..."
 $SCRIPT_DIR/namelist_wrf.sh ndown 2 > namelist.input
 wdate=$start_date
 while [[ $wdate -le `advance_time $start_date $run_minutes` ]]; do
-  ln -fs $WORK/data/DYNAMO/3km_run_9km/wrfout_d01_`wrf_time_string $wdate`
+  ln -fs $WORK/DYNAMO/3h/9km_run/wrfout_d01_`wrf_time_string $wdate`
   wdate=`advance_time $wdate $LBC_INTERVAL`
 done
-#cp -L $WORK_DIR/output/$DATE_START/wrfout_d01_`wrf_time_string $DATE` wrfndi_d02
 
 if [[ $LBDATE != $DATE ]]; then
-  cp $WORK_DIR/../1/output/$DATE_START/wrfout_d01_`wrf_time_string $DATE` wrfndi_d02
+  cp $WORK_DIR/rc/$DATE_START/wrfinput_d01 wrfndi_d02
+  ncl $SCRIPT_DIR/util_change_nc_time.ncl 'ncfile="wrfndi_d02"' 'time="'`wrf_time_string $DATE`'"'
 else
   cp wrfinput_d02 wrfndi_d02
 fi

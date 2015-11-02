@@ -8,6 +8,9 @@ if [[ `cat stat` == "complete" ]]; then exit; fi
 
 #Check dependency
 wait_for_module ../icbc ../wrf_window1
+if $RUN_ENVAR; then
+  wait_for_module ../wrf_ens_window1
+fi
 if $RUN_ENKF; then
   wait_for_module ../../$PREVDATE/wrf_ens
 fi
@@ -46,16 +49,15 @@ for n in $domlist; do
       for NE in `seq 1 $NUM_ENS`; do
         id=`expr $NE + 1000 |cut -c2-`
         if $RUN_ENVAR; then
-          infile=$WORK_DIR/fc/$PREVDATE/wrfinput_${dm}_`wrf_time_string $epdate`_window_$id
+          infile=$WORK_DIR/fc/$DATE/wrfinput_${dm}_`wrf_time_string $epdate`_window_$id
         else
           infile=$WORK_DIR/fc/$PREVDATE/wrfinput_${dm}_`wrf_time_string $epdate`_$id
         fi
-        outfile=ens_$epdate/wrfinput_${dm}.e$id
+        outfile=$rundir/$dm/ens_$epdate/wrfinput_${dm}.e$id
         if $MULTI_INC; then
            $MULTI_INC_DIR/da_decimation.exe -i $infile -o $outfile -thin $DECIMATION_FACTOR >& da_decimation.log
-           rm -f $infile
         else
-           mv $infile $outfile
+           ln -fs $infile $outfile
         fi
       done
 
@@ -71,10 +73,11 @@ for n in $domlist; do
       else
         epexe=$WRFDA_DIR/var/da/gen_be_ep2.exe
       fi
-      $epexe ${epdate:0:10} $NUM_ENS ../ens_$epdate wrfinput_$dm >& ../ens_ep.log
+      $epexe ${epdate:0:10} $NUM_ENS ../ens_$epdate wrfinput_$dm >& ../ens_ep_$epdate.log &
       cd ..
       j=$((j+1))
     done
+    wait
   fi
 
 
@@ -83,9 +86,9 @@ for n in $domlist; do
     ln -fs $WRFDA_DIR/var/run/be.dat.cv3 be.dat
   else
     if $MULTI_INC; then
-      ln -fs $BE_DIR/be.dat.$dm.lores be.dat
+      ln -fs $BE_DIR/be.dat.lores be.dat
     else
-      ln -fs $BE_DIR/be.dat.$dm .
+      ln -fs $BE_DIR/be.dat .
     fi
   fi
 
@@ -93,7 +96,8 @@ for n in $domlist; do
   j=1
   for i in `seq $OBS_WIN_MIN $MINUTES_PER_SLOT $OBS_WIN_MAX`; do
     obsdate=`advance_time $DATE $i`
-    ln -fs $DATA_DIR/madis/${DATE:0:10}/obs_gts_`wrf_time_string $obsdate`.4DVAR ob`expr 100 + $j |cut -c2-`.ascii
+#    ln -fs $DATA_DIR/madis/${DATE:0:10}/obs_gts_`wrf_time_string $obsdate`.4DVAR ob`expr 100 + $j |cut -c2-`.ascii
+    ln -fs $OBS_DIR/$DATE/obs_gts_`wrf_time_string $obsdate`.4DVAR.$OBS_TYPE ob`expr 100 + $j |cut -c2-`.ascii
     j=$((j+1))
   done
 
@@ -122,8 +126,11 @@ for n in $domlist; do
   fi
 
   #Other necessary files
-  ln -fs $WRFDA_DIR/run/*.TBL .
-  ln -fs $WRFDA_DIR/run/RRTM_DATA_DBL RRTM_DATA
+  ln -fs $WRFDA_DIR/run/* .
+  for i in `/bin/ls *DBL`; do   #use *DATA_DBL instead of *DATA 
+    rm `echo $i |rev |cut -c5- |rev`
+    mv $i `echo $i |rev |cut -c5- |rev`
+  done
 
   ln -fs $WRFDA_DIR/var/da/da_wrfvar.exe
 
@@ -147,7 +154,12 @@ if $MULTI_INC; then
 
     export multi_inc=1
     export num_fgat_time=$fgat_num
-    export var4d=true
+    if $RUN_ENVAR; then
+      export var4d=false
+      export tot_en_size=$NUM_ENS
+    else
+      export var4d=true
+    fi
     $SCRIPT_DIR/namelist_wrfvar.sh > namelist.input.stage1
     export start_date=$time_window_min
     export run_minutes=`echo "$OBS_WIN_MAX - $OBS_WIN_MIN" |bc`
@@ -160,7 +172,7 @@ if $MULTI_INC; then
     ln -fs fg_hires wrfinput_d01
     ln -fs wrfbdy_hires wrfbdy_d01
 
-    $SCRIPT_DIR/job_submit.sh ${var4d_ntasks[$n-1]} $((tid*$var4d_ntasks)) $var4d_ppn ./da_wrfvar.exe >& da_wrfvar.log &
+    $SCRIPT_DIR/job_submit.sh ${var4d_ntasks} $((tid*$var4d_ntasks)) $var4d_ppn ./da_wrfvar.exe >& da_wrfvar.log &
     tid=$((tid+1))
     if [[ $tid == $nt ]]; then
       tid=0
@@ -195,7 +207,12 @@ if $MULTI_INC; then
       if [ $it == 1 ]; then
         export multi_inc=2
         export num_fgat_time=$fgat_num
-        export var4d=true
+        if $RUN_ENVAR; then
+          export tot_en_size=$NUM_ENS
+          export var4d=false
+        else
+          export var4d=true
+        fi
         if $RUN_ENKF; then
           export ensdim_alpha=$NUM_ENS
         else
@@ -221,7 +238,7 @@ if $MULTI_INC; then
         ln -fs fg_thin_new wrfinput_d01
         ln -fs wrfbdy_thin_new wrfbdy_d01
       fi
-      $SCRIPT_DIR/job_submit.sh ${var4d_ntasks[$n-1]} $((tid*$var4d_ntasks)) $var4d_ppn ./da_wrfvar.exe >& da_wrfvar.log &
+      $SCRIPT_DIR/job_submit.sh ${var4d_ntasks} $((tid*$var4d_ntasks)) $var4d_ppn ./da_wrfvar.exe >& da_wrfvar.log &
       tid=$((tid+1))
       if [[ $tid == $nt ]]; then
         tid=0
@@ -234,7 +251,7 @@ if $MULTI_INC; then
       dm=d`expr $n + 100 |cut -c2-`
       if [[ `cat $dm/stage2_inner$it` == "complete" ]]; then continue; fi
       cd $dm
-      watch_log rsl.error.0000 successfully 5 $rundir
+      watch_log rsl.error.0000 successfully 1 $rundir
       mv wrfvar_output fg_thin_new
       if $VAR4D_LBC; then
         mv ana02 fg02_thin_new
@@ -273,7 +290,7 @@ if $MULTI_INC; then
       ln -fs fg02_hires_new fg02
       ln -fs fg_hires_new wrfinput_d01
       ln -fs wrfbdy_hires wrfbdy_d01
-      $SCRIPT_DIR/job_submit.sh ${var4d_ntasks[$n-1]} $((tid*$var4d_ntasks)) $var4d_ppn ./da_wrfvar.exe >& da_wrfvar.log &
+      $SCRIPT_DIR/job_submit.sh ${var4d_ntasks} $((tid*$var4d_ntasks)) $var4d_ppn ./da_wrfvar.exe >& da_wrfvar.log &
       tid=$((tid+1))
       if [[ $tid == $nt ]]; then
         tid=0
@@ -311,19 +328,24 @@ else  #full resolution 4DVar
     dm=d`expr 100 + $n |cut -c2-`
     cd $dm
    
-    export var4d=true
     export num_fgat_time=$fgat_num
     if $RUN_ENKF; then
       export ensdim_alpha=$NUM_ENS
     else
       export ensdim_alpha=0
     fi
+    if $RUN_ENVAR; then
+      export var4d=false
+      export tot_en_size=$NUM_ENS
+    else
+      export var4d=true
+    fi
     $SCRIPT_DIR/namelist_wrfvar.sh > namelist.input
     export start_date=$time_window_min
     export run_minutes=`echo "$OBS_WIN_MAX - $OBS_WIN_MIN" |bc`
     export time_step=${TIME_STEP[$n-1]}
     $SCRIPT_DIR/namelist_wrf.sh wrfvar $n >> namelist.input
-    $SCRIPT_DIR/job_submit.sh ${var4d_ntasks[$n-1]} $((tid*$var4d_ntasks)) $var4d_ppn ./da_wrfvar.exe >& da_wrfvar.log &
+    $SCRIPT_DIR/job_submit.sh $var4d_ntasks $((tid*$var4d_ntasks)) $var4d_ppn ./da_wrfvar.exe >& da_wrfvar.log &
     tid=$((tid+1))
     if [[ $tid == $nt ]]; then
       tid=0
