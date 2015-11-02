@@ -1,13 +1,13 @@
 #!/bin/bash
-. $WORK/DA/util.sh
+. $WORK/PSU_WRF_EnKF/util.sh
 rundir=$1/run
 
 if [ ! -d $rundir ]; then echo "$rundir doesn't exist"; exit; fi
 
-for t in `ls $rundir |grep 20`; do
+for t in `ls $rundir |grep 20 `; do
   echo "==== `wrf_time_string $t` ===="
   
-for c in obsproc icbc enkf 4dvar perturb_ic wrf_ens wrf_window wrf_window1 wrf; do
+for c in obsproc icbc enkf 4dvar perturb_ic wrf_ens wrf_ens_window1 wrf_window wrf_window1 wrf; do
   if [ -d $rundir/$t/$c ]; then
      stat=`cat $rundir/$t/$c/stat`
      printf "%12s" "$c"
@@ -22,19 +22,19 @@ for c in obsproc icbc enkf 4dvar perturb_ic wrf_ens wrf_window wrf_window1 wrf; 
          icbc)
            if [ -f $rundir/$t/$c/geogrid.log ]; then
              echo -e "\e[7mgeogrid\e[0m"
-             echo "`cat $rundir/$t/$c/geogrid.log |tail -n3`"
+             echo "`cat $rundir/$t/$c/geogrid.log |tail -n5`"
            fi
            if [ -f $rundir/$t/$c/ungrib.log ]; then
              echo -e "\e[7mungrib\e[0m"
-             echo "`cat $rundir/$t/$c/ungrib.log |tail -n3`"
+             echo "`cat $rundir/$t/$c/ungrib.log |tail -n5`"
            fi
            if [ -f $rundir/$t/$c/metgrid.log ]; then
              echo -e "\e[7mmetgrid\e[0m"
-             echo "`cat $rundir/$t/$c/metgrid.log |tail -n3`"
+             echo "`cat $rundir/$t/$c/metgrid.log |tail -n5`"
            fi
            if [ -f $rundir/$t/$c/rsl.error.0000 ]; then
              echo -e "\e[7mreal\e[0m"
-             echo "`cat $rundir/$t/$c/rsl.error.0000 |tail -n3`"
+             echo "`cat $rundir/$t/$c/rsl.error.0000 |tail -n5`"
            fi
            ;;
          wrf)
@@ -51,7 +51,7 @@ for c in obsproc icbc enkf 4dvar perturb_ic wrf_ens wrf_window wrf_window1 wrf; 
            ;;
          perturb_ic)
            for m in `ls $rundir/$t/$c/$n |grep 0`; do
-             echo "$m (`tail -n3 $rundir/$t/$c/$n/$m/rsl.error.0000`)"
+             echo "$m (`tail -n1 $rundir/$t/$c/$n/$m/rsl.error.0000`)"
            done
            ;;
          enkf)
@@ -61,16 +61,16 @@ for c in obsproc icbc enkf 4dvar perturb_ic wrf_ens wrf_window wrf_window1 wrf; 
                echo "preparing... "
                ls -l $rundir/$t/$c/$dm/fort.9*
              else
-               if [ ! -z "`tail -n3 $rundir/$t/$c/$dm/enkf.log |grep Successful`" ]; then
+               if [ ! -z "`tail -n5 $rundir/$t/$c/$dm/enkf.log |grep Successful`" ]; then
                  echo -e "\e[7menkf.mpi done\e[0m"
                  if [ -d $rundir/$t/$c/$dm/replace_mean ]; then
                    echo -e "\e[7mReplacing ensemble mean\e[0m"
                    if [ -f $rundir/$t/$c/$dm/replace_mean/replace_mean.log ]; then
-                     tail -n3 $rundir/$t/$c/$dm/replace_mean/replace_mean.log
+                     tail -n5 $rundir/$t/$c/$dm/replace_mean/replace_mean.log
                    fi
                  fi
                else
-                 tail -n3 $rundir/$t/$c/$dm/enkf.log
+                 tail -n5 $rundir/$t/$c/$dm/enkf.log
                fi
              fi
            done
@@ -94,9 +94,19 @@ for c in obsproc icbc enkf 4dvar perturb_ic wrf_ens wrf_window wrf_window1 wrf; 
                for i in `seq 1 100`; do
                  if [ -f $rundir/$t/$c/$dm/stage2_inner$i ]; then
                    if [ `cat $rundir/$t/$c/$dm/stage2_inner$i` == "complete" ]; then
-                     echo -e "\e[7mStage2\e[0m: Extra inner loop ($i), iterations = `cat $rundir/$t/$c/$dm/stage2_rsl.error.0000 |grep 'back from adjoint integrate' |wc -l` ...complete" 
+                     if [ -f $rundir/$t/$c/$dm/stage2_rsl.error.0000 ]; then
+                       nit=`cat $rundir/$t/$c/$dm/stage2_rsl.error.0000 |grep 'back from adjoint integrate' |wc -l`
+                     else
+                       nit=0
+                     fi
+                     echo -e "\e[7mStage2\e[0m: Extra inner loop ($i), iterations = $nit ....complete" 
                    else
-                     echo -e "\e[7mStage2\e[0m: Extra inner loop ($i), iterations = `cat $rundir/$t/$c/$dm/rsl.error.0000 |grep 'back from adjoint integrate' |wc -l` ..."
+                     if [ -f $rundir/$t/$c/$dm/rsl.error.0000 ]; then 
+                       nit=`cat $rundir/$t/$c/$dm/rsl.error.0000 |grep 'back from adjoint integrate' |wc -l`
+                     else
+                       nit=0
+                     fi
+                     echo -e "\e[7mStage2\e[0m: Extra inner loop ($i), iterations = $nit ...."
                    fi
                  fi
                  if [ -f $rundir/$t/$c/$dm/stage2_outer$i ]; then
@@ -108,13 +118,14 @@ for c in obsproc icbc enkf 4dvar perturb_ic wrf_ens wrf_window wrf_window1 wrf; 
                  fi
                done
                if [ -f $rundir/$t/$c/$dm/rsl.error.0000 ]; then
-                 tail -n3 $rundir/$t/$c/$dm/rsl.error.0000
+                 tail -n5 $rundir/$t/$c/$dm/rsl.error.0000
                fi
              fi
            done
            ;;
          wrf_ens)
            for m in `/bin/ls $rundir/$t/$c |grep '^[0-9][0-9][0-9]$'`; do
+             rsltail=''
              if [[ -f $rundir/$t/$c/$m/rsl.error.0000 ]]; then
                rsltail=`tail -n1 $rundir/$t/$c/$m/rsl.error.0000`
              fi
@@ -127,7 +138,27 @@ for c in obsproc icbc enkf 4dvar perturb_ic wrf_ens wrf_window wrf_window1 wrf; 
              if [ -d $rundir/$t/$c/$i ]; then
                echo -e "\e[7mCalculating $i\e[0m"
                if [ -f $rundir/$t/$c/$i/ensemble_mean.log ]; then
-                 tail -n3 $rundir/$t/$c/$i/ensemble_mean.log
+                 tail -n5 $rundir/$t/$c/$i/ensemble_mean.log
+               fi
+             fi
+           done
+           ;;
+         wrf_ens_window1)
+           for m in `/bin/ls $rundir/$t/$c |grep '^[0-9][0-9][0-9]$'`; do
+             rsltail=''
+             if [[ -f $rundir/$t/$c/$m/rsl.error.0000 ]]; then
+               rsltail=`tail -n1 $rundir/$t/$c/$m/rsl.error.0000`
+             fi
+             if [[ -z $rsltail ]]; then mstat="\e[0;31mwaiting\e[0m"; fi
+             if [[ $rsltail ]]; then mstat="\e[0;32mrunning\e[0m: $rsltail"; fi
+             if [[ `echo $rsltail |grep SUCCESS` ]]; then mstat=complete; fi
+             echo -e "$m ($mstat)"
+           done
+           for i in `/bin/ls $rundir/$t/$c |grep mean`; do
+             if [ -d $rundir/$t/$c/$i ]; then
+               echo -e "\e[7mCalculating $i\e[0m"
+               if [ -f $rundir/$t/$c/$i/ensemble_mean.log ]; then
+                 tail -n5 $rundir/$t/$c/$i/ensemble_mean.log
                fi
              fi
            done

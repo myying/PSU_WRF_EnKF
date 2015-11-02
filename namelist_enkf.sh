@@ -18,8 +18,8 @@ update_is    = 5,
 update_ie    = `echo ${E_WE[$domain_id-1]}-5 |bc`,
 update_js    = 5,
 update_je    = `echo ${E_SN[$domain_id-1]}-5 |bc`,
-update_ks    = 5,
-update_ke    = `echo ${E_VERT[$domain_id-1]}-5 |bc`,
+update_ks    = 1,
+update_ke    = `echo ${E_VERT[$domain_id-1]}-1 |bc`,
 inflate      = $INFLATION_COEF,
 relax_opt    = $RELAX_OPT,
 relax_adaptive = .$RELAX_ADAPTIVE.,
@@ -36,10 +36,10 @@ njcpu  = $NJCPU,
 /
 
 &osse
-use_ideal_obs    = .true.,
-gridobs_is   = 25,
+use_ideal_obs    = .false.,
+gridobs_is   = 20,
 gridobs_ie   = `echo ${E_WE[$domain_id-1]}-20 |bc`,
-gridobs_js   = 25,
+gridobs_js   = 20,
 gridobs_je   = `echo ${E_SN[$domain_id-1]}-20 |bc`,
 gridobs_ks   = 1,
 gridobs_ke   = `echo ${E_VERT[$domain_id-1]}-1 |bc`,
@@ -64,8 +64,8 @@ vroi_surface     = $VROI,
 &sounding_obs
 use_sounding      = .$USE_SOUNDOBS.,
 datathin_sounding = $THIN_SOUNDING,
-hroi_sounding     = $(printf %.0f `echo $HROI_UPPER/$dx |bc -l`),
-vroi_sounding     = $VROI,
+hroi_sounding     = $(printf %.0f `echo ${HROI_SOUNDING:-$HROI_UPPER}/$dx |bc -l`),
+vroi_sounding     = ${VROI_SOUNDING:-$VROI},
 /
 
 &profiler_obs
@@ -106,15 +106,15 @@ vroi_spssmi     = $VROI,
 &atovs_obs
 use_atovs      = .$USE_ATOVS.,
 datathin_atovs = $THIN_ATOVS,
-hroi_atovs     = $(printf %.0f `echo $HROI_UPPER/$dx |bc -l`),
-vroi_atovs     = $VROI,
+hroi_atovs     = $(printf %.0f `echo ${HROI_ATOVS:-$HROI_UPPER}/$dx |bc -l`),
+vroi_atovs     = ${VROI_ATOVS:-$VROI},
 /
 
 &satwnd_obs
 use_satwnd      = .$USE_GEOAMVOBS.,
 datathin_satwnd = $THIN_SATWND,
-hroi_satwnd     = $(printf %.0f `echo $HROI_UPPER/$dx |bc -l`),
-vroi_satwnd     = $VROI,
+hroi_satwnd     = $(printf %.0f `echo ${HROI_SATWND:-$HROI_UPPER}/$dx |bc -l`),
+vroi_satwnd     = ${VROI_SATWND:-$VROI},
 /
 
 &gpspw_obs

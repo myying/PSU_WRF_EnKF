@@ -1,26 +1,27 @@
 #!/bin/bash
-#####header for jet######
-#PBS -A hfip-psu
-#PBS -N run_cycle
-#PBS -l walltime=8:00:00
-#PBS -q batch
-#PBS -l partition=ujet:tjet
-#PBS -l procs=1464
-#PBS -j oe
-#PBS -o ./log
-#PBS -d .
+######header for jet######
+##PBS -A hfip-psu
+##PBS -N EnKF_UVTQ
+##PBS -l walltime=8:00:00
+##PBS -q batch
+##PBS -l partition=sjet:vjet
+##PBS -l nodes=16:ppn=16
+##PBS -j oe
+##PBS -o ./log
+##PBS -d .
 
-#####header for stampede######
-##SBATCH -J run_cycle
-##SBATCH -n 336
-##SBATCH -p normal
+####header for stampede######
+#SBATCH -J T_2_acr1
+#SBATCH -o ./log/%j
+#SBATCH -n 256 -N 16
+#SBATCH -p normal
+#SBATCH -t 24:00:00
+##SBATCH -p development
 ##SBATCH -t 2:00:00
 
-source ~/.bashrc
-
 #load configuration files, functions, parameters
-cd $WORK/DA
-export CONFIG_FILE=$WORK/DA/config/katrina
+cd $WORK/PSU_WRF_EnKF
+export CONFIG_FILE=$WORK/PSU_WRF_EnKF/config/dynamo_osse/TQAMVDYNAMO_2_acr1
 . $CONFIG_FILE
 . util.sh
 
@@ -68,7 +69,7 @@ while [[ $NEXTDATE -le $DATE_CYCLE_END ]]; do  #CYCLE LOOP
 
   #CLEAR ERROR TAGS
   for d in `ls run/$DATE/`; do
-    if [[ `cat run/$DATE/$d/stat` != "complete" ]]; then
+    if [[ `cat run/$DATE/$d/stat` == "error" ]]; then
       echo waiting > run/$DATE/$d/stat
     fi
   done
@@ -93,10 +94,10 @@ while [[ $NEXTDATE -le $DATE_CYCLE_END ]]; do  #CYCLE LOOP
 
   # Data assimilation for each cycle
   if [ $DATE -ge $DATE_CYCLE_START ] && [ $DATE -le $DATE_CYCLE_END ]; then
-    # Processing observations
-    if $RUN_ENKF || $RUN_4DVAR; then
-      $SCRIPT_DIR/module_obsproc.sh &
-    fi
+#    # Processing observations
+#    if $RUN_ENKF || $RUN_4DVAR; then
+#      $SCRIPT_DIR/module_obsproc.sh &
+#    fi
     # EnKF
     if $RUN_ENKF; then
       $SCRIPT_DIR/module_enkf.sh &
@@ -111,7 +112,7 @@ while [[ $NEXTDATE -le $DATE_CYCLE_END ]]; do  #CYCLE LOOP
     if $RUN_ENVAR; then
       $SCRIPT_DIR/module_wrf_ens_window1.sh &
     fi
-#    $SCRIPT_DIR/module_wrf_rc.sh &
+#    $SCRIPT_DIR/module_wrf.sh &
   fi
   wait
 

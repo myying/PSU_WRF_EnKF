@@ -1,26 +1,26 @@
 #!/bin/bash
 #####header for jet######
-#PBS -A hfip-psu
-#PBS -N bamex
-#PBS -l walltime=8:00:00
-#PBS -q batch
-#PBS -l partition=ujet:tjet
-#PBS -l procs=288
-#PBS -j oe
-#PBS -o ./log
-#PBS -d .
+##PBS -A hfip-psu
+##PBS -N gen_be_wrfrun
+##PBS -l walltime=8:00:00
+##PBS -q batch
+##PBS -l partition=ujet:tjet
+##PBS -l procs=192
+##PBS -j oe
+##PBS -o ./log
+##PBS -d .
 
 #####header for stampede######
-##SBATCH -J run_cycle
-##SBATCH -n 336
-##SBATCH -p normal
-##SBATCH -t 2:00:00
+#SBATCH -J gen_be_wrf
+#SBATCH -n 256
+#SBATCH -p development
+#SBATCH -t 2:00:00
 
 source ~/.bashrc
 
 #load configuration files, functions, parameters
-cd $WORK/DA
-export CONFIG_FILE=$WORK/DA/config/BAMEX_genbe
+cd $WORK/PSU_WRF_EnKF
+export CONFIG_FILE=$WORK/PSU_WRF_EnKF/config/dynamo_osse_genbe
 . $CONFIG_FILE
 . util.sh
 
@@ -78,7 +78,7 @@ while [[ $NEXTDATE -le $DATE_CYCLE_END ]]; do  #CYCLE LOOP
   # ICBC
   $SCRIPT_DIR/module_icbc.sh &
   $SCRIPT_DIR/module_wrf_rc.sh &
-#  wait
+  wait
 
   #CHECK ERRORS
   for d in `ls -t run/$DATE/`; do
@@ -92,5 +92,6 @@ while [[ $NEXTDATE -le $DATE_CYCLE_END ]]; do  #CYCLE LOOP
   export PREVDATE=$DATE
   export DATE=$NEXTDATE
 done
+wait
 echo CYCLING COMPLETE
 

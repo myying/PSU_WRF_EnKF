@@ -1,25 +1,25 @@
 #!/bin/bash
 #####header for jet######
-#PBS -A hfip-psu
-#PBS -N gen_be
-#PBS -l walltime=0:30:00
-#PBS -q debug 
-#PBS -l partition=sjet
-#PBS -l procs=256
-#PBS -j oe
-#PBS -d .
+##PBS -A hfip-psu
+##PBS -N gen_be
+##PBS -l walltime=0:30:00
+##PBS -q debug 
+##PBS -l partition=sjet
+##PBS -l procs=256
+##PBS -j oe
+##PBS -d .
 
-######header for stampede######
-##SBATCH -J gen_be
-##SBATCH -n 256
-##SBATCH -p development 
-##SBATCH -t 2:00:00
+#####header for stampede######
+#SBATCH -J gen_be
+#SBATCH -n 64
+#SBATCH -p development 
+#SBATCH -t 2:00:00
 
 source ~/.bashrc
 
 #load configuration files, functions, parameter
-cd $WORK/DA
-export CONFIG_FILE=$WORK/DA/config/BAMEX_genbe
+cd $WORK/PSU_WRF_EnKF
+export CONFIG_FILE=$WORK/PSU_WRF_EnKF/config/dynamo_osse_genbe
 . $CONFIG_FILE
 . util.sh
 
@@ -62,7 +62,7 @@ export BE_METHOD=NMC
 export FCST_RANGE=$((CYCLE_PERIOD/60))
 #Example of changes required for "be_method=ENS":
 #export BE_METHOD=ENS
-#export NE=2 # 30
+#export NE=30
 
 export FC_DIR=$WORK_DIR/output	# where wrf forecasts are
 export RUN_DIR=$WORK_DIR

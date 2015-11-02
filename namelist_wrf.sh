@@ -53,6 +53,8 @@ interval_seconds   = $((LBC_INTERVAL*60)),
 history_interval   = $(for i in $domlist; do printf $(min $wrfout_interval ${WRFOUT_INTERVAL[$i-1]}), ; done)
 frames_per_outfile = $(for i in $domlist; do printf 1, ; done)
 debug_level        = 0,
+restart = .false.,
+restart_interval = 1440,
 EOF
 
 if [ ! -z $inputout_interval ]; then
@@ -132,7 +134,7 @@ eta_levels = 1.000000, 0.993042, 0.983211, 0.970571, 0.955211, 0.937239,
 0.059519, 0.047598, 0.037267, 0.028358, 0.020713, 0.014185,
 0.008638, 0.003947, 0.000000,
 smooth_option=0,
-num_metgrid_levels=27,
+num_metgrid_levels=${NUM_METGRID_LEVELS:-38},
 p_top_requested=$P_TOP,
 num_metgrid_soil_levels=4,
 nproc_x=0,
@@ -174,7 +176,7 @@ cudt               = $(for i in $domlist; do printf ${CUDT[$i-1]}, ; done)
 EOF
 
 cat << EOF
-mp_zero_out        = 0,
+mp_zero_out        = 2,
 sst_update         = $SST_UPDATE,
 
 EOF

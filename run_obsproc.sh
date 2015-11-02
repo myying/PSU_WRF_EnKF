@@ -1,7 +1,7 @@
 #!/bin/bash
 #####header for jet######
 #PBS -A hfip-psu
-#PBS -N bamex
+#PBS -N obsproc
 #PBS -l walltime=8:00:00
 #PBS -q batch
 #PBS -l partition=ujet:tjet
@@ -19,8 +19,8 @@
 source ~/.bashrc
 
 #load configuration files, functions, parameters
-cd $WORK/DA
-export CONFIG_FILE=$WORK/DA/config/BAMEX_EnKF
+cd $WORK/PSU_WRF_EnKF
+export CONFIG_FILE=$WORK/PSU_WRF_EnKF/config/dynamo_osse_obsproc
 . $CONFIG_FILE
 . util.sh
 
@@ -82,7 +82,7 @@ while [[ $NEXTDATE -le $DATE_CYCLE_END ]]; do  #CYCLE LOOP
       $SCRIPT_DIR/module_obsproc.sh &
     fi
   fi
-  wait
+#  wait
 
   #CHECK ERRORS
   for d in `ls -t run/$DATE/`; do

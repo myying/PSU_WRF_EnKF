@@ -42,7 +42,6 @@ while [[ $DATE -le $END_DATE_STAGE0 ]]; do
    #  Create file dates:
    export FCST_TIME=$($DAAT $DATE $FCST_RANGE1)
    echo "gen_be_stage0_wrf: Calculating standard perturbation fields valid at time " $FCST_TIME
-
    export YYYY=$(echo $FCST_TIME | cut -c1-4)
    export MM=$(echo $FCST_TIME | cut -c5-6)
    export DD=$(echo $FCST_TIME | cut -c7-8)
@@ -59,11 +58,10 @@ while [[ $DATE -le $END_DATE_STAGE0 ]]; do
       ln -sf ${FC_DIR}/${NEXT_DATE}00/wrfout_d${DOMAIN}_${FILE_DATE} $FILE3
    fi
    if [[ $BE_METHOD == ENS ]]; then
-      typeset -Z3 count
       count=1 
       while [[ $count -le ${NE} ]];do
-         ln -sf ${FC_DIR}/${DATE}.e${count}/wrfout_d${DOMAIN}_${FILE_DATE} wrfout_d${DOMAIN}_${FILE_DATE}.e${count}
-         (( count += 1 ))
+         ln -sf ${WORK_DIR}/../run/${DATE}00/wrf_ens/`expr 1000 + ${count} |cut -c2-`/wrfout_d${DOMAIN}_${FILE_DATE} wrfout_d${DOMAIN}_${FILE_DATE}.e`expr 1000 + $count |cut -c2-`
+         count=$((count+1))
       done
    fi
 

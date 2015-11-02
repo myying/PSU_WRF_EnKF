@@ -42,17 +42,27 @@ if [[ $HOSTTYPE == "jet" ]]; then
   elif [ $JOB_SUBMIT_MODE == 2 ]; then
     nodes=`echo "($n+$ppn-1)/$ppn" |bc`
     jobname=`basename $exe |awk -F. '{print $1}'`
+    if [ $jobname == "enkf" ]; then
+      queue="debug"
+      wtime="0:30:00"
+    else
+      queue="batch"
+      wtime="4:00:00"
+#      if [ $jobname == "wrf" ]; then
+#        wtime="0:30:00"
+#      fi
+    fi
     cat << EOF > run_$jobname.sh
 #!/bin/bash
 #PBS -A hfip-psu
 #PBS -N $jobname
-#PBS -l walltime=2:00:00
-#PBS -q batch
-#PBS -l partition=ujet:tjet:sjet:vjet
+#PBS -l walltime=$wtime
+#PBS -q $queue
+#PBS -l partition=sjet:vjet
 #PBS -l nodes=$nodes:ppn=$ppn
 #PBS -j oe
 #PBS -d .
-source ~/.bashrc
+source ~/.bashrc_yingyue
 cd `pwd`
 mpiexec -np $n $exe >& $jobname.log
 EOF

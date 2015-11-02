@@ -1,11 +1,11 @@
 #!/bin/bash
 #####header for jet######
 #PBS -A hfip-psu
-#PBS -N BAMEX_EnKF
+#PBS -N fcst_analysis
 #PBS -l walltime=8:00:00
 #PBS -q batch
 #PBS -l partition=ujet:tjet
-#PBS -l procs=720
+#PBS -l nodes=8:ppn=12
 #PBS -j oe
 #PBS -o ./log
 #PBS -d .
@@ -19,8 +19,8 @@
 source ~/.bashrc
 
 #load configuration files, functions, parameters
-cd $WORK/DA
-export CONFIG_FILE=$WORK/DA/config/dynamo_osse1
+cd $WORK/PSU_WRF_EnKF
+export CONFIG_FILE=$WORK/PSU_WRF_EnKF/config/dynamo_osse_4dvar_tqamvdynamo
 . $CONFIG_FILE
 . util.sh
 
@@ -68,15 +68,15 @@ while [[ $NEXTDATE -le $DATE_CYCLE_END ]]; do  #CYCLE LOOP
 
   #CLEAR ERROR TAGS
   for d in `ls run/$DATE/`; do
-    if [[ `cat run/$DATE/$d/stat` != "complete" ]]; then
+    if [[ `cat run/$DATE/$d/stat` == "error" ]]; then
       echo waiting > run/$DATE/$d/stat
     fi
   done
 
   #RUN COMPONENTS---------------------------------------
 
-#  # ICBC
-#  $SCRIPT_DIR/module_icbc.sh &
+  # ICBC
+  $SCRIPT_DIR/module_icbc.sh &
 #  # Ensemble initialization and forecast
 #  if $RUN_ENKF; then
 #    if [ $DATE == $DATE_START ]; then
@@ -111,6 +111,7 @@ while [[ $NEXTDATE -le $DATE_CYCLE_END ]]; do  #CYCLE LOOP
 #    if $RUN_ENVAR; then
 #      $SCRIPT_DIR/module_wrf_ens_window1.sh &
 #    fi
+#     $SCRIPT_DIR/module_wrf_rc_truth.sh &
      $SCRIPT_DIR/module_wrf.sh &
   fi
 #wait
@@ -126,5 +127,6 @@ while [[ $NEXTDATE -le $DATE_CYCLE_END ]]; do  #CYCLE LOOP
   export PREVDATE=$DATE
   export DATE=$NEXTDATE
 done
+
 echo CYCLING COMPLETE
 
