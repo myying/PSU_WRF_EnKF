@@ -14,10 +14,10 @@
 #SBATCH -J T_2_acr1
 #SBATCH -o ./log/%j
 #SBATCH -n 256 -N 16
-#SBATCH -p normal
-#SBATCH -t 24:00:00
-##SBATCH -p development
-##SBATCH -t 2:00:00
+##SBATCH -p normal
+##SBATCH -t 24:00:00
+#SBATCH -p development
+#SBATCH -t 2:00:00
 
 #load configuration files, functions, parameters
 cd $WORK/PSU_WRF_EnKF
