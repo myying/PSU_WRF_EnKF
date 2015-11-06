@@ -11,7 +11,7 @@
 ##PBS -d .
 
 ####header for stampede######
-#SBATCH -J T_2_acr1
+#SBATCH -J T_2_acr2
 #SBATCH -o ./log/%j
 #SBATCH -n 256 -N 16
 ##SBATCH -p normal
@@ -21,7 +21,7 @@
 
 #load configuration files, functions, parameters
 cd $WORK/PSU_WRF_EnKF
-export CONFIG_FILE=$WORK/PSU_WRF_EnKF/config/dynamo_osse/TQAMVDYNAMO_2_acr1
+export CONFIG_FILE=$WORK/PSU_WRF_EnKF/config/dynamo_osse/TQAMVDYNAMO_2_acr
 . $CONFIG_FILE
 . util.sh
 

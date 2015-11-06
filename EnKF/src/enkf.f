@@ -803,7 +803,8 @@ if ( my_proc_id==0 ) write(*,*)'Performing covariance relaxation...'
       enddo
       var_a=var_a/real(numbers_en-1)
       var_b=var_b/real(numbers_en-1)
-      if( kick_flag(iob)==0 .and. obstype(10:10)=='T') then
+      if( kick_flag(iob)==0 ) then
+      !if( kick_flag(iob)==0 .and. obstype(10:10)=='T') then
         n=n+1
         m_omb2=m_omb2+(y(iob)-yf(iob,numbers_en+1))**2/(obs%err(iob))**2
         m_amb2=m_amb2+(ya(iob,numbers_en+1)-yf(iob,numbers_en+1))**2/(obs%err(iob))**2
@@ -817,39 +818,39 @@ if ( my_proc_id==0 ) write(*,*)'Performing covariance relaxation...'
     m_var_a=m_var_a/real(n)
 
     !spread reduction (normalized by obserr)
-    obserr_k=0.0
-    obserr_count=0
-    do iob=1,obs%num
-      obstype=obs%type(iob)
-      k=int(obs%position(iob,3))      
-      if ( obstype(10:10)=='T' ) then
-        obserr_k(k)=obserr_k(k)+obs%err(iob)
-        obserr_count(k)=obserr_count(k)+1
-      endif
-    enddo
-    do m=1,nv
-      if(enkfvar(m)=='T         ') exit 
-    enddo
-    m_var_a1=0.0
-    m_var_b1=0.0
-    n=0
-    do k=1,kx
-      obserr=obserr_k(k)/obserr_count(k)
-      if(obserr>0 .and. obserr_count(k)>0) then
-        m_var_b1=m_var_b1+sum((std_xf(:,:,k,m)/obserr)**2)
-        m_var_a1=m_var_a1+sum(( std_x(:,:,k,m)/obserr)**2)
-        n=n+ix*jx
-      endif
-    enddo
-    m_var_b1=m_var_b1/real(n)
-    m_var_a1=m_var_a1/real(n)
+    !obserr_k=0.0
+    !obserr_count=0
+    !do iob=1,obs%num
+      !obstype=obs%type(iob)
+      !k=int(obs%position(iob,3))      
+      !if ( obstype(10:10)=='T' ) then
+        !obserr_k(k)=obserr_k(k)+obs%err(iob)
+        !obserr_count(k)=obserr_count(k)+1
+      !endif
+    !enddo
+    !do m=1,nv
+      !if(enkfvar(m)=='T         ') exit 
+    !enddo
+    !m_var_a1=0.0
+    !m_var_b1=0.0
+    !n=0
+    !do k=1,kx
+      !obserr=obserr_k(k)/obserr_count(k)
+      !if(obserr>0 .and. obserr_count(k)>0) then
+        !m_var_b1=m_var_b1+sum((std_xf(:,:,k,m)/obserr)**2)
+        !m_var_a1=m_var_a1+sum(( std_x(:,:,k,m)/obserr)**2)
+        !n=n+ix*jx
+      !endif
+    !enddo
+    !m_var_b1=m_var_b1/real(n)
+    !m_var_a1=m_var_a1/real(n)
 
     !calculate adaptive relaxation coef
     cr=sqrt((m_omb2-1.0-m_amb2)/m_var_a);
     !cr=sqrt((m_omb2-1.0)/m_var_b);
     la=max(cr,1.0)
-    ka=sqrt(m_var_b1)/sqrt(m_var_a1) 
-    !ka=sqrt(m_var_b)/sqrt(m_var_a)  !obs space rel reduc in spread
+    !ka=sqrt(m_var_b1)/sqrt(m_var_a1) 
+    ka=sqrt(m_var_b)/sqrt(m_var_a)  !obs space rel reduc in spread
     mixing=(la-1.0)/(ka-1)
     if(my_proc_id==0) write(*,*) 'CR=',cr,' kappa=',ka,' mixing=',mixing
 
