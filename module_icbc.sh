@@ -84,8 +84,11 @@ cp wrfinput_d?? $WORK_DIR/rc/$DATE/.
 cp wrfbdy_d01 $WORK_DIR/rc/$DATE/.
 if [[ $DATE == $DATE_START ]]; then
 #  cp wrfinput_d?? $WORK_DIR/fc/$DATE/.
-  cp $SCRATCH/EnKF_OSSE/wrfinput_d01_FNL_$DATE $WORK_DIR/fc/$DATE/wrfinput_d01
-  cp wrfbdy_d01 $WORK_DIR/fc/.
+#  cp wrfbdy_d01 $WORK_DIR/fc/.
+#USE WRONG IC/BC FOR OSSE
+  cp $SCRATCH/EnKF_OSSE/icbc_FNL/wrfinput_d01_$DATE $WORK_DIR/fc/$DATE/wrfinput_d01
+  cp $SCRATCH/EnKF_OSSE/icbc_FNL/wrfbdy_d01_long $WORK_DIR/fc/.
+
   if $RUN_4DVAR; then
     cp $WORK_DIR/fc/wrfbdy_d01 $WORK_DIR/fc/wrfbdy_d01_window
   fi

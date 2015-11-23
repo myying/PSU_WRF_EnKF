@@ -1,26 +1,14 @@
 #!/bin/bash
-#####header for jet######
-#PBS -A hfip-psu
-#PBS -N obsproc
-#PBS -l walltime=8:00:00
-#PBS -q batch
-#PBS -l partition=ujet:tjet
-#PBS -l procs=144
-#PBS -j oe
-#PBS -o ./log
-#PBS -d .
-
-#####header for stampede######
-##SBATCH -J run_cycle
-##SBATCH -n 336
-##SBATCH -p normal
-##SBATCH -t 2:00:00
+#SBATCH -J run_cycle
+#SBATCH -n 16
+#SBATCH -p normal
+#SBATCH -t 8:00:00
 
 source ~/.bashrc
 
 #load configuration files, functions, parameters
 cd $WORK/PSU_WRF_EnKF
-export CONFIG_FILE=$WORK/PSU_WRF_EnKF/config/dynamo_osse_obsproc
+export CONFIG_FILE=$WORK/PSU_WRF_EnKF/config/dynamo_osse/obsproc
 . $CONFIG_FILE
 . util.sh
 
@@ -82,7 +70,7 @@ while [[ $NEXTDATE -le $DATE_CYCLE_END ]]; do  #CYCLE LOOP
       $SCRIPT_DIR/module_obsproc.sh &
     fi
   fi
-#  wait
+  wait
 
   #CHECK ERRORS
   for d in `ls -t run/$DATE/`; do

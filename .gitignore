@@ -1,5 +1,7 @@
+*.swp
 *.o
 *.mod
 *.exe
 *.mpi
 log/*
+slurm*out
