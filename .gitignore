@@ -1,5 +1,6 @@
+*.o
+*.mod
 *.exe
 *.mpi
-*.mod
-*.o
+log/*
 slurm*.out
