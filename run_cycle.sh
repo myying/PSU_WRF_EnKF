@@ -12,8 +12,8 @@
 
 #####header for stampede######
 ##SBATCH -J run_cycle
-##SBATCH -n 336
-##SBATCH -p normal
+##SBATCH -n 96
+##SBATCH -p development
 ##SBATCH -t 2:00:00
 
 source ~/.bashrc
