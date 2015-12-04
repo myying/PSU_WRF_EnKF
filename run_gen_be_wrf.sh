@@ -20,7 +20,7 @@ source ~/.bashrc
 
 #load configuration files, functions, parameters
 cd $WORK/DA
-export CONFIG_FILE=$WORK/DA/config/BAMEX_genbe
+export CONFIG_FILE=$WORK/DA/config/katrina
 . $CONFIG_FILE
 . util.sh
 

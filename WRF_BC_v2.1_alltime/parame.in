@@ -1,0 +1,13 @@
+&control_param
+ wrf_3dvar_output_file = 'wrfinput_d01_POST'
+ wrf_bdy_file          = 'wrfbdy_d01_real'
+ wrf_bdy_file_real     = 'wrfbdy_d01_pri'
+ wrf_input_from_si     = 'wrfinput_d01_real'
+ wrf_input_from_si_randmean = 'wrfinput_d01_random_mean'
+ wrf_3dvar_random_draw = 'wrfinput_d01_random_draw'
+
+ cycling = .true.
+ debug   = .true.
+ low_bdy_only = .false.
+ perturb_bdy = .true.
+ n_1  = 8 /

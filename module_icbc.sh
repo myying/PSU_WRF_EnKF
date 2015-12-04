@@ -105,7 +105,7 @@ while [[ $fgdate -le `advance_time $start_date $run_minutes` ]]; do
   dd=`echo $fgdate |cut -c7-8`
   hh=`echo $fgdate |cut -c9-10`
 #  file="$FG_DIR/gfs.$ccyymm$dd$hh/`date -u -d $ccyymm$dd' '$hh':00' +%y%j%H`000000" #GFS
-  file="$FG_DIR/${ccyymm:0:4}/fnl_${ccyymm}${dd}_${hh}_00"                                #FNL
+  file="$FG_DIR/fnl_${ccyymm}${dd}_${hh}_00"                                #FNL
   if [ -e $file ]; then 
     gribfile="$gribfile $file"
   fi

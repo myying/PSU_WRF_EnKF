@@ -3,3 +3,4 @@
 *.exe
 *.mpi
 log/*
+slurm*.out

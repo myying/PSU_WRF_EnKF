@@ -51,7 +51,7 @@ for c in obsproc icbc enkf 4dvar perturb_ic wrf_ens wrf_window wrf_window1 wrf; 
            ;;
          perturb_ic)
            for m in `ls $rundir/$t/$c/$n |grep 0`; do
-             echo "$m (`tail -n3 $rundir/$t/$c/$n/$m/rsl.error.0000`)"
+             echo "$m (`tail -n1 $rundir/$t/$c/$n/$m/rsl.error.0000`)"
            done
            ;;
          enkf)
