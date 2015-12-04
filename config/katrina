@@ -3,6 +3,7 @@
  RUN_4DVAR=false
  RUN_DETERMINISTIC=false
  RUN_MULTI_PHYS_ENS=false
+ FOLLOW_STORM=false
  CLEAN=false
 
 #experiment design
