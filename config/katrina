@@ -130,7 +130,7 @@
  VROI_RADAR=15
 
 #WRFDA options (For generating perturbation)
- CV_OPTIONS=5
+ CV_OPTIONS=3
  VAR_SCALING1=1.0
  VAR_SCALING2=1.0
  VAR_SCALING3=1.0
