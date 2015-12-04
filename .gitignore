@@ -1,0 +1,5 @@
+*.exe
+*.mpi
+*.mod
+*.o
+slurm*.out
