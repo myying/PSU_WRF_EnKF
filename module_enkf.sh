@@ -42,7 +42,11 @@ for n in $domlist; do
 #  #airborne radar superobs
 #  ln -fs $DATA_DIR/so/${DATE}_all.so_ass airborne_${DATE}_so
 
-  ln -fs $OBS_DIR/obs_gts_`wrf_time_string $DATE`.3DVAR.$OBS_TYPE obs_3dvar_${DATE}00
+	ln -fs $OBS_DIR/obs_gts_`wrf_time_string $DATE`.3DVAR.$OBS_TYPE obs_3dvar_${DATE}00
+
+#radiance obs
+  ln -fs $WORK/code/CRTM/crtm_wrf/coefficients
+  ln -fs $WORK/DYNAMO/EnKF_OSSE/Meteosat7_SO/BT_d01_${DATE}_so radiance_${DATE}_so
 
 #  #link truth for OSSE
 #  ln -fs $WORK/data/DYNAMO/3km_run_9km/wrfout_d01_`wrf_time_string $DATE` fort.80010
@@ -126,6 +130,7 @@ for n in $domlist; do
     ln -fs ../../../../fc/$DATE/wrfinput_${dm}_$id fort.`expr 90010 + $NE`
   done
   cp fort.`expr 90011 + $NUM_ENS` $WORK_DIR/fc/$DATE/wrfinput_${dm}_mean
+  cp fort.`expr 80011 + $NUM_ENS` $WORK_DIR/fc/$PREVDATE/wrfinput_${dm}_`wrf_time_string $DATE`_mean
   cd ..
 done
 

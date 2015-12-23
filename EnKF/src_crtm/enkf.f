@@ -250,7 +250,7 @@ do iob=1,obs%num
          call xb_to_sounding(filename,proj,tmp,ix,jx,kx,nv,iob,xlong,znu,znw,p_top,xb, 0, 1 )  
          obs%dat(iob) = xb
       else if ( obstype(1:1) == 'S' ) then
-         call xb_to_surface(filename,proj,tmp,ix,jx,kx,nv,iob,xlong,xland,lu_index,znu,znw,p_top,times,xb)
+         call xb_to_surface(filename,proj,tmp,ix,jx,kx,nv,iob,xland,lu_index,znu,znw,p_top,times,xb)
          obs%position(iob,3) = 1.
       endif
    else
@@ -259,8 +259,6 @@ do iob=1,obs%num
          call xb_to_rv(filename,proj,tmp,ix,jx,kx,nv,iob,xlong,znw,xb,0) 
       else if ( obstype(1:1) == 'P' .or. obstype(1:1) == 'H'  ) then
          call xb_to_sounding(filename,proj,tmp,ix,jx,kx,nv,iob,xlong,znu,znw,p_top,xb,1,0)
-      else if ( obstype=='Radiance  ') then
-         obs%position(iob,3) = 17   !TEMPORARY TEST
       else 
          obs%position(iob,3) = 1.
       endif
@@ -313,7 +311,7 @@ obs_cycle: do ig=1,int(obs%num/nob)+1
        else if ( obstype(1:1) == 'P' .or. obstype(1:1) == 'H'  ) then
          call xb_to_sounding (filename,proj,xob(:,:,:,:,n,sid+1),ix,jx,kx,nv,iob,xlong,znu,znw,p_top,yasend(iob,ie),1,1)
        else if ( obstype(1:1) == 'S' ) then
-         call xb_to_surface(filename,proj,xob(:,:,:,:,n,sid+1),ix,jx,kx,nv,iob,xlong,xland,lu_index,znu,znw,p_top,times,yasend(iob,ie))
+         call xb_to_surface(filename,proj,xob(:,:,:,:,n,sid+1),ix,jx,kx,nv,iob,xland,lu_index,znu,znw,p_top,times,yasend(iob,ie))
        else if ( obstype(1:3) == 'slp' ) then
          call xb_to_slp(filename,xob(:,:,:,:,n,sid+1),ix,jx,kx,nv,iob,znu,znw,yasend(iob,ie))
        else if ( obstype(1:2) == 'pw' ) then
@@ -375,11 +373,9 @@ obs_assimilate_cycle : do it = 1,obs%num
    obstype = obs%type(iob)
    error = obs%err(iob)
    y_hxm = obs%dat(iob) - ya(iob,numbers_en+1)
-
-   if ( my_proc_id==0 ) write(*,'(a,i6,a,f10.2,a,f10.2,a,f8.2,a,f8.2,a,i4,a,i4)') &
+   if ( my_proc_id==0 ) write(*,'(a,i6,a,f10.2,a,f10.2,a,f8.2,a,f8.2,a,i4,a,i4,a,i4)') &
       'No.',iob,' '//obstype//' =',obs%dat(iob), ' ya=', ya(iob,numbers_en+1), ' y-ya=', y_hxm, &
-      ' err=',error,' hroi=',obs%roi(iob,1),' vroi=',obs%roi(iob,2)
-
+      ' err=',error,' hroi=',obs%roi(iob,1),'(',obs%roi(iob,3),') vroi=',obs%roi(iob,2)
    if( abs(y_hxm)>(error*5.) .and. &
       .not.(obstype=='min_slp   ' .or. obstype=='longtitude' .or. obstype=='latitude  ' .or. obstype=='slp       '&
        .or. obstype=='Radiance  ') ) then
@@ -387,13 +383,6 @@ obs_assimilate_cycle : do it = 1,obs%num
       kick_flag(iob)=1
       cycle obs_assimilate_cycle
    endif
-
-   if( any(yf(iob,:)==-888888.0) ) then
-      if ( my_proc_id==0 ) write(*,*)' ...kicked off for invalid value'
-      kick_flag(iob)=1
-      cycle obs_assimilate_cycle
-   endif
-
    assimilated_obs_num=assimilated_obs_num+1
    ngx = obs%roi(iob,1)
    ngz = obs%roi(iob,2)
@@ -430,22 +419,20 @@ t0=MPI_Wtime()
    alpha = 1.0/(1.0+sqrt(error*error/d))
    ngx = obs%roi(iob,1)
    if (obstype=='Radiance  ') then
-     !if(varname=='QCLOUD    ' .or. varname=='QRAIN     ' .or. varname=='QICE      ' .or. & !varname=='QVAPOR    ' .or. 
-               !varname=='QGRAUP    ' .or. varname=='QSNOW     ') then
-       !ngx=6  !!!!!!!!!!!!!!!!!!fix this later
-       !!if(obs%roi(iob,1) == 0) then
-         !!update_flag = 0
-       !!else
-         !!ngx = obs%roi(iob,1)
-       !!endif
-     !else
-       !ngx=obs%roi(iob,1)
-       !!if(obs%roi(iob,3) == 0) then
-         !!update_flag = 0
-       !!else
-         !!ngx = obs%roi(iob,3)
-       !!endif
-     !endif
+     if(varname=='QCLOUD    ' .or. varname=='QRAIN     ' .or. varname=='QICE      ' .or. & !varname=='QVAPOR    ' .or. 
+               varname=='QGRAUP    ' .or. varname=='QSNOW     ') then
+       if(obs%roi(iob,1) == 0) then
+         update_flag = 0
+       else
+         ngx = obs%roi(iob,1)
+       endif
+     else
+       if(obs%roi(iob,3) == 0) then
+         update_flag = 0
+       else
+         ngx = obs%roi(iob,3)
+       endif
+     endif
      d = max(fac * var + error * error, y_hxm * y_hxm)
      alpha = 1.0/(1.0+sqrt((d-fac * var)/d))
      if ( my_proc_id == 0 .and. sqrt(d-fac * var) > error .and. varname=='T         ')&
@@ -474,12 +461,8 @@ t0=MPI_Wtime()
    if(iid==nicpu-1) uied=ied
    if(jid==njcpu-1) ujed=jed
    if(uied<uist .or. ujed<ujst) then
-     if(m==1.and.gid==0) then 
-        write(*,'(a,i6,a)') '*******update zone of obs #',iob,' is too small to be decomposed.********'
-        write(*,*) 'update zone', uist,uied,ujst,ujed,kst,ked
-        write(*,*) 'obs location', obs%position(iob,:)
-         stop
-     endif
+     if(m==1.and.gid==0) write(*,'(a,i6,a)') '*******update zone of obs #',iob,' is too small to be decomposed.********'
+     stop
    endif
    allocate(x1(uied-uist+1, ujed-ujst+1, ked-kst+1, nm))
    x1=0.
@@ -805,8 +788,6 @@ enddo update_x_var
       alpha = 1.0/(1.0+sqrt((d-fac * var)/d))
    endif
 !!! relaxation end
-
-
       do ie=1,numbers_en+1
          if(ie<=numbers_en) &
             ya(iiob,ie)=ya(iiob,ie)-corr_coef*alpha*fac*cov*(ya(iob,ie)-ya(iob,numbers_en+1))/d !perturbation
@@ -861,7 +842,7 @@ do iob=1,obs%num
       sqrt(var_a)                       !observation posterior spread (sqrt{H P^f H^T}) (before relaxation)
   endif
   !innovation statistics (used in adaptive relaxation)
-  !if(my_proc_id==0) write(*,*) iob,'=',kick_flag(iob)
+  if(my_proc_id==0) write(*,*) iob,'=',kick_flag(iob)
   if(kick_flag(iob)==0) then
     n=n+1
     m_d2=m_d2+((obs%dat(iob)-yf(iob,numbers_en+1))/obs%err(iob))**2

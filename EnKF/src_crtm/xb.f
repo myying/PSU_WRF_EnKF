@@ -1,5 +1,5 @@
 !=======================================================================================
-subroutine xb_to_surface(inputfile,proj,xa,ix,jx,kx,nv,iob,xlong,xland,lu_index,znu,znw,p_top,times,xb)
+subroutine xb_to_surface(inputfile,proj,xa,ix,jx,kx,nv,iob,xland,lu_index,znu,znw,p_top,times,xb)
 use constants
 use namelist_define
 use obs_define
@@ -13,7 +13,7 @@ character(len=10) :: obstype
 type(proj_info), intent(in)             :: proj                   ! 1st guest map info
 real, dimension(3,3,kx+1,nv), intent(in) :: xa                     ! 1st guest
 integer, intent(in)                     :: ix, jx, kx, nv, iob
-real, dimension(ix, jx ), intent(in)    :: xlong, xland, lu_index
+real, dimension(ix, jx ), intent(in)    :: xland, lu_index
 real,  intent(in)                       :: p_top
 real, dimension(kx), intent(in)         :: znu
 real, dimension(kx+1), intent(in)       :: znw
@@ -25,7 +25,7 @@ real, dimension(ix+1, jx, kx)           :: u
 real, dimension(ix, jx+1, kx)           :: v
 real, dimension(2, 2, kx+1)             :: p
 real, dimension(kx)                     :: pres, ptt, qvt, ht
-real                                    :: mu1, mub1, long, grid_u, grid_v, true_u, true_v, dir, spd
+real                                    :: mu1, mub1, long, grid_u, grid_v
 integer                                 :: i1, j1, k1, i, j, k, m, ii, jj, kk, obs_ii,obs_jj
 integer                                 :: i_ph, i_phb, i_mu, i_mub, i_pt, i_qv, i_qc, i_qr, i_var, i_u, i_v
 integer                                 :: i_t2, i_th2, i_q2, i_u10, i_v10
@@ -199,12 +199,7 @@ else if ( obstype(10:10) == 'D' ) then
 else if ( obstype(10:10) == 'R' ) then
      xb = rel_humidity(q2, t2, psfcm)
 else if ( obstype(10:10) == 'S' ) then   !wind speed
-     long = ( xlong(i1  ,j1)*dym + xlong(i1  ,j1+1)*dy ) * dxm +          & 
-            ( xlong(i1+1,j1)*dym + xlong(i1+1,j1+1)*dy ) * dx
-     call gridwind_to_truewind(long, proj, grid_u, grid_v, true_u, true_v ) 
-     call uv_to_dirspd(true_u,true_v,dir,spd)
-     xb = spd 
-     !xb = sqrt(u10**2.+v10**2.)
+     xb = sqrt(u10**2.+v10**2.)
 endif
 
 !if( print_detail > 100 )write(*,'(3x,a,3f)')'xb_to_surface '//obstype//' obs xb, obs_ii, obs_jj :', xb, obs_ii, obs_jj
@@ -872,6 +867,8 @@ subroutine xb_to_radiance(inputfile,proj,ix,jx,kx,xlong,xlat,landmask,iob_radmin
   real                                     :: obs_ii, obs_jj, dx,dxm,dy,dym
 
   CHARACTER(*), PARAMETER :: PROGRAM_NAME   = 'ctrm'
+  CHARACTER(*), PARAMETER :: RESULTS_PATH = './results/'
+  CHARACTER(*), PARAMETER :: CRTM_code ='/work/03154/tg824524/tools/EnKF_crtm/code/CRTM/crtm_wrf/'
   REAL, PARAMETER :: P1000MB=100000.D0
   REAL, PARAMETER :: R_D=287.D0
   REAL, PARAMETER :: Cpd=7.D0*R_D/2.D0
@@ -879,8 +876,8 @@ subroutine xb_to_radiance(inputfile,proj,ix,jx,kx,xlong,xlat,landmask,iob_radmin
   !====================
   !setup for GOES-ABI
    REAL, PARAMETER :: sat_h=35780000.0
-   REAL, PARAMETER :: sat_lon=57.0/180.0*3.14159
-   INTEGER, parameter :: n_ch=2        !for GOES-ABI
+   REAL, PARAMETER :: sat_lon=75.0/180.0*3.14159
+   INTEGER, parameter :: n_ch=3        !for GOES-ABI
   !====================
 !  INTEGER, intent(in) :: ix = ix  !total number of the x-grid
 !  INTEGER, parameter, intent(in) :: jx = jx  !total number of the y-grid
@@ -1005,14 +1002,14 @@ subroutine xb_to_radiance(inputfile,proj,ix,jx,kx,xlong,xlat,landmask,iob_radmin
   !     for which the CRTM was initialized
   ! ------------------------------------------
   ! Specify channel 14 for GOES-R ABI
-  !if (Sensor_Id == 'abi_gr' ) then
-    Error_Status = CRTM_ChannelInfo_Subset( ChannelInfo(1), Channel_Subset =(/2,3/) )
+  if (Sensor_Id == 'abi_gr' ) then
+    Error_Status = CRTM_ChannelInfo_Subset( ChannelInfo(1), Channel_Subset =(/8,9,10/) )
     IF ( Error_Status /= SUCCESS ) THEN
       Message = 'Error initializing CRTM'
       CALL Display_Message( PROGRAM_NAME, Message, FAILURE )
       STOP
     END IF
-  !endif 
+  endif 
   n_Channels = SUM(CRTM_ChannelInfo_n_Channels(ChannelInfo))
   ! ============================================================================
 
@@ -1141,14 +1138,14 @@ subroutine xb_to_radiance(inputfile,proj,ix,jx,kx,xlong,xlat,landmask,iob_radmin
      atm(1)%Temperature(kx-z+1)    = tk(x,y,z)
      atm(1)%Absorber(kx-z+1,1)     = qvapor(x,y,z)*1000.0
    enddo
-   atm(1)%Absorber(:,2) = & !5.0E-02 
+   atm(1)%Absorber(:,2) = 5.0E-02 
    ! when # of vertical layer is 60
-    (/1.26E+00, 5.55E-01, 3.24E-01, 1.07E-01, 7.03E-02, 5.87E-02, 6.15E-02,6.43E-02, 6.99E-02, 7.17E-02,&
-      7.27E-02, 7.35E-02, 7.38E-02, 7.41E-02, 7.42E-02, 7.41E-02, 7.35E-02,7.31E-02, 7.27E-02, 7.27E-02,&
-      7.27E-02, 7.26E-02, 7.17E-02, 7.05E-02, 6.80E-02, 6.73E-02, 6.73E-02,6.76E-02, 6.72E-02, 6.62E-02,&
-      6.51E-02, 6.45E-02, 6.44E-02, 6.46E-02, 6.48E-02, 6.49E-02, 6.46E-02,6.42E-02, 6.38E-02, 6.38E-02,&
-      6.42E-02, 6.48E-02, 6.56E-02, 6.64E-02, 6.64E-02, 6.72E-02, 6.84E-02,6.84E-02, 6.84E-02, 6.94E-02,&
-      6.94E-02, 6.72E-02, 6.72E-02, 6.72E-02, 6.05E-02, 6.05E-02, 6.05E-02,4.12E-02, 4.12E-02, 4.12E-02/)
+   ! (/1.26E+00, 5.55E-01, 3.24E-01, 1.07E-01, 7.03E-02, 5.87E-02, 6.15E-02,6.43E-02, 6.99E-02, 7.17E-02,&
+   !   7.27E-02, 7.35E-02, 7.38E-02, 7.41E-02, 7.42E-02, 7.41E-02, 7.35E-02,7.31E-02, 7.27E-02, 7.27E-02,&
+   !   7.27E-02, 7.26E-02, 7.17E-02, 7.05E-02, 6.80E-02, 6.73E-02, 6.73E-02,6.76E-02, 6.72E-02, 6.62E-02,&
+   !   6.51E-02, 6.45E-02, 6.44E-02, 6.46E-02, 6.48E-02, 6.49E-02, 6.46E-02,6.42E-02, 6.38E-02, 6.38E-02,&
+   !   6.42E-02, 6.48E-02, 6.56E-02, 6.64E-02, 6.64E-02, 6.72E-02, 6.84E-02,6.84E-02, 6.84E-02, 6.94E-02,&
+   !   6.94E-02, 6.72E-02, 6.72E-02, 6.72E-02, 6.05E-02, 6.05E-02, 6.05E-02,4.12E-02, 4.12E-02, 4.12E-02/)
   !---Cloud Profile
   do z=1,kx*5
    atm(1)%Cloud(z)%Type = 0
@@ -1300,10 +1297,6 @@ subroutine xb_to_radiance(inputfile,proj,ix,jx,kx,xlong,xlat,landmask,iob_radmin
   !---for file output, edited 2014.9.26
   do l = 1, n_Channels
       Tbsend(x,y,l) = real(RTSolution(l,1)%Brightness_Temperature)
-      if(Tbsend(x,y,l) /= Tbsend(x,y,l) .or. Tbsend(x,y,l)>HUGE(Tbsend(x,y,l)) &
-         .or. Tbsend(x,y,l) < 100 .or. Tbsend(x,y,l) > 400 ) then
-        Tbsend(x,y,l)=-888888.
-      endif
   enddo
   !WRITE(*,'(7x,"Profile (",i0,", ",i0,") finished Tb =  ",f6.2)')x,y,Tbsend(x,y,2)
 
@@ -1319,31 +1312,32 @@ subroutine xb_to_radiance(inputfile,proj,ix,jx,kx,xlong,xlat,landmask,iob_radmin
   !6.5  **** writing the output ****
   !
   if(my_proc_id==0) then
-    do iob = iob_radmin, iob_radmax
-      obs_ii=obs%position(iob,1)
-      obs_jj=obs%position(iob,2)
-      x = int( obs_ii )
-      y = int( obs_jj )
-      !if (Sensor_Id == 'abi_gr' ) then
-         !if (obs%ch(iob) .eq. 8) xb_tb(iob) = Tb(x,y,1) !6.19um
-         !if (obs%ch(iob) .eq. 9) xb_tb(iob) = Tb(x,y,2) !6.95um
-         !if (obs%ch(iob) .eq. 10) xb_tb(iob) = Tb(x,y,3) !7.34um
-         !if (obs%ch(iob) .eq. 14) write(*,*)'change channel setting for ch14' !xb_tb(iob) = Tb(x,y,4) !11.2um
-      !elseif (Sensor_Id == 'imgr_g13' ) then
-         !if (obs%ch(iob) .eq. 3) xb_tb(iob) = Tb(x,y,2) !6.19um
-         !if (obs%ch(iob) .eq. 4) xb_tb(iob) = Tb(x,y,3) !11.2um
-      !endif
-      xb_tb(iob) = Tb(x,y,2)   !Meteosat7 ch-3
-    enddo
+  do iob = iob_radmin, iob_radmax
+     obs_ii=obs%position(iob,1)
+     obs_jj=obs%position(iob,2)
+     x = int( obs_ii )
+     y = int( obs_jj )
+     if (Sensor_Id == 'abi_gr' ) then
+         if (obs%ch(iob) .eq. 8) xb_tb(iob) = Tb(x,y,1) !6.19um
+         if (obs%ch(iob) .eq. 9) xb_tb(iob) = Tb(x,y,2) !6.95um
+         if (obs%ch(iob) .eq. 10) xb_tb(iob) = Tb(x,y,3) !7.34um
+         if (obs%ch(iob) .eq. 14) write(*,*)'change channel setting for ch14' !xb_tb(iob) = Tb(x,y,4) !11.2um
+     elseif (Sensor_Id == 'imgr_g13' ) then
+         if (obs%ch(iob) .eq. 3) xb_tb(iob) = Tb(x,y,2) !6.19um
+         if (obs%ch(iob) .eq. 4) xb_tb(iob) = Tb(x,y,3) !11.2um
+     endif
+  enddo
     !--initializing the Tbsend fields for Bcast
-    !Tbsend = 0.0
+    Tbsend = 0.0
   endif
+  if(my_proc_id==0) &
+   WRITE(*,'(a10," Tb=",f6.2,"~",f6.2)')inputfile,minval(xb_tb(iob_radmin:iob_radmax)),maxval(xb_tb(iob_radmin:iob_radmax))
 
   ! ============================================================================
   !  **** initializing all Tb and Tbsend fields ****
   !
-  !Tb = 0.0
-  !CALL MPI_BCAST(Tbsend,ix*jx*n_ch,MPI_REAL,0,comm,ierr)
+  Tb = 0.0
+  CALL MPI_BCAST(Tbsend,ix*jx*n_ch,MPI_REAL,0,comm,ierr)
 
   ! ============================================================================
   ! 7. **** DESTROY THE CRTM ****
@@ -1355,6 +1349,30 @@ subroutine xb_to_radiance(inputfile,proj,ix,jx,kx,xlong,xlat,landmask,iob_radmin
     CALL Display_Message( PROGRAM_NAME, Message, FAILURE )
     STOP
   END IF
+  ! ============================================================================
+
+  !  call parallel_finish()
+
+  ! ============================================================================
+   !---for debug by Minamide
+   !write(*,*) 'lpres',atm(1)%Level_Pressure
+   !write(*,*) 'Pres',atm(1)%Pressure
+   !write(*,*) 'Temp', atm(1)%Temperature
+   !write(*,*) 'H2O', atm(1)%Absorber(:,1)
+   !write(*,*) 'delz',delz
+   !write(*,*) 'hgt',hgt(x,y)
+   !write(*,*) 'ph',ph(x,y,:)
+   !write(*,*) 'phb',phb(x,y,:)
+   !write(*,*) 'qcloud',qcloud(x,y,:)
+   !write(*,*) 'qice',qice(x,y,:)
+   !write(*,*) 'qsnow',qsnow(x,y,:)
+   !write(*,*) 'qrain',qrain(x,y,:)
+   !write(*,*) 'qgraup',qgraup(x,y,:)
+   !do z=1,ncl
+   !write(*,*)
+   !'cloud',atm(1)%Cloud(z)%Type,minval(atm(1)%Cloud(z)%Water_Content),'~',maxval(atm(1)%Cloud(z)%Water_Content)
+   !enddo
+  ! ============================================================================
 
 end subroutine xb_to_radiance
 

@@ -1,7 +1,7 @@
 FC=mpif90
 FCFLAG=-f90=ifort -i4 -w -ftz -align all -fno-alias -fp-model precise -assume realloc_lhs -convert big_endian -traceback
 
-all: enkf.mpi replace_perturbationmean_by_initial.exe replace_geo_by_initial.exe replace_xfmean_with_gfs.exe enkf_gfs_hybrid_inflation.exe soairborne_to_3dvar.exe so_to_3dvar.exe ensemble_mean.exe replace_mean.exe replace_mean_outside_site.exe
+all: enkf.mpi enkf_hydro.mpi replace_perturbationmean_by_initial.exe replace_geo_by_initial.exe replace_xfmean_with_gfs.exe enkf_gfs_hybrid_inflation.exe soairborne_to_3dvar.exe so_to_3dvar.exe ensemble_mean.exe replace_mean.exe replace_mean_outside_site.exe 
 
 clean:
 	rm -f *.o *.mod *.mpi *.exe
@@ -30,6 +30,8 @@ sub_enkf_util.o:
 	$(FC) -c $(FCFLAG) -FR sub_enkf_util.f
 enkf.o:
 	$(FC) -c $(FCFLAG) -FR enkf.f
+enkf_hydro.o:
+	$(FC) -c $(FCFLAG) -FR enkf_hydro.f
 main.o:
 	$(FC) -c $(FCFLAG) -FR main.f
 ensemble_mean.o:
@@ -72,4 +74,4 @@ replace_mean.exe: module_netcdf.o mpi_module.o
 
 wrf2obs3dvar: module_netcdf.o module_map_utils.o module_structure.o module_wrf_tools.o
 	rm -f wrf2obs3dvar.exe
-	$(FC) -o wrf2obs3dvar.exe $(FCFLAG) -FR -I$(NETCDF)/include module_netcdf.o module_map_utils.o module_structure.o module_wrf_tools.o -L$(NETCDF)/lib -lnetcdf wrf2obs3dvar.f time_calculation.f
+	$(FC) -o wrf2obs3dvar.exe $(FCFLAG) -FR -I$(NETCDF)/include module_netcdf.o module_map_utils.o module_structure.o module_wrf_tools.o -L$(NETCDF)/lib -lnetcdf wrf2obs3dvar.f #time_calculation.f

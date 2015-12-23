@@ -33,7 +33,9 @@ real, dimension(ix, jx, kx+1)        :: ph, phb
 real, dimension(ix, jx, kx)          :: p, pb
 character (len=6)                    :: pfile         !! out_##
 
+!*******************************************************************************
 ! Get Model pressure and lat and long
+!*******************************************************************************
   call get_variable3d( wrf_file, 'P         ', ix, jx, kx, 1, p )
   call get_variable3d( wrf_file, 'PB        ', ix, jx, kx, 1, pb)
   p = p + pb 
@@ -43,14 +45,15 @@ character (len=6)                    :: pfile         !! out_##
   call open_file(wrf_file, nf_nowrite, fid)
   rcode = nf_get_att_int(fid, nf_global, 'GRID_ID', grid_id)
 
+!*******************************************************************************
 ! Get all raw observations into raw (type)
+!*******************************************************************************
   if ( .not. use_ideal_obs ) then
 !   call get_gtsobs_bufr ( times, ix, jx, kx, p, ph, proj )
    call get_gtsobs_3dvar ( times, ix, jx, kx, p, ph, proj )
 !      filename = 'hurricane_best_track                                                                '
 !      if ( expername .eq. 'hurricane ' ) &
 !      call gtsobs_time_shift ( times, filename )
-
   endif
 ! Hurricane center position and minimum sea level pressure
 if ( use_hurricane_PI ) then
@@ -94,7 +97,10 @@ endif
 !   if ( use_simulated ) call simulated_obser ( wrf_file, ix, jx, kx, proj )
 ! Add all obs type observations into obs%dat(num_rv)
 
+
+!*******************************************************************************
 !. allocate variables
+!*******************************************************************************
 iobs = 0               ! iobs for all observation, not only Rv
 
 !. calculate obs_gts records
@@ -113,18 +119,6 @@ if ( .not. use_ideal_obs ) then
              raw%gts%rh(n,j,1).gt.0. .and. raw%gts%rh(n,j,1).le.100. ) iobs = iobs + 1
       enddo
    enddo
-else
-
-  do k = gridobs_ks, gridobs_ke, gridobs_int_k
-  do j = gridobs_js, gridobs_je, gridobs_int_x
-  do i = gridobs_is, gridobs_ie, gridobs_int_x
-  do nvar = 1, 4   !U, V, Theta, Qv
-     iobs = iobs + 1
-  enddo
-  enddo
-  enddo
-  enddo
-
 endif
 
 !. calculate WSR-88D radar RV records
@@ -166,35 +160,58 @@ obs%ch         = -888888
 
 !----------------------------------------------------------------------------
 obs%num = 0               ! obs%num for all observation, not only Rv
+!*******************************************************************************
 !. save obs data to obs varry
 !....... Surface U, V, T, RH, SLP
+!*******************************************************************************
    if ( use_surface ) then
+      if ( use_ideal_obs ) then
+         write(*,*)' Please choose use_sounding and use_ideal '
+         stop
+      else
          call sort_surface_data( wrf_file, ix, jx, kx, proj, 'surface ', &
               datathin_surface, hroi_surface, vroi_surface, grid_id )
+      endif
    endif
+
 
 !....... Metar U, V, T, RH, SLP
    if ( use_metar   ) then
+      if ( use_ideal_obs ) then
+         write(*,*)' Please choose use_sounding and use_ideal '
+         stop
+      else
          call sort_surface_data( wrf_file, ix, jx, kx, proj, 'metar   ', &
               datathin_metar  , hroi_metar  , vroi_metar  , grid_id )
+      endif
    endif
 
 !....... Buoy and Ship U, V, T, RH, SLP
    if ( use_sfcshp  ) then
+      if ( use_ideal_obs ) then
+         write(*,*)' Please choose use_sounding and use_ideal '
+         stop
+      else
          call sort_surface_data( wrf_file, ix, jx, kx, proj, 'sfcshp  ', &
               datathin_sfcshp , hroi_sfcshp , vroi_sfcshp , grid_id )
+      endif
    endif
 
 !....... SSMI U, V, T, RH, SLP
    if ( use_spssmi  ) then
+      if ( use_ideal_obs ) then
+         write(*,*)' Please choose use_sounding and use_ideal '
+         stop
+      else
          call sort_surface_data( wrf_file, ix, jx, kx, proj, 'spssmi  ', &
               datathin_spssmi , hroi_spssmi , vroi_spssmi , grid_id )
+      endif
    endif
 
 !....... Sounding U, V, T, RH, SLP
    if ( use_sounding ) then
-      if ( use_ideal_obs ) then
-         call ideal_sounding_data(wrf_file,ix,jx,kx,hroi_sounding,vroi_sounding)
+      if ( use_ideal_obs ) then 
+         call ideal_sounding_data( wrf_file, ix, jx, kx )
       else
          call sort_sounding_data( wrf_file, ix, jx, kx, proj, 'sounding', &
               datathin_sounding, hroi_sounding, vroi_sounding, grid_id)
@@ -203,38 +220,57 @@ obs%num = 0               ! obs%num for all observation, not only Rv
 
 !....... Get Profiler U, V
    if ( use_profiler ) then
+      if ( use_ideal_obs ) then
+         write(*,*)' Please choose use_sounding and use_ideal '
+         stop
+      else
          call sort_upperair_data( wrf_file, ix, jx, kx, proj, 'profiler', &
               datathin_profiler, hroi_profiler, vroi_profiler, grid_id)
+      endif
    endif
 
 !....... Get Aircft U, V, T
    if ( use_aircft ) then
+      if ( use_ideal_obs ) then
+         write(*,*)' Please choose use_sounding and use_ideal '
+         stop
+      else
          call sort_upperair_data( wrf_file, ix, jx, kx, proj, 'aircft  ', &
               datathin_aircft  , hroi_aircft  , vroi_aircft  , grid_id)
+      endif
    endif
 
 !....... Get Atovs T and Td
    if ( use_atovs ) then
+      if ( use_ideal_obs ) then
+         write(*,*)' Please choose use_sounding and use_ideal '
+         stop
+      else
          call sort_upperair_data( wrf_file, ix, jx, kx, proj, 'atovs   ', &
               datathin_atovs   , hroi_atovs   , vroi_atovs   , grid_id)
+      endif
    endif
 
 !....... Get SatwndU, V, T
    if ( use_satwnd ) then
+      if ( use_ideal_obs ) then
+         write(*,*)' Please choose use_sounding and use_ideal '
+         stop
+      else
          call sort_upperair_data( wrf_file, ix, jx, kx, proj, 'satwnd  ', &
               datathin_satwnd  , hroi_satwnd  , vroi_satwnd  , grid_id)
-   endif
-
-!....... Get SeaWind Speed
-   if ( use_seawind ) then
-         call sort_surface_data( wrf_file, ix, jx, kx, proj, 'seawind ', &
-              datathin_seawind  , hroi_seawind  , vroi_seawind  , grid_id)
+      endif
    endif
 
 !.......Get GPSPW
    if ( use_gpspw ) then
+      if ( use_ideal_obs ) then
+         write(*,*)' Please choose use_sounding and use_ideal '
+         stop
+      else
          call sort_surface_data( wrf_file, ix, jx, kx, proj, 'gpspw   ', &
               datathin_gpspw, hroi_gpspw, vroi_gpspw, grid_id )
+      endif
    endif
 
 !....... Get Rv
@@ -434,7 +470,7 @@ end subroutine rd_interp_besttrack
 
 !=======================================================================================
 !TODO
-!subroutine get_obs_bufr (times,ix,jx,kx,p,ph,proj)
+!subroutine get_gtsobs_bufr (times,ix,jx,kx,p,ph,proj)
 !!get obs in bufr format
 !use constants
 !use namelist_define
@@ -448,7 +484,7 @@ end subroutine rd_interp_besttrack
 !=======================================================================================
 
 subroutine get_gtsobs_3dvar ( times, ix, jx, kx, p, ph, proj )
-!get obs in 3dvar format (output from obsproc)
+!get obs in little_r format
 use constants
 use namelist_define
 use obs_define
@@ -501,10 +537,8 @@ if( iost .ne. 0 ) then
       use_aircft   = .false.
       use_spssmi   = .false.
       use_satwnd   = .false.
-      use_seawind   = .false.
       use_sfcshp   = .false.
       use_sounding = .false.
-      use_gpspw    = .false.
       return
 endif
 
@@ -634,7 +668,7 @@ do n = 1, total
       endif
    enddo
 
-!!.Selecting the data close to model level.
+!!.Selecting the data closed to model level.
    call latlon_to_ij( proj, raw%gts%latitude(n), raw%gts%longitude(n), aio, ajo )
    io = int(aio)
    jo = int(ajo)
@@ -933,7 +967,7 @@ end subroutine get_airborne
   character (len=80)                  :: radiance_file
   character (len=80)                  :: times
   character (len=12)                  :: so_time
-  character (len=15)                  :: sat_id
+  character (len=12)                  :: sat_id
   integer                             :: i, n, iost, num
   integer                             :: ch_info,hroi_rad,hroi_drad
   real                                :: lat, lon, tb, err
@@ -963,7 +997,7 @@ end subroutine get_airborne
 !...... get the data number
      num = 0
      do_get_raw_data_loop_read : do
-        read(10, '(a12,a15,i12,3f12.3)', iostat = iost ) so_time, sat_id, ch_info, lat, lon, tb
+        read(10, '(2a12,i12,3f12.3)', iostat = iost ) so_time, sat_id, ch_info, lat, lon, tb
         if( iost .ne. 0 ) exit
         num = num + 1
      end do do_get_raw_data_loop_read
@@ -986,7 +1020,7 @@ end subroutine get_airborne
      do_get_raw_data_loop : do
 
 !......... Enkf with odd data, and verify with even data
-        read(10, '(a12,a15,i12,3f12.3,2i12,f12.3)', iostat = iost ) so_time, sat_id, ch_info, lat, lon, tb, hroi_rad,hroi_drad,err
+        read(10, '(2a12,i12,3f12.3,2i12,f12.3)', iostat = iost ) so_time, sat_id, ch_info, lat, lon, tb, hroi_rad,hroi_drad,err
         if( iost .ne. 0 ) exit
 !......... calculate radar center's position according to wrf domain grid
         call latlon_to_ij( proj, lat, lon, is, js )
@@ -1148,7 +1182,7 @@ end subroutine output_simulated_rv
 end subroutine output_verify_result
 
 !=======================================================================================
-subroutine ideal_sounding_data( wrf_file, ix, jx, kx, hroi, vroi )
+subroutine ideal_sounding_data( wrf_file, ix, jx, kx )
 
 use constants
 use namelist_define
@@ -1159,9 +1193,9 @@ use netcdf
 implicit none
 
 character (len=10), intent(in)       :: wrf_file
-integer, intent(in)                  :: ix, jx, kx, hroi, vroi
+integer, intent(in)                  :: ix, jx, kx
 
-integer                              :: i, j, k, nvar
+integer                              :: i, j, k, nvar, unit
 character (len=10)                   :: truthfile
 real, dimension(ix+1, jx, kx  )      :: u
 real, dimension(ix, jx+1, kx  )      :: v
@@ -1169,7 +1203,8 @@ real, dimension(ix, jx, kx  )        :: t, qv
 real, dimension(ix, jx, kx+1)        :: ph, phb
 
 !----------------------------------------------------------------------------
-write(truthfile,'(a5,i5.5)')wrf_file(1:5),80010
+read(wrf_file(6:10),'(i5)')unit
+write(truthfile,'(a5,i5.5)')wrf_file(1:5),unit-1
 
 call get_variable3d( truthfile, 'U         ', ix+1, jx, kx, 1, u )
 call get_variable3d( truthfile, 'V         ', ix, jx+1, kx, 1, v )
@@ -1183,7 +1218,7 @@ ph = ph + phb
 do k = gridobs_ks, gridobs_ke, gridobs_int_k
 do j = gridobs_js, gridobs_je, gridobs_int_x
 do i = gridobs_is, gridobs_ie, gridobs_int_x
-do nvar = 1, 4   !U, V, Theta, Qv
+do nvar = 1, 4   !U, V, Theta, Qv, P
    obs%num                 = obs%num + 1
    obs%position(obs%num,1) = i
    obs%position(obs%num,2) = j
@@ -1209,14 +1244,12 @@ do nvar = 1, 4   !U, V, Theta, Qv
       obs%type(obs%num) = 'idealPH   '
       obs%err(obs%num) = 150.0
    endif
-   obs%roi(obs%num,1) = hroi 
-   obs%roi(obs%num,2) = vroi
 enddo
 enddo
 enddo
 enddo
 
-return
+  return
 
 end subroutine ideal_sounding_data
 
@@ -1303,6 +1336,7 @@ do n = 1, raw%gts%num
                data(ista,k,i,6) = raw%gts%td(n,k,i)
             enddo
 !................ convert rh to q and calculate q_error from rh_error
+!                 data(ista,k,i,7) = raw%gts%rh(n,k,i)
                call rel_humidity_to_q(raw%gts%pres(n,k,1), raw%gts%t(n,k,1), raw%gts%rh(n,k,1), data(ista,k,1,7), &
                                          raw%gts%t(n,k,3), raw%gts%rh(n,k,3), data(ista,k,3,7) ) 
                data(ista,k,2,7) = raw%gts%rh(n,k,2)
@@ -1605,8 +1639,6 @@ character(len=12)                    :: fm
 character(len=6)                     :: pfile
 integer                              :: start_data, inter_data, iroi, ngxn
 
-
-
 !. get data
 sta = 0
 numlevs=0
@@ -1660,34 +1692,12 @@ do n = 1, raw%gts%num
                data(ista,k,i,4) = raw%gts%height(n,k,i)
                data(ista,k,i,5) = raw%gts%t(n,k,i)
                data(ista,k,i,6) = raw%gts%td(n,k,i)
-!!!HACK: obs_3dvar file rh entries contain Qv instead:
-               data(ista,k,i,7) = raw%gts%rh(n,k,i)
             enddo
 !................ convert rh to q and calculate q_error from rh_error
-               !call rel_humidity_to_q(raw%gts%pres(n,k,1), raw%gts%t(n,k,1), raw%gts%rh(n,k,1), data(ista,k,1,7), &
-                                         !raw%gts%t(n,k,3), raw%gts%rh(n,k,3), data(ista,k,3,7) ) 
-               !data(ista,k,2,7) = raw%gts%rh(n,k,2)
-
-!tdew_to_q ( pres, td, q, td_error, q_error )
-               !call tdew_to_q(raw%gts%pres(n,k,1),raw%gts%td(n,k,1),data(ista,k,1,7), &
-                              !raw%gts%td(n,k,3), dum_q_err )
-!get prior mean td from wrf_file according to obs location
-   !call latlon_to_ij(proj,obs_lat(ista),obs_lon(ista), obs_ii,obs_jj) 
-   !i1 = int( obs_ii )
-   !j1 = int( obs_jj )
-   !dx  = obs_ii-real(i1)
-   !dxm = real(i1+1)-obs_ii
-   !dy  = obs_jj-real(j1)
-   !dym = real(j1+1)-obs_jj
-
-               !hx_q
-!recalculate obs_err using prior mean td
-               !call tdew_to_q(raw%gts%pres(n,k,1),mixrat_to_tdew(hx_q,raw%gts%pres()),dum_q, &
-                              !raw%gts%td(n,k,3), data(ista,k,3,7) )
-               !data(ista,k,2,7) = raw%gts%td(n,k,2)
-
-
-
+!                 data(ista,k,i,7) = raw%gts%rh(n,k,i)
+               call rel_humidity_to_q(raw%gts%pres(n,k,1), raw%gts%t(n,k,1), raw%gts%rh(n,k,1), data(ista,k,1,7), &
+                                         raw%gts%t(n,k,3), raw%gts%rh(n,k,3), data(ista,k,3,7) ) 
+               data(ista,k,2,7) = raw%gts%rh(n,k,2)
          enddo
    endif
 enddo
@@ -1988,7 +1998,6 @@ do n = 1, raw%gts%num
        (instrument.eq.'metar   ' .and. (fm(4:6).eq.'15 ' .or. fm(4:6).eq.'16 ') ) .or. &
        (instrument.eq.'sfcshp  ' .and. (fm(4:6).eq.'13 ' .or. fm(4:6).eq.'18 ') ) .or. &
        (instrument.eq.'spssmi  ' .and. (fm(4:6).eq.'125' .or. fm(4:6).eq.'126') ) .or. &
-       (instrument.eq.'seawind ' .and. (fm(4:6).eq.'281') ) .or. &
        (instrument.eq.'gpspw   ' .and. (fm(4:6).eq.'111') ) )then
          sta = sta + 1
    endif
@@ -2008,7 +2017,6 @@ do n = 1, raw%gts%num
        (instrument.eq.'metar   ' .and. (fm(4:6).eq.'15 ' .or. fm(4:6).eq.'16 ') ) .or. &
        (instrument.eq.'sfcshp  ' .and. (fm(4:6).eq.'13 ' .or. fm(4:6).eq.'18 ') ) .or. &
        (instrument.eq.'spssmi  ' .and. (fm(4:6).eq.'125' .or. fm(4:6).eq.'126') ) .or. &
-       (instrument.eq.'seawind ' .and. (fm(4:6).eq.'281') ) .or. &
        (instrument.eq.'gpspw   ' .and. (fm(4:6).eq.'111') ) )then
 
          ista = ista + 1
@@ -2026,6 +2034,7 @@ do n = 1, raw%gts%num
             data(ista,i,6) = raw%gts%td(n,1,i)
          enddo
 !.......... convert rh to q and calculate q_error from rh_error
+!           data(ista,i,7) = raw%gts%rh(n,1,i)
          call rel_humidity_to_q(raw%gts%pres(n,1,1), raw%gts%t(n,1,1), raw%gts%rh(n,1,1), data(ista,1,7), &
                                  raw%gts%t(n,1,3), raw%gts%rh(n,1,3), data(ista,3,7) ) 
          data(ista,2,7) = raw%gts%rh(n,1,2)
@@ -2125,23 +2134,6 @@ do_reports : do n = start_data, ista, inter_data
         obs%position(obs%num,1) = x
         obs%position(obs%num,2) = y
         obs%position(obs%num,3) = 1.
-        obs%sta     (obs%num,1) = obs_elv(n)
-        obs%sta     (obs%num,2) = data(n,1,1)
-        obs%sta     (obs%num,3) = data(n,1,5)
-        obs%sta     (obs%num,4) = data(n,1,7)
-        obs%roi     (obs%num,1) = hroi * ngxn
-        obs%roi     (obs%num,2) = vroi
-   endif
-
-   if ( data(n,1,2).ge.0. .and. data(n,1,2).le.200. ) then
-!......... wind speed
-        obs%num                 = obs%num + 1
-        obs%dat     (obs%num  ) = data(n,1,2)
-        obs%type    (obs%num  ) = 'S'//instrument//'S'
-        obs%err     (obs%num  ) = data(n,3,2)
-        obs%position(obs%num,1) = x
-        obs%position(obs%num,2) = y
-        obs%position(obs%num,3) = 1
         obs%sta     (obs%num,1) = obs_elv(n)
         obs%sta     (obs%num,2) = data(n,1,1)
         obs%sta     (obs%num,3) = data(n,1,5)
@@ -2315,7 +2307,7 @@ integer                              :: i, j, k, nr, n, ista, sta
 
 real                                 :: x, y, u, v
 real, allocatable, dimension(:,:)    :: data
-character (len=15), allocatable, dimension(:) :: data_sat
+character (len=12), allocatable, dimension(:) :: data_sat
 integer, allocatable, dimension(:)   :: data_ch, data_hroi, data_hroi_d
 
 
@@ -2370,9 +2362,8 @@ do_reports : do n = start_data, ista,inter_data
   obs%position(obs%num,2) = data(n,4)
   obs%sat(obs%num)        = data_sat(n)
   obs%ch(obs%num)         = data_ch(n)
-  !obs%roi(obs%num,1)      = data_hroi(n)*ngxn
-  obs%roi(obs%num,1)      = hroi*ngxn
-!  obs%roi(obs%num,3)      = data_hroi_d(n)*ngxn
+  obs%roi(obs%num,1)      = data_hroi(n)*ngxn
+  obs%roi(obs%num,3)      = data_hroi_d(n)*ngxn
 !  obs%roi(obs%num,1)      = 1
   obs%roi(obs%num,2)      = vroi
 end do do_reports
@@ -2382,3 +2373,89 @@ end do do_reports
 end subroutine sort_radiance_data
 !========================================================================================
 
+subroutine bcast_obs(root)
+
+!----------------------------------------------------------------------------
+!  PURPOSE: broadcast obs structure from root to all other processors
+!        10/03/2012 Jon Poterjoy
+!----------------------------------------------------------------------------
+use constants
+use mpi_module
+use obs_define
+!----------------------------------------------------------------------------
+implicit none
+
+integer, intent(in)               :: root
+integer                           :: m, n
+real, allocatable, dimension(:)   :: buff     !!! array buffer
+character(len=10)                 :: buff2    !!! string buffer
+
+  ! Send data from root
+call MPI_BCAST(obs%num,          1, MPI_INTEGER, root, comm, ierr)
+allocate( buff  (obs%num) )
+
+!. allocate and initialize arrays
+if ( my_proc_id .ne. root ) then
+   allocate( obs%dat      ( obs%num    ) )
+   allocate( obs%type     ( obs%num    ) )
+   allocate( obs%err      ( obs%num    ) )
+   allocate( obs%position ( obs%num, 4 ) )
+   allocate( obs%sta      ( obs%num, 4 ) )
+   allocate( obs%roi      ( obs%num, 2 ) )
+   allocate( obs%sat      ( obs%num    ) )
+   allocate( obs%ch       ( obs%num    ) )
+
+   obs%dat        = -888888.
+   obs%type       = '          '
+   obs%err        = -888888.
+   obs%position   = -888888.
+   obs%sta        = -888888.
+   obs%roi        = -888888
+   obs%sat        = '            '
+   obs%ch         = -888888
+endif
+
+if ( my_proc_id == root ) buff = obs%dat
+call MPI_BCAST(buff,      obs%num,    MPI_REAL, root, comm, ierr)
+obs%dat = buff
+
+do m = 1, obs%num
+   if ( my_proc_id == root ) buff2 = obs%type(m)
+   call MPI_BCAST(buff2,      10,    MPI_CHARACTER, root, comm, ierr)
+   obs%type(m) = buff2
+enddo
+
+if ( my_proc_id == root ) buff = obs%err
+call MPI_BCAST(buff,      obs%num,    MPI_REAL, root, comm, ierr)
+obs%err = buff
+ 
+do m = 1, 4
+   if ( my_proc_id == root ) buff = obs%position(:,m)
+   call MPI_BCAST(buff,      obs%num,    MPI_REAL, root, comm, ierr)
+   do n = 1, obs%num
+     obs%position(n,m) = buff(n)
+   enddo
+enddo
+ 
+do m = 1, 4
+   if ( my_proc_id == root ) buff = obs%sta(:,m)
+   call MPI_BCAST(buff,      obs%num,    MPI_REAL, root, comm, ierr)
+   do n = 1, obs%num
+     obs%sta(n,m) = buff(n)
+   enddo
+enddo
+ 
+do m = 1, 2
+   if ( my_proc_id == root ) buff = obs%roi(:,m)
+   call MPI_BCAST(buff,      obs%num,    MPI_REAL, root, comm, ierr)
+   do n = 1, obs%num
+     obs%roi(n,m) = buff(n)
+   enddo
+enddo
+
+call MPI_BARRIER(comm, ierr)
+
+  return
+
+end subroutine bcast_obs
+!=======================================================================================

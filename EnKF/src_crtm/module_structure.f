@@ -59,12 +59,11 @@ module namelist_define
    character(len=10), dimension(30) :: enkfvar   ! include the variables which will be updated and be used to calculate the XB
    character(len=10), dimension(20) :: updatevar ! updated variables
    integer       :: update_is, update_ie, update_js, update_je, update_ks, update_ke  ! domain to be updated
-   integer       :: relax_opt
    real          :: inflate             !
    real          :: mixing              !
    integer       :: print_detail        ! used to debug the code
 !-- parallel
-   logical       :: manual_parallel, random_order, relax_adaptive
+   logical       :: manual_parallel, random_order
    integer       :: nmcpu, nicpu, njcpu
 
 !-- use_osse
@@ -161,22 +160,16 @@ module namelist_define
    integer       :: hroi_radiance       ! horizontal radius of influence for radiance    
    integer       :: vroi_radiance       ! vertical radius of influence for radiance  
 
-!-- use_seawind
-   logical       :: use_seawind        ! .true. : assimilated seawind
-   integer       :: datathin_seawind   ! 0=all data, 2=1/2 data, 10=1/10 
-   integer       :: hroi_seawind       ! horizontal radius of influence 
-   integer       :: vroi_seawind       ! vertical radius of influence 
-
 
 
 !-- Namelist contents :
 
    namelist /enkf_parameter / numbers_en, expername, enkfvar, updatevar,                          &
-                              update_is, update_ie, update_js, update_je, update_ks, update_ke,   &
-                              inflate, relax_opt, relax_adaptive, mixing, random_order, print_detail
+                                 update_is, update_ie, update_js, update_je, update_ks, update_ke,   &
+                                 inflate, mixing, random_order, print_detail
    namelist /parallel       / manual_parallel, nmcpu, nicpu, njcpu
    namelist /osse           / use_ideal_obs, gridobs_is, gridobs_ie, gridobs_js, gridobs_je,      &
-                              gridobs_ks, gridobs_ke, gridobs_int_x, gridobs_int_k, use_simulated
+                                 gridobs_ks, gridobs_ke, gridobs_int_x, gridobs_int_k, use_simulated
    namelist /hurricane_PI   / use_hurricane_PI, hroi_hurricane_PI, vroi_hurricane_PI
    namelist /surface_obs    / use_surface, datathin_surface, hroi_surface, vroi_surface
    namelist /sounding_obs   / use_sounding, datathin_sounding, hroi_sounding, vroi_sounding
@@ -191,7 +184,6 @@ module namelist_define
    namelist /radar_obs      / radar_number, use_radar_rf, use_radar_rv, datathin_radar, hroi_radar, vroi_radar
    namelist /airborne_radar / use_airborne_rf, use_airborne_rv, datathin_airborne, hroi_airborne, vroi_airborne
    namelist /radiance / use_radiance, datathin_radiance, hroi_radiance, vroi_radiance
-   namelist /seawind_obs / use_seawind, datathin_seawind, hroi_seawind, vroi_seawind
 
 
 end module namelist_define
@@ -298,7 +290,7 @@ module obs_define
 
    type radiance_data_type
         integer                                    :: num
-        character(len=15),allocatable,dimension(:) :: platform
+        character(len=12),allocatable,dimension(:) :: platform
         real, allocatable,dimension(:)             :: lat, lon,ii, jj, tb, err
         integer, allocatable,dimension(:)          :: ch, hroi, hroi_d
    end type radiance_data_type
@@ -325,7 +317,7 @@ module obs_define
                                                                 !! radar station's (ii,jj,kk,hh) in wrf domain;
                                                                 !! for surface obs, it include (elevation, station pressure, t, q)
        integer, allocatable, dimension(:,:)      :: roi         !! (ob_num,3) : 1=horizontal, 2=vertical, 3=h.(non-Q in radiance)
-       character(len=15), allocatable, dimension(:) :: sat      !! Name of the Satellite
+       character(len=12), allocatable, dimension(:) :: sat      !! Name of the Satellite
        integer, allocatable, dimension(:)        :: ch          !! channel of the satellite
 
 

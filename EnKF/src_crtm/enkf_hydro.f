@@ -162,10 +162,13 @@ real, allocatable, dimension(:,:,:)   :: km, kmsend, km1, km1send
 real, allocatable, dimension(:,:,:,:) :: x1
 ! for satellite radiance
 integer :: iob_radmin,iob_radmax
-real, dimension(obs%num) :: yasend_tb, ym_radiance
+real, dimension(obs%num) :: yasend_tb, xbsend_slp_tb
+real, dimension(obs%num,numbers_en+1) :: xb_slp, xbsend_slp
 real, dimension(ni,nj,nk)     :: xq_n,xq_p
 real, dimension(ni,nj,nk,nm)  :: xq_nsend,xq_psend
 
+inflate=1.0
+if ( my_proc_id==0 ) write(*,'(a,3x,f5.2   )') ' inflate(hydro)    = ',inflate
 
 read(wrf_file(6:10),'(i5)')iunit
 if ( my_proc_id==0 ) then
@@ -250,7 +253,7 @@ do iob=1,obs%num
          call xb_to_sounding(filename,proj,tmp,ix,jx,kx,nv,iob,xlong,znu,znw,p_top,xb, 0, 1 )  
          obs%dat(iob) = xb
       else if ( obstype(1:1) == 'S' ) then
-         call xb_to_surface(filename,proj,tmp,ix,jx,kx,nv,iob,xlong,xland,lu_index,znu,znw,p_top,times,xb)
+         call xb_to_surface(filename,proj,tmp,ix,jx,kx,nv,iob,xland,lu_index,znu,znw,p_top,times,xb)
          obs%position(iob,3) = 1.
       endif
    else
@@ -259,8 +262,6 @@ do iob=1,obs%num
          call xb_to_rv(filename,proj,tmp,ix,jx,kx,nv,iob,xlong,znw,xb,0) 
       else if ( obstype(1:1) == 'P' .or. obstype(1:1) == 'H'  ) then
          call xb_to_sounding(filename,proj,tmp,ix,jx,kx,nv,iob,xlong,znu,znw,p_top,xb,1,0)
-      else if ( obstype=='Radiance  ') then
-         obs%position(iob,3) = 17   !TEMPORARY TEST
       else 
          obs%position(iob,3) = 1.
       endif
@@ -313,7 +314,7 @@ obs_cycle: do ig=1,int(obs%num/nob)+1
        else if ( obstype(1:1) == 'P' .or. obstype(1:1) == 'H'  ) then
          call xb_to_sounding (filename,proj,xob(:,:,:,:,n,sid+1),ix,jx,kx,nv,iob,xlong,znu,znw,p_top,yasend(iob,ie),1,1)
        else if ( obstype(1:1) == 'S' ) then
-         call xb_to_surface(filename,proj,xob(:,:,:,:,n,sid+1),ix,jx,kx,nv,iob,xlong,xland,lu_index,znu,znw,p_top,times,yasend(iob,ie))
+         call xb_to_surface(filename,proj,xob(:,:,:,:,n,sid+1),ix,jx,kx,nv,iob,xland,lu_index,znu,znw,p_top,times,yasend(iob,ie))
        else if ( obstype(1:3) == 'slp' ) then
          call xb_to_slp(filename,xob(:,:,:,:,n,sid+1),ix,jx,kx,nv,iob,znu,znw,yasend(iob,ie))
        else if ( obstype(1:2) == 'pw' ) then
@@ -330,20 +331,19 @@ end do obs_cycle
 
 if(raw%radiance%num.ne.0) then
   yasend_tb=0.
+  xbsend_slp_tb=0.
   do ie = 1, numbers_en+1
     yasend_tb = 0.0
+    xbsend_slp_tb=0.
     write( filename, '(a5,i5.5)') wrf_file(1:5), iunit+ie-1
-    call xb_to_radiance(filename,proj,ix,jx,kx,xlong,xlat,xland,iob_radmin,iob_radmax,yasend_tb)
+    call xb_to_radiance(filename,proj,ix,jx,kx,xlong,xlat,xland,iob_radmin,iob_radmax,yasend_tb,xbsend_slp_tb)
     yasend(iob_radmin:iob_radmax,ie) = yasend_tb(iob_radmin:iob_radmax)
+    xbsend_slp(iob_radmin:iob_radmax,ie) = xbsend_slp_tb(iob_radmin:iob_radmax)
   enddo
 endif
+!write(*,*)'yasend',yasend(:,1)
 call MPI_Allreduce(yasend,ya,obs%num*(numbers_en+1),MPI_REAL,MPI_SUM,comm,ierr)
-
-!calcurate mean of ya (radmean) by Minamide 2015.9.25
-ym_radiance = 0
-do ie = 1, numbers_en
-  ym_radiance = ym_radiance + ya(:,ie)/float(numbers_en)
-enddo
+call MPI_Allreduce(xbsend_slp,xb_slp,obs%num*(numbers_en+1),MPI_REAL,MPI_SUM,comm,ierr)
 
 !make a copy of yf (prior)
 yf=ya
@@ -355,6 +355,11 @@ if ( my_proc_id == 0 ) write(*,'(a,f7.2,a)')' Calculation of y=Hx tooks ', MPI_W
 
 !----------------------------------------------------------------------------------------
 ! II. Calculate the perturbations and add the inflation
+
+!!inflation only for full update
+!inflate=1.0
+!if ( my_proc_id==0 ) write(*,'(a,3x,f5.2   )') ' inflate(hydro)    = ',inflate
+!!
 do n = 1, nm
    ie = (n-1)*nmcpu+gid+1
    if ( ie<=numbers_en+1 ) x(:,:,:,:,n)=inflate*(x(:,:,:,:,n)-xm)
@@ -375,11 +380,9 @@ obs_assimilate_cycle : do it = 1,obs%num
    obstype = obs%type(iob)
    error = obs%err(iob)
    y_hxm = obs%dat(iob) - ya(iob,numbers_en+1)
-
    if ( my_proc_id==0 ) write(*,'(a,i6,a,f10.2,a,f10.2,a,f8.2,a,f8.2,a,i4,a,i4)') &
       'No.',iob,' '//obstype//' =',obs%dat(iob), ' ya=', ya(iob,numbers_en+1), ' y-ya=', y_hxm, &
       ' err=',error,' hroi=',obs%roi(iob,1),' vroi=',obs%roi(iob,2)
-
    if( abs(y_hxm)>(error*5.) .and. &
       .not.(obstype=='min_slp   ' .or. obstype=='longtitude' .or. obstype=='latitude  ' .or. obstype=='slp       '&
        .or. obstype=='Radiance  ') ) then
@@ -387,13 +390,6 @@ obs_assimilate_cycle : do it = 1,obs%num
       kick_flag(iob)=1
       cycle obs_assimilate_cycle
    endif
-
-   if( any(yf(iob,:)==-888888.0) ) then
-      if ( my_proc_id==0 ) write(*,*)' ...kicked off for invalid value'
-      kick_flag(iob)=1
-      cycle obs_assimilate_cycle
-   endif
-
    assimilated_obs_num=assimilated_obs_num+1
    ngx = obs%roi(iob,1)
    ngz = obs%roi(iob,2)
@@ -424,34 +420,40 @@ t0=MPI_Wtime()
      if ( varname .eq. updatevar(iv) ) update_flag = 1
    enddo
 !
-!!---Observation Error Inflation & Successive Covariance Localization (Zhang et al. 2009)
-!!      for Radiance assimilation by Minamide 2015.3.14
-   d    = fac * var + error * error
-   alpha = 1.0/(1.0+sqrt(error*error/d))
-   ngx = obs%roi(iob,1)
-   if (obstype=='Radiance  ') then
-     !if(varname=='QCLOUD    ' .or. varname=='QRAIN     ' .or. varname=='QICE      ' .or. & !varname=='QVAPOR    ' .or. 
-               !varname=='QGRAUP    ' .or. varname=='QSNOW     ') then
-       !ngx=6  !!!!!!!!!!!!!!!!!!fix this later
-       !!if(obs%roi(iob,1) == 0) then
-         !!update_flag = 0
-       !!else
-         !!ngx = obs%roi(iob,1)
-       !!endif
-     !else
-       !ngx=obs%roi(iob,1)
-       !!if(obs%roi(iob,3) == 0) then
-         !!update_flag = 0
-       !!else
-         !!ngx = obs%roi(iob,3)
-       !!endif
-     !endif
+!!---relaxation for Radiance assimilation by Minamide 2015.3.14
+!   d    = fac * var + error * error
+!   alpha = 1.0/(1.0+sqrt(error*error/d))
+! --- for Successive Covariance Localization
+!   ngx = obs%roi(iob,1)
+   if ((obstype=='Radiance  ') .and. &
+       .not. ((varname=='QVAPOR    ' .or. varname=='QCLOUD    ' .or. varname=='QRAIN     ' .or. varname=='QICE      ' .or. &
+               varname=='QGRAUP    ' .or. varname=='QSNOW     '))) then
+     update_flag = 0
+!     ngx = obs%roi(iob,1)*200/30
      d = max(fac * var + error * error, y_hxm * y_hxm)
      alpha = 1.0/(1.0+sqrt((d-fac * var)/d))
      if ( my_proc_id == 0 .and. sqrt(d-fac * var) > error .and. varname=='T         ')&
           write(*,*) 'observation-error inflated to ',sqrt(d-fac * var)
    endif
-!!---OEI & SCL end
+!!
+! --- for Observation Error Inflation
+!   if (obstype=='Radiance  ') then
+!      d = max(fac * var + error * error, y_hxm * y_hxm)
+!      alpha = 1.0/(1.0+sqrt((d-fac * var)/d))
+!      if ( my_proc_id == 0 .and. sqrt(d-fac * var) > error .and. varname=='T         ')&
+!           write(*,*) 'observation-error inflated to ',sqrt(d-fac * var)
+!   endif
+!!  excluding pressure fields
+!   if ((obstype=='Radiance  ') .and.  &
+!       (varname=='PH        ' .or. varname=='MU        ' .or. varname=='PSFC      ' .or. varname=='P         ' .or. &
+!        varname=='U         ' .or. varname=='V         ' .or. varname=='U10       ' .or. varname=='V10       ')) then
+!     update_flag = 0
+!   else if ((obstype /= 'Radiance  ') .and.  &
+!       (varname=='QCLOUD    ' .or. varname=='QRAIN     ' .or. varname=='QICE      ' .or. &
+!        varname=='QGRAUP    ' .or. varname=='QSNOW     ' )) then
+!     update_flag = 0
+!   endif
+!!---relaxation end
    if ( update_flag==0 ) cycle update_x_var
 
 ! start and end indices of the update zone of the obs
@@ -474,12 +476,8 @@ t0=MPI_Wtime()
    if(iid==nicpu-1) uied=ied
    if(jid==njcpu-1) ujed=jed
    if(uied<uist .or. ujed<ujst) then
-     if(m==1.and.gid==0) then 
-        write(*,'(a,i6,a)') '*******update zone of obs #',iob,' is too small to be decomposed.********'
-        write(*,*) 'update zone', uist,uied,ujst,ujed,kst,ked
-        write(*,*) 'obs location', obs%position(iob,:)
-         stop
-     endif
+     if(m==1.and.gid==0) write(*,'(a,i6,a)') '*******update zone of obs #',iob,' is too small to be decomposed.********'
+     stop
    endif
    allocate(x1(uied-uist+1, ujed-ujst+1, ked-kst+1, nm))
    x1=0.
@@ -713,16 +711,25 @@ t0=MPI_Wtime()
      do n=1,nm
        ie=(n-1)*nmcpu+gid+1
        if(ie<=numbers_en) then
+!! neglecting tropical cyclone eye region by Minamide 2015.5.8
+!         if ((obstype=='Radiance  ') .and. (xb_slp(iob,ie)<985.0) .and. (ya(iob,ie)>230.0)) then
+!           if ( varname=='T         ') write(*,*)'#',ie,'is TC eye, and not updated.'
+!         else
            x (max(ist,istart)-istart+1:min(ied,iend)-istart+1, &
               max(jst,jstart)-jstart+1:min(jed,jend)-jstart+1, kst:ked,m,n) = &
            x (max(ist,istart)-istart+1:min(ied,iend)-istart+1, &
               max(jst,jstart)-jstart+1:min(jed,jend)-jstart+1, kst:ked,m,n) - km1 * alpha * hxa(ie)
+!         endif
        endif
      enddo
+!     if ((obstype=='Radiance  ') .and. (xb_slp(iob,numbers_en+1)<985.0) .and.(ya(iob,numbers_en+1)>230.0)) then
+!       if ( my_proc_id == 0 .and. varname=='T         ') write(*,*)'ensemble-mean is TC eye, and not updated.'
+!     else
        xm (max(ist,istart)-istart+1:min(ied,iend)-istart+1, &
            max(jst,jstart)-jstart+1:min(jed,jend)-jstart+1, kst:ked,m) = &
        xm (max(ist,istart)-istart+1:min(ied,iend)-istart+1, &
            max(jst,jstart)-jstart+1:min(jed,jend)-jstart+1, kst:ked,m) + km1 * y_hxm
+!     endif
 ! remove negative Q values
 !     if(varname(1:1).eq.'Q') then
      if(varname.eq.'QVAPOR    ') then
@@ -755,7 +762,6 @@ enddo update_x_var
 !    ym=ym+corr_coef*hBh'(y-ym)/d
 !    ya=ya+alpha*corr_coef*hBh'(0-ya)/d
 !    --- basically these are the update equations of x left-multiplied by H.
-   ngx = obs%roi(iob,1)
    ist = max( update_is, int(obs%position(iob,1))-ngx )
    ied = min( update_ie, int(obs%position(iob,1))+ngx )
    jst = max( update_js, int(obs%position(iob,2))-ngx )
@@ -767,15 +773,8 @@ enddo update_x_var
       if ( obs%position(iiob,1)<ist .or. obs%position(iiob,1)>ied .or. &
            obs%position(iiob,2)<jst .or. obs%position(iiob,2)>jed .or. & 
            obs%position(iiob,3)<kst .or. obs%position(iiob,3)>ked ) cycle update_y_cycle
-
-      !if (obs%roi(iob,1) == 0) then 
-      !  call corr(real(obs%position(iiob,1)-obs%position(iob,1)), real(obs%position(iiob,2)-obs%position(iob,2)), &
-      !          real(obs%position(iiob,3)-obs%position(iob,3)), obs%roi(iob,3), obs%roi(iob,2), corr_coef)
-      !else
-      ! original
       call corr(real(obs%position(iiob,1)-obs%position(iob,1)), real(obs%position(iiob,2)-obs%position(iob,2)), &
                 real(obs%position(iiob,3)-obs%position(iob,3)), obs%roi(iob,1), obs%roi(iob,2), corr_coef)
-      !endif
       obstype = obs%type(iiob)
       var=0.
       cov=0.
@@ -805,8 +804,6 @@ enddo update_x_var
       alpha = 1.0/(1.0+sqrt((d-fac * var)/d))
    endif
 !!! relaxation end
-
-
       do ie=1,numbers_en+1
          if(ie<=numbers_en) &
             ya(iiob,ie)=ya(iiob,ie)-corr_coef*alpha*fac*cov*(ya(iob,ie)-ya(iob,numbers_en+1))/d !perturbation
@@ -861,7 +858,7 @@ do iob=1,obs%num
       sqrt(var_a)                       !observation posterior spread (sqrt{H P^f H^T}) (before relaxation)
   endif
   !innovation statistics (used in adaptive relaxation)
-  !if(my_proc_id==0) write(*,*) iob,'=',kick_flag(iob)
+  if(my_proc_id==0) write(*,*) iob,'=',kick_flag(iob)
   if(kick_flag(iob)==0) then
     n=n+1
     m_d2=m_d2+((obs%dat(iob)-yf(iob,numbers_en+1))/obs%err(iob))**2

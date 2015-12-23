@@ -38,8 +38,6 @@ subroutine  read_namelist(ix, jx, kx)
    update_ks    = 999 
    update_ke    = 999 
    inflate      = 0.0
-   relax_opt    = 0
-   relax_adaptive = .false.
    mixing       = 0.0
    print_detail  = 2
 !--parallel
@@ -152,13 +150,6 @@ subroutine  read_namelist(ix, jx, kx)
    hroi_radiance     = 999
    vroi_radiance     = 999
 
-!-- use_seawind
-   use_seawind   = .false.
-   datathin_seawind = 999
-   hroi_seawind     = 999
-   vroi_seawind     = 999
-
-
  
 !------------------------------------------------------------------------
 !  [2.0] read namelist 
@@ -239,11 +230,6 @@ subroutine  read_namelist(ix, jx, kx)
    if( iost .ne. 0 ) then
        write(*,*)'satwnd_obs, please check it.'
        stop 'read_namelist satwnd_obs'
-   endif
-   read ( unit = namelist_unit, nml = seawind_obs, iostat = iost )
-   if( iost .ne. 0 ) then
-       write(*,*)'seawind_obs, please check it.'
-       stop 'read_namelist seawind_obs'
    endif
    read ( unit = namelist_unit, nml = gpspw_obs, iostat = iost )
    if( iost .ne. 0 ) then
@@ -363,22 +349,10 @@ subroutine  read_namelist(ix, jx, kx)
          write(6,'(a,2i4  )') '       ROI for horizonal and vertical is:', hroi_satwnd, vroi_satwnd
       endif
 
-      if ( use_seawind ) then
-         write(6,'(a      )') ' ===== assimilate SEA SURFACE WIND ===== '
-         write(6,'(a,i4   )') '       data thinning: ',datathin_seawind
-         write(6,'(a,2i4  )') '       ROI for horizonal and vertical is:', hroi_seawind, vroi_seawind
-      endif
-
       if ( use_gpspw ) then
          write(6,'(a      )') ' ===== assimilate GPS PRECIP WATER REPORTS ===== '
          write(6,'(a,i4   )') '       data thinning: ',datathin_gpspw
          write(6,'(a,2i4  )') '       ROI for horizonal and vertical is:', hroi_gpspw, vroi_gpspw
-      endif
-
-      if ( use_radiance ) then
-         write(6,'(a      )') ' ===== assimilate RADIANCE ===== '
-         write(6,'(a,i4   )') '       data thinning: ',datathin_radiance
-         write(6,'(a,2i4  )') '       ROI for horizonal and vertical is:', hroi_radiance, vroi_radiance
       endif
 
       if ( use_radar_rv .or. use_radar_rf ) then
@@ -503,7 +477,7 @@ real, allocatable, dimension(:,:,:) :: dat3d
 if ( my_proc_id == 0 ) then
   write(*, *)'   '
   write(*, *)'---------------------------------------------------'
-  write(*, *)'.... Getting initial ensemble filed ....'
+  write(*, *)'.... Geting initial ensemble filed ....'
 endif
 do n=1,nm
   ie=(n-1)*nmcpu+gid+1

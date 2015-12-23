@@ -12,12 +12,12 @@ cat << EOF
 &enkf_parameter
 numbers_en   = $NUM_ENS, 
 expername    = '$EXP_NAME',  
-enkfvar      = 'U         ', 'V         ', 'W         ', 'T         ', 'QVAPOR    ', 'QCLOUD    ', 'QRAIN     ', 'PH        ', 'MU        ', 'PSFC      ', 'P         ', 'PHB       ', 'PB        ', 'MUB       ',
-updatevar    = 'U         ', 'V         ', 'W         ', 'T         ', 'QVAPOR    ', 'QCLOUD    ', 'QRAIN     ', 'PH        ', 'MU        ', 'PSFC      ', 'P         ',
-update_is    = 5,
-update_ie    = `echo ${E_WE[$domain_id-1]}-5 |bc`,
-update_js    = 5,
-update_je    = `echo ${E_SN[$domain_id-1]}-5 |bc`,
+enkfvar      = 'U         ', 'V         ', 'W         ', 'T         ', 'QVAPOR    ', 'QCLOUD    ', 'QRAIN     ', 'QSNOW     ', 'QICE      ', 'QGRAUP    ', 'PH        ', 'MU        ', 'PSFC      ', 'P         ', 'PHB       ', 'PB        ', 'MUB       ',
+updatevar    = 'U         ', 'V         ', 'W         ', 'T         ', 'QVAPOR    ', 'QCLOUD    ', 'QRAIN     ', 'QSNOW     ', 'QICE      ', 'QGRAUP    ', 'PH        ', 'MU        ', 'PSFC      ', 'P         ',
+update_is    = 1,
+update_ie    = `echo ${E_WE[$domain_id-1]}-1 |bc`,
+update_js    = 1,
+update_je    = `echo ${E_SN[$domain_id-1]}-1 |bc`,
 update_ks    = 1,
 update_ke    = `echo ${E_VERT[$domain_id-1]}-1 |bc`,
 inflate      = $INFLATION_COEF,
@@ -117,6 +117,13 @@ hroi_satwnd     = $(printf %.0f `echo ${HROI_SATWND:-$HROI_UPPER}/$dx |bc -l`),
 vroi_satwnd     = ${VROI_SATWND:-$VROI},
 /
 
+&seawind_obs
+use_seawind      = .$USE_SEAWIND.,
+datathin_seawind = $THIN_SEAWIND,
+hroi_seawind     = $(printf %.0f `echo ${HROI_SEAWIND:-$HROI_UPPER}/$dx |bc -l`),
+vroi_seawind     = ${VROI_SEAWIND:-$VROI},
+/
+
 &gpspw_obs
 use_gpspw      = .$USE_GPSPWOBS.,
 datathin_gpspw = $THIN_GPSPW,
@@ -139,6 +146,13 @@ use_airborne_rv   = .$USE_AIRBORNE_RV.,
 datathin_airborne = $THIN_RADAR,
 hroi_airborne     = $(printf %.0f `echo $HROI_RADAR/$dx |bc -l`),
 vroi_airborne     = $VROI_RADAR,
+/
+
+&radiance
+use_radiance      = .${USE_RADIANCE:-false}.,
+datathin_radiance = ${THIN_RADIANCE:-0},
+hroi_radiance     = $(printf %.0f `echo ${HROI_RADIANCE:-$HROI_UPPER}/$dx |bc -l`),
+vroi_radiance     = ${VROI_RADIANCE:-$VROI},
 /
 EOF
 
