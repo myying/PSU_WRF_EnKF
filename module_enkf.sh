@@ -124,13 +124,13 @@ for n in $domlist; do
     cd ..
   fi
 
-  for NE in `seq 1 $NUM_ENS`; do
-    id=`expr $NE + 1000 |cut -c2-`
-    mv fort.`expr 90010 + $NE` $WORK_DIR/fc/$DATE/wrfinput_${dm}_$id
-    ln -fs ../../../../fc/$DATE/wrfinput_${dm}_$id fort.`expr 90010 + $NE`
-  done
-  cp fort.`expr 90011 + $NUM_ENS` $WORK_DIR/fc/$DATE/wrfinput_${dm}_mean
-  cp fort.`expr 80011 + $NUM_ENS` $WORK_DIR/fc/$PREVDATE/wrfinput_${dm}_`wrf_time_string $DATE`_mean
+	for NE in `seq 1 $NUM_ENS`; do
+		id=`expr $NE + 1000 |cut -c2-`
+		mv fort.`expr 90010 + $NE` $WORK_DIR/fc/$DATE/wrfinput_${dm}_$id
+		ln -fs ../../../../fc/$DATE/wrfinput_${dm}_$id fort.`expr 90010 + $NE`
+	done
+	cp fort.`expr 90011 + $NUM_ENS` $WORK_DIR/fc/$DATE/wrfinput_${dm}_mean
+	cp fort.`expr 80011 + $NUM_ENS` $WORK_DIR/fc/$PREVDATE/wrfinput_${dm}_`wrf_time_string $DATE`_mean
   cd ..
 done
 

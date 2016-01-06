@@ -1,0 +1,16 @@
+&control_param
+ wrf_3dvar_output_file = 'wrfinput_d01_update'
+ wrf_3dvar_output_file_mean = 'wrfinput_d01'
+ wrf_3dvar_input_file  = 'wrfinput_d01'
+ wrf_bdy_file_from_si  = 'wrfbdy_d01'
+ wrf_bdy_file          = 'wrfbdy_d01_update'
+ wrf_input_from_si     = 'wrfinput_d01'
+ wrf_input_from_si_randmean = 'wrfinput_d01_randommean'
+ wrf_3dvar_random_draw = 'random_draw'
+
+ cycling = .true.
+ debug   = .true.
+ low_bdy_only = .false.
+ perturb_bdy = .true.
+ a    = 0.0
+ n_1  = 4 /

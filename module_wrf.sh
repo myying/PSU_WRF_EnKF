@@ -39,8 +39,9 @@ for i in 1; do
       fi
     fi
   done
-  ln -fs ../../../rc/$DATE_START/wrfbdy_d01 .
-# ln -fs ../../../fc/$DATE/wrfbdy_d01 .
+  #ln -fs ../../../rc/$DATE_START/wrfbdy_d01 .
+  #ln -fs ../../../fc/$DATE/wrfbdy_d01 .
+  ln -fs ../../../fc/wrfbdy_d01 .
   if [[ $SST_UPDATE == 1 ]]; then
     ln -fs ../../../rc/$DATE_START/wrflowinp_d?? .
   fi

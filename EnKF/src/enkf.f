@@ -259,8 +259,6 @@ do iob=1,obs%num
          call xb_to_rv(filename,proj,tmp,ix,jx,kx,nv,iob,xlong,znw,xb,0) 
       else if ( obstype(1:1) == 'P' .or. obstype(1:1) == 'H'  ) then
          call xb_to_sounding(filename,proj,tmp,ix,jx,kx,nv,iob,xlong,znu,znw,p_top,xb,1,0)
-      else if ( obstype=='Radiance  ') then
-         obs%position(iob,3) = 17   !TEMPORARY TEST
       else 
          obs%position(iob,3) = 1.
       endif
@@ -395,7 +393,7 @@ obs_assimilate_cycle : do it = 1,obs%num
    endif
 
    assimilated_obs_num=assimilated_obs_num+1
-   ngx = obs%roi(iob,1)
+   ngx = max(obs%roi(iob,1),max(nicpu,njcpu)/2+1)
    ngz = obs%roi(iob,2)
 ! Gaussian error added if using truth/idealized as obs
    if ( use_simulated .or. use_ideal_obs ) then
@@ -428,30 +426,23 @@ t0=MPI_Wtime()
 !!      for Radiance assimilation by Minamide 2015.3.14
    d    = fac * var + error * error
    alpha = 1.0/(1.0+sqrt(error*error/d))
-   ngx = obs%roi(iob,1)
    if (obstype=='Radiance  ') then
-     !if(varname=='QCLOUD    ' .or. varname=='QRAIN     ' .or. varname=='QICE      ' .or. & !varname=='QVAPOR    ' .or. 
-               !varname=='QGRAUP    ' .or. varname=='QSNOW     ') then
-       !ngx=6  !!!!!!!!!!!!!!!!!!fix this later
-       !!if(obs%roi(iob,1) == 0) then
-         !!update_flag = 0
-       !!else
-         !!ngx = obs%roi(iob,1)
-       !!endif
-     !else
-       !ngx=obs%roi(iob,1)
-       !!if(obs%roi(iob,3) == 0) then
-         !!update_flag = 0
-       !!else
-         !!ngx = obs%roi(iob,3)
-       !!endif
-     !endif
      d = max(fac * var + error * error, y_hxm * y_hxm)
      alpha = 1.0/(1.0+sqrt((d-fac * var)/d))
      if ( my_proc_id == 0 .and. sqrt(d-fac * var) > error .and. varname=='T         ')&
           write(*,*) 'observation-error inflated to ',sqrt(d-fac * var)
    endif
 !!---OEI & SCL end
+
+   if (obstype=='Radiance  ') then
+     if (varname=='QCLOUD    ' .or. varname=='QRAIN     ' .or. varname=='QICE      ' .or. &
+       varname=='QGRAUP    ' .or. varname=='QSNOW     ') then
+       update_flag=1
+     else
+       update_flag=0
+     end if
+   end if
+
    if ( update_flag==0 ) cycle update_x_var
 
 ! start and end indices of the update zone of the obs
@@ -600,7 +591,7 @@ t0=MPI_Wtime()
    do k = kst,ked
    do j = ujst,ujed
    do i = uist,uied
-     call corr(real(i-obs%position(iob,1)),real(j-obs%position(iob,2)),real(k-obs%position(iob,3)),ngx,ngz,corr_coef)
+     call corr(real(i-obs%position(iob,1)),real(j-obs%position(iob,2)),real(k-obs%position(iob,3)),obs%roi(iob,1),obs%roi(iob,2),corr_coef)
      if ( obstype == 'longtitude' .or. obstype == 'latitude  ' ) corr_coef = 1.0
      km(i-uist+1,j-ujst+1,k-kst+1) = km(i-uist+1,j-ujst+1,k-kst+1) * corr_coef
    enddo
@@ -755,7 +746,7 @@ enddo update_x_var
 !    ym=ym+corr_coef*hBh'(y-ym)/d
 !    ya=ya+alpha*corr_coef*hBh'(0-ya)/d
 !    --- basically these are the update equations of x left-multiplied by H.
-   ngx = obs%roi(iob,1)
+   ngx = max(obs%roi(iob,1),max(nicpu,njcpu)/2+1)
    ist = max( update_is, int(obs%position(iob,1))-ngx )
    ied = min( update_ie, int(obs%position(iob,1))+ngx )
    jst = max( update_js, int(obs%position(iob,2))-ngx )
@@ -768,14 +759,8 @@ enddo update_x_var
            obs%position(iiob,2)<jst .or. obs%position(iiob,2)>jed .or. & 
            obs%position(iiob,3)<kst .or. obs%position(iiob,3)>ked ) cycle update_y_cycle
 
-      !if (obs%roi(iob,1) == 0) then 
-      !  call corr(real(obs%position(iiob,1)-obs%position(iob,1)), real(obs%position(iiob,2)-obs%position(iob,2)), &
-      !          real(obs%position(iiob,3)-obs%position(iob,3)), obs%roi(iob,3), obs%roi(iob,2), corr_coef)
-      !else
-      ! original
       call corr(real(obs%position(iiob,1)-obs%position(iob,1)), real(obs%position(iiob,2)-obs%position(iob,2)), &
                 real(obs%position(iiob,3)-obs%position(iob,3)), obs%roi(iob,1), obs%roi(iob,2), corr_coef)
-      !endif
       obstype = obs%type(iiob)
       var=0.
       cov=0.

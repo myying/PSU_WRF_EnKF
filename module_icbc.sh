@@ -5,6 +5,8 @@ rundir=$WORK_DIR/run/$DATE/icbc
 if [[ ! -d $rundir ]]; then mkdir -p $rundir; echo waiting > $rundir/stat; fi
 
 cd $rundir
+echo complete > stat ############################
+
 if [[ `cat stat` == "complete" ]]; then exit; fi
 
 #no dependency

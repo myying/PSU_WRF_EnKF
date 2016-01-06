@@ -11,17 +11,17 @@
 ##PBS -d .
 
 ####header for stampede######
-#SBATCH -J cycle
+#SBATCH -J run_cycle
 #SBATCH -o ./log/%j
-#SBATCH -n 256 -N 16
-##SBATCH -p normal
-##SBATCH -t 4:00:00
-#SBATCH -p development
-#SBATCH -t 2:00:00
+#SBATCH -n 2048
+#SBATCH -p normal
+#SBATCH -t 24:00:00
+##SBATCH -p development
+##SBATCH -t 2:00:00
 
 #load configuration files, functions, parameters
 cd $WORK/PSU_WRF_EnKF
-export CONFIG_FILE=$WORK/PSU_WRF_EnKF/config/dynamo_osse/201110120000/AtovsAmvCygnss
+export CONFIG_FILE=$WORK/PSU_WRF_EnKF/config/dynamo_osse/201110120000/ref_ensemble
 . $CONFIG_FILE
 . util.sh
 
@@ -120,6 +120,7 @@ while [[ $NEXTDATE -le $DATE_CYCLE_END ]]; do  #CYCLE LOOP
   for d in `ls -t run/$DATE/`; do
     if [[ `cat run/$DATE/$d/stat` == "error" ]]; then
       echo CYCLING STOP DUE TO FAILED COMPONENT: $d
+      date
       exit 1
     fi
   done
@@ -129,4 +130,5 @@ while [[ $NEXTDATE -le $DATE_CYCLE_END ]]; do  #CYCLE LOOP
   export DATE=$NEXTDATE
 done
 echo CYCLING COMPLETE
+date
 

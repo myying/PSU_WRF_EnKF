@@ -1,14 +1,14 @@
 #!/bin/bash
 #SBATCH -J wrf_run
-#SBATCH -n 16
-#SBATCH -p normal
-#SBATCH -t 2:00:00
+#SBATCH -n 256
+#SBATCH -p normal 
+#SBATCH -t 8:00:00
 
 source ~/.bashrc
 
 #load configuration files, functions, parameters
 cd $WORK/PSU_WRF_EnKF
-export CONFIG_FILE=$WORK/PSU_WRF_EnKF/config/dynamo_osse/201111220000/TQAMVDYNAMO_acr_rtps
+export CONFIG_FILE=$WORK/PSU_WRF_EnKF/config/dynamo_osse/201110120000/AtovsMet7AmvCygnss
 . $CONFIG_FILE
 . util.sh
 

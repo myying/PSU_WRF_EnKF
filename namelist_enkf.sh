@@ -13,7 +13,15 @@ cat << EOF
 numbers_en   = $NUM_ENS, 
 expername    = '$EXP_NAME',  
 enkfvar      = 'U         ', 'V         ', 'W         ', 'T         ', 'QVAPOR    ', 'QCLOUD    ', 'QRAIN     ', 'QSNOW     ', 'QICE      ', 'QGRAUP    ', 'PH        ', 'MU        ', 'PSFC      ', 'P         ', 'PHB       ', 'PB        ', 'MUB       ',
-updatevar    = 'U         ', 'V         ', 'W         ', 'T         ', 'QVAPOR    ', 'QCLOUD    ', 'QRAIN     ', 'QSNOW     ', 'QICE      ', 'QGRAUP    ', 'PH        ', 'MU        ', 'PSFC      ', 'P         ',
+EOF
+
+if [ $minute_off == 0 ] || [ $minute_off == 180 ]; then
+  echo "updatevar    = 'U         ', 'V         ', 'W         ', 'T         ', 'QVAPOR    ', 'QCLOUD    ', 'QRAIN     ', 'QSNOW     ', 'QICE      ', 'QGRAUP    ', 'PH        ', 'MU        ', 'PSFC      ', 'P         ',"
+else
+  echo "updatevar    = 'QCLOUD    ', 'QRAIN     ', 'QSNOW     ', 'QICE      ', 'QGRAUP    ',"
+fi
+
+cat << EOF
 update_is    = 1,
 update_ie    = `echo ${E_WE[$domain_id-1]}-1 |bc`,
 update_js    = 1,

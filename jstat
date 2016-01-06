@@ -4,7 +4,7 @@ rundir=$1/run
 
 if [ ! -d $rundir ]; then echo "$rundir doesn't exist"; exit; fi
 
-for t in `ls $rundir |grep 20 `; do
+for t in `ls $rundir |grep 20 |tail -n5`; do
   echo "==== `wrf_time_string $t` ===="
   
 for c in obsproc icbc enkf 4dvar perturb_ic wrf_ens wrf_ens_window1 wrf_window wrf_window1 wrf; do
