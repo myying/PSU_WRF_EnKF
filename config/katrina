@@ -2,7 +2,7 @@
  RUN_ENKF=true
  RUN_4DVAR=false
  RUN_DETERMINISTIC=false
- RUN_MULTI_PHYS_ENS=false
+ MULTI_PHYS_ENS=false
  FOLLOW_STORM=false
  CLEAN=false
 
