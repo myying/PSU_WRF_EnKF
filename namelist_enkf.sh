@@ -36,7 +36,7 @@ njcpu  = $NJCPU,
 /
 
 &osse
-use_ideal_obs    = .true.,
+use_ideal_obs    = .false.,
 gridobs_is   = 25,
 gridobs_ie   = `echo ${E_WE[$domain_id-1]}-20 |bc`,
 gridobs_js   = 25,
