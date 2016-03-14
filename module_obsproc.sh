@@ -31,9 +31,9 @@ if $INCLUDE_LITTLE_R; then
     echo $obsdate >> datelist
   done
   for d in `cat datelist |sort |uniq`; do
-#    cat $DATA_DIR/littler/little_r:${d:0:4}-${d:4:2}-${d:6:2}_${d:8:2}:${d:10:2} >> obs.raw
+      cat $DATA_DIR/littler/little_r:${d:0:4}-${d:4:2}-${d:6:2}_${d:8:2}:${d:10:2} >> obs.raw
 #    cat $DATA_DIR/ncar_littler/${d:0:6}/obs.${d:0:10} >> obs.raw
-    cat $DATA_DIR/upaqf/${d:0:6}/upaqf.${d:0:10} >> obs.raw
+#     cat $DATA_DIR/upaqf/${d:0:6}/upaqf.${d:0:10} >> obs.raw
 #     $DATA_DIR/amv/amv2littler $d
 #     cat $DATA_DIR/amv/${d:0:6}/amv.${d:0:10} >> obs.raw
   done
