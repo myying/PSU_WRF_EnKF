@@ -34,12 +34,12 @@ for n in $domlist; do
 
 #  #link observations
 #  #LITTLE_R format from obsproc
-#  ln -fs $WORK_DIR/obs/$DATE/obs_gts_`wrf_time_string $DATE`.3DVAR obs_3dvar_${DATE}00
+  ln -fs $WORK_DIR/obs/$DATE/obs_gts_`wrf_time_string $DATE`.3DVAR obs_3dvar_${DATE}00
 #  #airborne radar superobs
 #  ln -fs $DATA_DIR/so/${DATE}_all.so_ass airborne_${DATE}_so
 
   #link truth for OSSE
-  ln -fs $WORK/data/DYNAMO/3km_run_9km/wrfout_d01_`wrf_time_string $DATE` fort.80010
+  # ln -fs $WORK/data/DYNAMO/3km_run_9km/wrfout_d01_`wrf_time_string $DATE` fort.80010
 
   $SCRIPT_DIR/namelist_enkf.sh $n > namelist.enkf
   cd ..
