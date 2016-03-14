@@ -1,6 +1,7 @@
 #work flow control
  RUN_ENKF=true
  RUN_4DVAR=false
+ RUN_ENVAR=false
  RUN_DETERMINISTIC=false
  MULTI_PHYS_ENS=false
  FOLLOW_STORM=false
@@ -77,6 +78,8 @@
  NICPU=1
  NJCPU=1
  INFLATION_COEF=1.0
+ RELAX_OPT=0
+ RELAX_ADAPTIVE=false
  RELAXATION_COEF=0.8
  REPLACE_MEAN=false
  REPLACE_MEAN_WITH=forecast
