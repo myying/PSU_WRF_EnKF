@@ -869,7 +869,6 @@ subroutine xb_to_radiance(inputfile,proj,ix,jx,kx,xlong,xlat,landmask,iob_radmin
   real, dimension(ix, jx ), intent(in)     :: xlat
   real, dimension(ix, jx ), intent(in)     :: landmask
   integer                                  :: iob,irad
-  real                                     :: obs_ii, obs_jj, dx,dxm,dy,dym
 
   CHARACTER(*), PARAMETER :: PROGRAM_NAME   = 'ctrm'
   REAL, PARAMETER :: P1000MB=100000.D0
@@ -904,14 +903,13 @@ subroutine xb_to_radiance(inputfile,proj,ix,jx,kx,xlong,xlat,landmask,iob_radmin
   INTEGER :: Error_Status
   INTEGER :: Allocate_Status
   INTEGER :: n_Channels
-  INTEGER :: l, m, irec, yend, ystart, nyi
+  INTEGER :: l, m, irec, iend, istart, nyi
   integer :: ncid,ncrcode
   character(LEN=16) :: var_name
   character(LEN=3)  :: file_ens
   integer :: x,y,tt,v,z,n,reci,ens,n_ec,num_radgrid
   INTEGER :: ncl,icl,k1,k2
-  real :: lat_radiance(ix*jx)  ! latitude
-  real :: lon_radiance(ix*jx) ! longitude
+  integer :: obs_ii(ix*jx), obs_jj(ix*jx)
   real :: lat(ix,jx)   ! in radian
   real :: lon(ix,jx)   ! in radian
   real :: p(ix,jx,kx)
@@ -950,27 +948,24 @@ subroutine xb_to_radiance(inputfile,proj,ix,jx,kx,xlong,xlat,landmask,iob_radmin
   ! 1.5. **** make a loop to get the number of satellite-radiance-iob ****
   !
   num_radgrid = 0
+  iob_radmin = 1
+  iob_radmax = obs%num
   check_cycle:do iob=1,obs%num
     obstype = obs%type(iob)
     if ( obstype(1:8) == 'Radiance' ) then
-     if(num_radgrid == 0) then
+      if(num_radgrid.eq.0) then
+        iob_radmin = iob
+      else
+        do irad = 1,num_radgrid  !check duplicates
+          if((obs_ii(irad).eq.int(obs%position(iob,1))).and.(obs_jj(irad).eq.int(obs%position(iob,2)))) cycle check_cycle
+        enddo
+      endif
+      iob_radmax=iob
       num_radgrid = num_radgrid + 1
-      lon_radiance(num_radgrid) = obs%position(iob,1)
-      lat_radiance(num_radgrid) = obs%position(iob,2)
-      iob_radmin = iob
-      iob_radmax = iob
-     else
-      iob_radmax = iob
-      do irad = 1,num_radgrid
-      if((lon_radiance(irad).eq.obs%position(iob,1)).and.(lat_radiance(irad).eq.obs%position(iob,2)))cycle check_cycle
-      enddo
-      num_radgrid = num_radgrid + 1
-      lon_radiance(num_radgrid) = obs%position(iob,1)
-      lat_radiance(num_radgrid) = obs%position(iob,2)
-     endif
+      obs_ii(num_radgrid) = int(obs%position(iob,1))
+      obs_jj(num_radgrid) = int(obs%position(iob,2))
     endif
   enddo check_cycle
-
 
   ! ============================================================================
   ! --------------
@@ -1006,12 +1001,12 @@ subroutine xb_to_radiance(inputfile,proj,ix,jx,kx,xlong,xlat,landmask,iob_radmin
   ! ------------------------------------------
   ! Specify channel 14 for GOES-R ABI
   !if (Sensor_Id == 'abi_gr' ) then
-    Error_Status = CRTM_ChannelInfo_Subset( ChannelInfo(1), Channel_Subset =(/2,3/) )
-    IF ( Error_Status /= SUCCESS ) THEN
-      Message = 'Error initializing CRTM'
-      CALL Display_Message( PROGRAM_NAME, Message, FAILURE )
-      STOP
-    END IF
+    !Error_Status = CRTM_ChannelInfo_Subset( ChannelInfo(1), Channel_Subset =(/2,3/) )
+    !IF ( Error_Status /= SUCCESS ) THEN
+      !Message = 'Error initializing CRTM'
+      !CALL Display_Message( PROGRAM_NAME, Message, FAILURE )
+      !STOP
+    !END IF
   !endif 
   n_Channels = SUM(CRTM_ChannelInfo_n_Channels(ChannelInfo))
   ! ============================================================================
@@ -1085,22 +1080,26 @@ subroutine xb_to_radiance(inputfile,proj,ix,jx,kx,xlong,xlat,landmask,iob_radmin
   where(qsnow.lt.0.0) qsnow=0.0
   where(qgraup.lt.0.0) qgraup=0.0
 
+
   ! 4a2. Parallerization with grids
   ! --------------------------------
   !--- preparation for the x,y-loop
-  if(mod(num_radgrid,nprocs).eq.0) then
-     nyi=num_radgrid/nprocs
-  else
-     nyi=num_radgrid/nprocs+1
-  endif
-  ystart=my_proc_id*nyi+1
-  yend=min(num_radgrid,(my_proc_id+1)*nyi)
+  Tbsend = 0.0
 
-  do iob = ystart, yend
-     obs_ii=lon_radiance(iob)
-     obs_jj=lat_radiance(iob)
-     x = int( obs_ii )
-     y = int( obs_jj )
+  if(mod(num_radgrid,nprocs).eq.0) then
+    nyi=num_radgrid/nprocs
+  else
+    nyi=num_radgrid/nprocs+1
+  endif
+  istart=my_proc_id*nyi+1
+  iend=min(num_radgrid,(my_proc_id+1)*nyi)
+!print*,my_proc_id, istart,iend
+
+  if(istart .le. iend) then
+  do iob = istart, iend
+     
+     x=obs_ii(iob)
+     y=obs_jj(iob)
 
   ! 4a3. Converting WRF data for CRTM structure
   ! --------------------------------
@@ -1290,28 +1289,28 @@ subroutine xb_to_radiance(inputfile,proj,ix,jx,kx,xlong,xlat,landmask,iob_radmin
   ! in the structure RTSolution.
   !
   !DO m = 1, N_PROFILES
-  !  WRITE( *,'(//7x,"Profile ",i0," output for ",a )') n, TRIM(Sensor_Id)
-  !  DO l = 1, n_Channels
-  !    WRITE( *, '(/5x,"Channel ",i0," results")') RTSolution(l,m)%Sensor_Channel
-  !    CALL CRTM_RTSolution_Inspect(RTSolution(l,m))
-  !  END DO
+    !WRITE( *,'(//7x,"Profile ",i0," output for ",a )') n, TRIM(Sensor_Id)
+    !DO l = 1, n_Channels
+      !WRITE( *, '(/5x,"Channel ",i0," results")') RTSolution(l,m)%Sensor_Channel
+      !CALL CRTM_RTSolution_Inspect(RTSolution(l,m))
+    !END DO
   !END DO
 
   !---for file output, edited 2014.9.26
   do l = 1, n_Channels
       Tbsend(x,y,l) = real(RTSolution(l,1)%Brightness_Temperature)
-      if(Tbsend(x,y,l) /= Tbsend(x,y,l) .or. Tbsend(x,y,l)>HUGE(Tbsend(x,y,l)) &
-         .or. Tbsend(x,y,l) < 100 .or. Tbsend(x,y,l) > 400 ) then
-        Tbsend(x,y,l)=-888888.
-      endif
+      !if(Tbsend(x,y,l) /= Tbsend(x,y,l) .or. Tbsend(x,y,l)>HUGE(Tbsend(x,y,l)) &
+         !.or. Tbsend(x,y,l) < 100 .or. Tbsend(x,y,l) > 400 ) then
+        !Tbsend(x,y,l)=-888888.
+      !endif
   enddo
-  !WRITE(*,'(7x,"Profile (",i0,", ",i0,") finished Tb =  ",f6.2)')x,y,Tbsend(x,y,2)
+  !WRITE(*,'(i10,3x,"Profile (",i0,", ",i0,") finished Tb =  ",f6.2)') iob,x,y,Tbsend(x,y,2)
 
   !--- end of iob(x,y)-loop
   enddo
+  endif
 
   CALL MPI_Allreduce(Tbsend,Tb,ix*jx*n_ch,MPI_REAL,MPI_SUM,comm,ierr)
-!  if(x==24 .and. y==184) write(*,*) my_proc_id
 
   ! ============================================================================
 
@@ -1320,10 +1319,8 @@ subroutine xb_to_radiance(inputfile,proj,ix,jx,kx,xlong,xlat,landmask,iob_radmin
   !
   if(my_proc_id==0) then
     do iob = iob_radmin, iob_radmax
-      obs_ii=obs%position(iob,1)
-      obs_jj=obs%position(iob,2)
-      x = int( obs_ii )
-      y = int( obs_jj )
+      x=obs_ii(iob)
+      y=obs_jj(iob)
       !if (Sensor_Id == 'abi_gr' ) then
          !if (obs%ch(iob) .eq. 8) xb_tb(iob) = Tb(x,y,1) !6.19um
          !if (obs%ch(iob) .eq. 9) xb_tb(iob) = Tb(x,y,2) !6.95um
@@ -1335,20 +1332,12 @@ subroutine xb_to_radiance(inputfile,proj,ix,jx,kx,xlong,xlat,landmask,iob_radmin
       !endif
       xb_tb(iob) = Tb(x,y,2)   !Meteosat7 ch-3
     enddo
-    !--initializing the Tbsend fields for Bcast
-    !Tbsend = 0.0
   endif
-
-  ! ============================================================================
-  !  **** initializing all Tb and Tbsend fields ****
-  !
-  !Tb = 0.0
-  !CALL MPI_BCAST(Tbsend,ix*jx*n_ch,MPI_REAL,0,comm,ierr)
 
   ! ============================================================================
   ! 7. **** DESTROY THE CRTM ****
   !
-!  WRITE( *, '( /5x, "Destroying the CRTM..." )' )
+  !WRITE( *, '( /5x, "Destroying the CRTM..." )' )
   Error_Status = CRTM_Destroy( ChannelInfo )
   IF ( Error_Status /= SUCCESS ) THEN
     Message = 'Error destroying CRTM'
