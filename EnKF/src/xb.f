@@ -1001,12 +1001,12 @@ subroutine xb_to_radiance(inputfile,proj,ix,jx,kx,xlong,xlat,landmask,iob_radmin
   ! ------------------------------------------
   ! Specify channel 14 for GOES-R ABI
   !if (Sensor_Id == 'abi_gr' ) then
-    !Error_Status = CRTM_ChannelInfo_Subset( ChannelInfo(1), Channel_Subset =(/2,3/) )
-    !IF ( Error_Status /= SUCCESS ) THEN
-      !Message = 'Error initializing CRTM'
-      !CALL Display_Message( PROGRAM_NAME, Message, FAILURE )
-      !STOP
-    !END IF
+    Error_Status = CRTM_ChannelInfo_Subset( ChannelInfo(1), Channel_Subset =(/2,3/) )
+    IF ( Error_Status /= SUCCESS ) THEN
+      Message = 'Error initializing CRTM'
+      CALL Display_Message( PROGRAM_NAME, Message, FAILURE )
+      STOP
+    END IF
   !endif 
   n_Channels = SUM(CRTM_ChannelInfo_n_Channels(ChannelInfo))
   ! ============================================================================
