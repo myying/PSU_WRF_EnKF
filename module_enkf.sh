@@ -46,7 +46,7 @@ for n in $domlist; do
 
 #radiance obs
   ln -fs $WORK/code/CRTM/crtm_wrf/coefficients
-  ln -fs $WORK/DYNAMO/EnKF_OSSE/Meteosat7_SO/BT_d01_${DATE}_so radiance_${DATE}_so
+  ln -fs $WORK/DYNAMO/enkf_osse/Met7/Tb_d01_${DATE}_so radiance_${DATE}_so
 
 #  #link truth for OSSE
 #  ln -fs $WORK/data/DYNAMO/3km_run_9km/wrfout_d01_`wrf_time_string $DATE` fort.80010

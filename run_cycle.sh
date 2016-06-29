@@ -11,17 +11,17 @@
 ##PBS -d .
 
 ####header for stampede######
-#SBATCH -J run_cycle
+#SBATCH -J AAC
 #SBATCH -o ./log/%j
-#SBATCH -n 2048
-#SBATCH -p normal
-#SBATCH -t 24:00:00
-##SBATCH -p development
-##SBATCH -t 2:00:00
+#SBATCH -n 256
+##SBATCH -p normal
+##SBATCH -t 48:00:00
+#SBATCH -p development
+#SBATCH -t 2:00:00
 
 #load configuration files, functions, parameters
 cd $WORK/PSU_WRF_EnKF
-export CONFIG_FILE=$WORK/PSU_WRF_EnKF/config/dynamo_osse/201110120000/ref_ensemble
+export CONFIG_FILE=$WORK/PSU_WRF_EnKF/config/enkf_osse/AtovsAmvCygnss
 . $CONFIG_FILE
 . util.sh
 

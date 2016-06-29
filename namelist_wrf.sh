@@ -87,6 +87,9 @@ if [ $use_for == "wrfvar" ]; then
 else
   echo time_step  = `echo "${TIME_STEP[0]}/$time_step_ratio" |bc`,
 fi
+echo time_step_fract_num = 0,
+echo time_step_fract_den = 1,
+echo target_cfl = 0.6,
 
 echo e_we       = $(for i in $domlist; do printf `echo "(${E_WE[$i-1]} -1)/$thin_factor + 1" |bc`, ; done)
 echo e_sn       = $(for i in $domlist; do printf `echo "(${E_SN[$i-1]} -1)/$thin_factor + 1" |bc`, ; done)
@@ -137,7 +140,6 @@ smooth_option=0,
 num_metgrid_levels=${NUM_METGRID_LEVELS:-38},
 p_top_requested=$P_TOP,
 num_metgrid_soil_levels=4,
-nproc_x=0,
 EOF
 
 #echo "eta_levels=1.000,0.99258,0.98275,0.96996,0.95372,0.93357,0.90913,0.87957,0.84531,0.80683,0.76467,0.7194,0.67163,0.62198,0.57108,0.51956,0.46803,0.4203,0.37613,0.33532,0.29764,0.2629,0.23092,0.20152,0.17452,0.14978,0.12714,0.10646,0.08761,0.07045,0.05466,0.03981,0.0258,0.01258,0.000,"
@@ -176,24 +178,18 @@ cudt               = $(for i in $domlist; do printf ${CUDT[$i-1]}, ; done)
 EOF
 
 cat << EOF
-mp_zero_out        = 2,
-sst_update         = $SST_UPDATE,
+sst_update         = ${SST_UPDATE:-1},
+sst_skin           = ${SST_SKIN:-1},
 
 EOF
 
 #extra physics options here:
 cat << EOF
-levsiz = 59
-paerlev = 29
-cam_abs_dim1 = 4
-cam_abs_dim2 = 45
-
- isfflx                              = 1,
- ifsnow                              = 1,
- icloud                              = 1,
- surface_input_source                = 1,
-
- num_soil_layers                     = 4,
+isfflx                              = 1,
+ifsnow                              = 1,
+icloud                              = 1,
+surface_input_source                = 1,
+num_soil_layers                     = 4,
 EOF
 echo "/"
 

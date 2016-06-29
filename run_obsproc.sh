@@ -8,7 +8,7 @@ source ~/.bashrc
 
 #load configuration files, functions, parameters
 cd $WORK/PSU_WRF_EnKF
-export CONFIG_FILE=$WORK/PSU_WRF_EnKF/config/dynamo_osse/obsproc
+export CONFIG_FILE=$WORK/PSU_WRF_EnKF/config/enkf_osse/obsproc
 . $CONFIG_FILE
 . util.sh
 

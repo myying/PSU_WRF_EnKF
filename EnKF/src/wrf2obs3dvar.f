@@ -51,18 +51,18 @@ obsfile2 = 'obs2.ascii'
 truthfile='wrfout.truth'
 !ideal sounding grid
 gridobs_is=2
-gridobs_ie=332
+gridobs_ie=428
 gridobs_js=2
-gridobs_je=221
+gridobs_je=323
 gridobs_ks=1
 gridobs_ke=44
 gridobs_int_x=10
 gridobs_int_k=1
 !CYGNSS grid
 cyg_gridobs_is=2
-cyg_gridobs_ie=332
+cyg_gridobs_ie=428
 cyg_gridobs_js=2
-cyg_gridobs_je=221
+cyg_gridobs_je=323
 cyg_gridobs_int_x=5
 !get truth wrfout fields
 call get_ij(truthfile,ix,jx,kx)

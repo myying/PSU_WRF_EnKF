@@ -5,7 +5,7 @@ rundir=$WORK_DIR/run/$DATE/icbc
 if [[ ! -d $rundir ]]; then mkdir -p $rundir; echo waiting > $rundir/stat; fi
 
 cd $rundir
-echo complete > stat ############################
+echo complete > stat ######FOR OSSE, IC BC are prepared before hand, skipping...
 
 if [[ `cat stat` == "complete" ]]; then exit; fi
 

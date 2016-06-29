@@ -325,16 +325,18 @@ end do obs_cycle
 
 !--ensemble loop for satellite radiance
  !---every grid is calculated in subroutine xb_to_radiance
-
 if(raw%radiance%num.ne.0) then
   yasend_tb=0.
   do ie = 1, numbers_en+1
     yasend_tb = 0.0
     write( filename, '(a5,i5.5)') wrf_file(1:5), iunit+ie-1
+    if(my_proc_id==0) write(*,*) 'calculating radiance prior for member ',ie
     call xb_to_radiance(filename,proj,ix,jx,kx,xlong,xlat,xland,iob_radmin,iob_radmax,yasend_tb)
     yasend(iob_radmin:iob_radmax,ie) = yasend_tb(iob_radmin:iob_radmax)
   enddo
 endif
+
+!gather ya from all cpus
 call MPI_Allreduce(yasend,ya,obs%num*(numbers_en+1),MPI_REAL,MPI_SUM,comm,ierr)
 
 !calcurate mean of ya (radmean) by Minamide 2015.9.25
@@ -429,7 +431,7 @@ t0=MPI_Wtime()
    if (obstype=='Radiance  ') then
      d = max(fac * var + error * error, y_hxm * y_hxm)
      alpha = 1.0/(1.0+sqrt((d-fac * var)/d))
-     if ( my_proc_id == 0 .and. sqrt(d-fac * var) > error .and. varname=='T         ')&
+     if ( my_proc_id == 0 .and. sqrt(d-fac * var) > error .and. varname=='QCLOUD    ')&
           write(*,*) 'observation-error inflated to ',sqrt(d-fac * var)
    endif
 !!---OEI & SCL end
