@@ -19,7 +19,7 @@
  update_je    = 301,
  update_ks    = 1,
  update_ke    = 42,
- inflate      = 1.0,    # inflation factor, used to inflate perturbations. 
+ inflate      = 1.0,    # inflation factor, DO NOT USE
  relax_opt    = 0,        # relaxation methods:
                           # 0: relax-to-prior-perturbation (Zhang et al 2004)
                           # 1: relax-to-prior-spread       (Whitaker and Hamill 2012)
