@@ -26,77 +26,11 @@ else
   export inputout_end=$run_minutes
 fi
 
-#1 Perturb BCs with random_samples
-#echo "  Perturbing ensemble BCs..."
-#dd=`diff_time $DATE_START $LBDATE`
-#n_1=$((dd/$LBC_INTERVAL+1))
-#
-#tid=0
-#nt=$total_ntasks
-#for NE in `seq 1 $NUM_ENS`; do
-#  id=`expr $NE + 1000 |cut -c2-`
-#  if [[ ! -d $id ]]; then mkdir $id; fi
-#  touch $id/update_wrf_bc.log
-#  if [[ `tail -n5 $id/update_wrf_bc.log |grep successfully` ]]; then continue; fi
-#  cd $id
-#
-#  cat > parame.in << EOF
-#&control_param
-# wrf_3dvar_output_file = 'wrfinput_d01_update'
-# wrf_bdy_file          = 'wrfbdy_d01_update'
-# wrf_bdy_file_real     = 'wrfbdy_d01_real'
-# wrf_input_from_si     = 'wrfinput_d01_real'
-# wrf_input_from_si_randmean = 'random_mean'
-# wrf_3dvar_random_draw = 'random_draw'
-# cycling = .true.
-# debug   = .true. 
-# low_bdy_only = .false. 
-# perturb_bdy = .true.
-# n_1 = $n_1
-#/
-#EOF
-#
-#  ln -fs $WRF_BC_DIR/update_wrf_bc.exe .
-#
-#  if [ $DATE == $DATE_START ]; then
-#    ln -fs ../../../../fc/wrfbdy_d01 wrfbdy_d01_real
-#  else
-#    ln -fs ../../../../fc/wrfbdy_d01_$id wrfbdy_d01_real
-#  fi
-#  cp -L wrfbdy_d01_real wrfbdy_d01_update
-#
-#  ln -fs ../../../../rc/$LBDATE/wrfinput_d01 wrfinput_d01_real
-#  rm -f wrfinput_d01_update
-#  ln -fs ../../../../fc/$DATE/wrfinput_d01_$id wrfinput_d01_update  
-#
-#  ln -fs ../../../../fc/$DATE_START/wrfinput_d01_`expr $((RANDOM%($NUM_ENS-1)+1)) + 1000 |cut -c2-` random_draw
-#  ln -fs ../../../../rc/$DATE_START/wrfinput_d01 random_mean
-#
-#  $SCRIPT_DIR/job_submit.sh 1 $tid $HOSTPPN ./update_wrf_bc.exe >& update_wrf_bc.log &
-##  ./update_wrf_bc.exe >& update_wrf_bc.log 
-#
-#  tid=$((tid+1))
-#  if [[ $tid == $nt ]]; then
-#    tid=0
-#    wait
-#  fi
-#  cd ..
-#done
-#wait
-#
-#for NE in `seq 1 $NUM_ENS`; do
-#  id=`expr $NE + 1000 |cut -c2-`
-#  watch_log $id/update_wrf_bc.log successfully 1 $rundir
-#  mv $id/wrfbdy_d01_update $WORK_DIR/fc/wrfbdy_d01_$id
-#done
-#
-
-#Run wrf forecast for each member
 echo "  Running WRF ensemble forecast..."
 
 tid=0
 nt=$((total_ntasks/$wrf_ntasks))
-for r in 1 3; do
+for r in 1 1.5; do
   export time_step_ratio=$r
   for NE in `seq 1 $NUM_ENS`; do
     id=`expr $NE + 1000 |cut -c2-`
@@ -105,6 +39,43 @@ for r in 1 3; do
     if [[ `tail -n5 $id/rsl.error.0000 |grep SUCCESS` ]]; then continue; fi
   
     cd $id
+
+    ####Update and perturb BC
+    #if [ $DATE == $LBDATE ] && [ $r == 1 ]; then
+      #dd=`diff_time $DATE_START $LBDATE`
+      #n_1=$((dd/$LBC_INTERVAL+1))
+      #cat > parame.in << EOF
+#&control_param
+ #wrf_3dvar_output_file = 'wrfinput_d01_update'
+ #wrf_bdy_file          = 'wrfbdy_d01_update'
+ #wrf_bdy_file_real     = 'wrfbdy_d01_real'
+ #wrf_input_from_si     = 'wrfinput_d01_real'
+ #wrf_input_from_si_randmean = 'random_mean'
+ #wrf_3dvar_random_draw = 'random_draw'
+ #cycling = .true.
+ #low_bdy_only = .false. 
+ #perturb_bdy = .true.
+ #n_1 = $n_1
+#/
+#EOF
+      #ln -fs $WRF_BC_DIR/update_wrf_bc.exe .
+
+      #ln -fs ../../../../fc/wrfbdy_d01_$id wrfbdy_d01_real
+      #cp -L wrfbdy_d01_real wrfbdy_d01_update
+      #ln -fs ../../../../rc/$DATE_START/wrfinput_d01_`wrf_time_string $DATE` wrfinput_d01_real
+      #ln -fs ../../../../fc/$DATE/wrfinput_d01_$id wrfinput_d01_update
+
+      #randnum=`expr $((RANDOM%99+1)) + 1000 |cut -c2-`
+      #ln -fs ../../../../fc/$DATE_START/wrfinput_d01_$randnum random_draw
+      #ln -fs ../../../../fc/$DATE_START/wrfinput_d01 random_mean
+      #echo $n_1 $randnum >> ../../../../fc/rand_$id
+
+      #./update_wrf_bc.exe >& update_wrf_bc.log 
+      #watch_log update_wrf_bc.log successfully 1 $rundir
+      #mv wrfbdy_d01_update $WORK_DIR/fc/wrfbdy_d01_$id
+    #fi
+
+    ####Running model
     ln -fs $WRF_DIR/run/* .
     rm -f namelist.*
   
@@ -112,16 +83,17 @@ for r in 1 3; do
       dm=d`expr $n + 100 |cut -c2-`
       ln -fs ../../../../fc/$DATE/wrfinput_${dm}_$id wrfinput_$dm
     done
-		ln -fs ../../../../fc/wrfbdy_d01_$id wrfbdy_d01
-		#ln -fs ../../../../fc/wrfbdy_d01 wrfbdy_d01
+    #ln -fs ../../../../fc/wrfbdy_d01_$id wrfbdy_d01
+		ln -fs ../../../../fc/wrfbdy_d01 wrfbdy_d01
 
-    if [ $DATE -gt $DATE_START ]; then
-      $SCRIPT_DIR/multi_physics_set.sh $id >& multi_physics_set.log
+    if $MULTI_PHYS_ENS; then
+      if [ $DATE -gt $DATE_START ]; then
+        $SCRIPT_DIR/multi_physics_set.sh $id >& multi_physics_set.log
+      fi
     fi
 
     if [[ $SST_UPDATE == 1 ]]; then
-      #ln -fs ../../../../rc/$DATE_START/wrflowinp_d?? .
-      ln -fs ../../../../fc/wrflowinp_d0? .
+      ln -fs ../../../../fc/wrflowinp_d?? .
     fi
 
     if $FOLLOW_STORM; then
@@ -130,6 +102,8 @@ for r in 1 3; do
     fi
     $SCRIPT_DIR/namelist_wrf.sh wrf > namelist.input
     $SCRIPT_DIR/job_submit.sh $wrf_ntasks $((tid*$wrf_ntasks)) $HOSTPPN ./wrf.exe >& wrf.log &
+#    mpirun.lsf ./wrf.exe
+
     tid=$((tid+1))
     if [[ $tid == $nt ]]; then
       tid=0
@@ -163,6 +137,12 @@ for NE in `seq 1 $NUM_ENS`; do
   done
 done
 
+for NE in `seq 1 $NUM_ENS`; do
+  id=`expr $NE + 1000 |cut -c2-`
+  mv $id/wrfout_d01_`wrf_time_string $DATE` $WORK_DIR/output/$DATE/wrfout_d01_`wrf_time_string $DATE`_$id
+  mv $id/wrfout_d01_`wrf_time_string $NEXTDATE` $WORK_DIR/output/$DATE/wrfout_d01_`wrf_time_string $NEXTDATE`_$id
+done
+
 #Calculate ensemble mean for 4DVar fg (next cycle)
 if $RUN_4DVAR; then
   echo "  Calculating ensemble mean..."
@@ -182,6 +162,8 @@ if $RUN_4DVAR; then
         $SCRIPT_DIR/namelist_enkf.sh $n > namelist.enkf
         ln -fs $ENKF_DIR/ensemble_mean.exe .
         $SCRIPT_DIR/job_submit.sh $enkf_ntasks 0 $enkf_ppn ./ensemble_mean.exe >& ensemble_mean.log 
+#        mpirun.lsf ./ensemble_mean.exe >& ensemble_mean.log
+
         watch_log ensemble_mean.log Successful 1 $rundir
         mv fort.`expr 80011 + $NUM_ENS` $WORK_DIR/fc/$DATE/wrfinput_${dm}_`wrf_time_string $outdate`_mean
         cd ..
@@ -200,3 +182,5 @@ if $CLEAN; then
 fi
 
 echo complete > stat
+rm ???/rsl.*
+

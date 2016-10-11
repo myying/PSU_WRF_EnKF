@@ -1,14 +1,18 @@
 #!/bin/bash
-#SBATCH -J run_cycle
-#SBATCH -n 16
-#SBATCH -p normal
-#SBATCH -t 8:00:00
-
-source ~/.bashrc
+#BSUB -P UPSU0001
+#BSUB -J run_obsproc
+#BSUB -W 2:00
+#BSUB -q small
+#BSUB -n 16
+#BSUB -R "span[ptile=16]"
+#BSUB -o log/%J.out
+#BSUB -e log/%J.err
+source /glade/u/apps/opt/lmod/4.2.1/init/bash
+source ~/.bashrc_yy
 
 #load configuration files, functions, parameters
 cd $WORK/PSU_WRF_EnKF
-export CONFIG_FILE=$WORK/PSU_WRF_EnKF/config/enkf_osse/obsproc
+export CONFIG_FILE=$WORK/PSU_WRF_EnKF/config/EnKF_OSSE/obsproc
 . $CONFIG_FILE
 . util.sh
 
@@ -21,6 +25,9 @@ if [ $JOB_SUBMIT_MODE == 1 ]; then
   fi
   if [[ $HOSTTYPE == "jet" ]]; then
     export total_ntasks=$PBS_NP
+  fi
+  if [[ $HOSTTYPE == "yellowstone" ]]; then
+    export total_ntasks=$LSB_MAX_NUM_PROCESSORS
   fi
 else
   export total_ntasks=9999999

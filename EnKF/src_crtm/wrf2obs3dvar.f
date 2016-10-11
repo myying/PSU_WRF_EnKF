@@ -13,7 +13,7 @@ character (len=180)        :: fmt_fmt, info_fmt, srfc_fmt, each_fmt
 integer                    :: synop,metar,ship,buoy,bogus,temp,amdar,airep,tamdar,pilot, &
                               satem, satob, gpspw, gpszd, gpsrf,gpsep,ssmt1,ssmt2,     &
                               tovs, qscat, profl, airsr, other, total
-integer :: total1,total2,temp1,temp2,qscat1,qscat2,satob1,satob2
+integer :: total1,total2,temp1,temp2,satob1,satob2
 character (len=40)         :: name
 character (len=40)         :: id
 integer, dimension(7)      :: qcint
@@ -28,42 +28,37 @@ type(proj_info) :: proj
 integer :: ix,jx,kx, i1,j1,k1
 real :: obs_ii,obs_jj,obs_kk,obs_pp
 real,dimension(:,:,:),allocatable :: u,v,pt,ph,phb,p,pb,zg,qv,qc,qr,qall
-real,dimension(:,:),allocatable :: landmask,mu,mub
+real,dimension(:,:),allocatable :: mu,mub
 real,dimension(:),allocatable :: znw0,znu0, pres,qvt,ptt,zgt
-real :: dx,dxm,dy,dym,dz,dzm, mu1,mub1, trueu,truev,gridu,gridv,dum
+real :: dx,dxm,dy,dym,dz,dzm, mu1,mub1, trueu,truev,gridu,gridv
 real,dimension(2) :: worku,workv,work
 character(len=10) :: rdate,rtime,rzone
 integer, dimension(8)  :: rvalues
 real :: gaussdev
 integer :: gridobs_ks, gridobs_ke, gridobs_int_k, k_levels
 integer :: gridobs_js, gridobs_je, gridobs_is, gridobs_ie, gridobs_int_x
-integer :: cyg_gridobs_js, cyg_gridobs_je, cyg_gridobs_is, cyg_gridobs_ie, cyg_gridobs_int_x
 real :: rh_error,z_error,spd_error,dir_error, t_error,td_error,qpc_error
 real :: obs_q,obs_pres,obs_temp,mean_qv
 
 character (len=14) :: tstr
 character (len=80) :: dt
 integer*8 :: t1,t2
+real, parameter :: lat_dif =  0.461
+real, parameter :: lon_dif =  0.659
 
 obs_3dvar_file = 'obs_3dvar.ascii'
 obsfile1 = 'obs1.ascii'
 obsfile2 = 'obs2.ascii'
 truthfile='wrfout.truth'
-!ideal sounding grid
-gridobs_is=2
-gridobs_ie=377
-gridobs_js=2
-gridobs_je=221
+gridobs_is=1
+gridobs_ie=333
+gridobs_js=1
+gridobs_je=222
 gridobs_ks=1
 gridobs_ke=44
 gridobs_int_x=10
 gridobs_int_k=1
-!CYGNSS grid
-cyg_gridobs_is=2
-cyg_gridobs_ie=377
-cyg_gridobs_js=2
-cyg_gridobs_je=221
-cyg_gridobs_int_x=5
+
 !get truth wrfout fields
 call get_ij(truthfile,ix,jx,kx)
 call set_domain_proj(truthfile,proj)
@@ -80,7 +75,6 @@ allocate(qall(ix,jx,kx))
 allocate(qv(ix,jx,kx))
 allocate(qc(ix,jx,kx))
 allocate(qr(ix,jx,kx))
-allocate(landmask(ix,jx))
 allocate(mu(ix,jx))
 allocate(mub(ix,jx))
 allocate(znw0(kx+1))
@@ -102,7 +96,6 @@ call get_variable3d(truthfile,'U         ', ix+1, jx, kx,   1, u)
 call get_variable3d(truthfile,'V         ', ix, jx+1, kx,   1, v)
 call get_variable3d(truthfile,'P         ', ix, jx, kx,   1, p)
 call get_variable3d(truthfile,'PB        ', ix, jx, kx,   1, pb)
-call get_variable2d(truthfile,'LANDMASK  ', ix, jx, 1,    landmask)
 call get_variable2d(truthfile,'MU        ', ix, jx, 1,    mu )
 call get_variable2d(truthfile,'MUB       ', ix, jx, 1,    mub)
 call get_variable1d(truthfile,'ZNW       ', kx+1, 1, znw0)
@@ -125,7 +118,6 @@ gpspw=0; gpszd=0; gpsrf=0; gpsep=0; ssmt1=0; ssmt2=0
 tovs=0; qscat=0; profl=0; airsr=0; other=0
 total1=0; total2=0
 temp1=0; temp2=0
-qscat1=0; qscat2=0
 satob1=0; satob2=0
 
 do i = 1, 12
@@ -150,69 +142,41 @@ read(10,*)
 
 do n = 1, total
    read(10, fmt=info_fmt) platform,date,name,obs_level,latitude,longitude,elevation,id
+!!!
+latitude = latitude + lat_dif
+longitude = longitude + lon_dif
+!!!
    read(10, fmt=srfc_fmt) slp(1),qcint(1),slp(3),pw(1),qcint(2),pw(3)
    tstr=date(1:4)//date(6:7)//date(9:10)//date(12:13)//date(15:16)//date(18:19)
    read(tstr,'(i14)') t1
    tstr=times(1:4)//times(6:7)//times(9:10)//times(12:13)//times(15:16)//times(18:19)
    read(tstr,'(i14)') t2
    if ( platform(4:6).eq.'88 ' ) then
-     if(t1.lt.t2) then
+!     if(t1.lt.t2) then
+     call latlon_to_ij(proj,latitude,longitude,obs_ii,obs_jj)
+     if ( obs_ii > 2 .and. obs_ii < proj%nx-1 .and. obs_jj > 2 .and. obs_jj<proj%ny-1) then
        total1=total1+1
        satob1=satob1+1
-     else
-       total2=total2+1
-       satob2=satob2+1
      endif
+!     else
+!       total2=total2+1
+!       satob2=satob2+1
+!     endif
    endif
    if ( platform(4:6).eq.'35 ' ) then
-     if(t1.lt.t2) then
-       total1=total1+1
-       temp1=temp1+1
-     else
-       total2=total2+1
-       temp2=temp2+1
-     endif
+!     if(t1.lt.t2) then
+!       total1=total1+1
+!       temp1=temp1+1
+!     else
+!       total2=total2+1
+!       temp2=temp2+1
+!     endif
    endif
    do k = 1, obs_level
      read(10,*)
    enddo
 enddo
 close(10)
-
-!count ideal soundings
-k_levels=0
-do k = gridobs_ks, gridobs_ke, gridobs_int_k
-   k_levels=k_levels+1
-enddo
-n=0
-do j = gridobs_js, gridobs_je, gridobs_int_x
-do i = gridobs_is, gridobs_ie, gridobs_int_x
-   n=n+1
-   if(mod(n,2)==0) then  !make half of the observation valid 1s earlier
-     total1=total1+1
-     temp1=temp1+1
-   else
-     total2=total2+1
-     temp2=temp2+1
-   endif
-enddo
-enddo
-
-!cout CYGNSS
-n=0
-do j = cyg_gridobs_js, cyg_gridobs_je, cyg_gridobs_int_x
-do i = cyg_gridobs_is, cyg_gridobs_ie, cyg_gridobs_int_x
-   if(landmask(i,j)==1) cycle
-   n=n+1
-   if(mod(n,2)==0) then  !make half of the observation valid 1s earlier
-     total1=total1+1
-     qscat1=qscat1+1
-   else
-     total2=total2+1
-     qscat2=qscat2+1
-   endif
-enddo
-enddo
 
 
 !write wrf output observations to the obs_3dvar format
@@ -228,7 +192,7 @@ write(11, fmt='(6(a,i7,a))') 'AMDAR =',amdar,', ','AIREP =',airep,', ','TAMDAR='
                              'PILOT =',pilot,', ','SATEM =',satem,', ','SATOB =',satob1,', '
 write(11, fmt='(6(a,i7,a))') 'GPSPW =',gpspw,', ','GPSZD =',gpszd,', ','GPSRF =',gpsrf,', ',&
                              'GPSEP =',gpsep,', ','SSMT1 =',ssmt1,', ','SSMT2 =',ssmt2,', '
-write(11, fmt='(5(a,i7,a))') 'TOVS  =',tovs, ', ','QSCAT =',qscat1,', ','PROFL =',profl,', ',&
+write(11, fmt='(5(a,i7,a))') 'TOVS  =',tovs, ', ','QSCAT =',qscat,', ','PROFL =',profl,', ',&
                              'AIRSR =',airsr,', ','OTHER =',other,', '
 
 write(12,fmt='(a,i7,a,f8.0,a)') 'TOTAL =', total2, ', MISS. =',-888888.,','
@@ -238,7 +202,7 @@ write(12, fmt='(6(a,i7,a))') 'AMDAR =',amdar,', ','AIREP =',airep,', ','TAMDAR='
                              'PILOT =',pilot,', ','SATEM =',satem,', ','SATOB =',satob2,', '
 write(12, fmt='(6(a,i7,a))') 'GPSPW =',gpspw,', ','GPSZD =',gpszd,', ','GPSRF =',gpsrf,', ',&
                              'GPSEP =',gpsep,', ','SSMT1 =',ssmt1,', ','SSMT2 =',ssmt2,', '
-write(12, fmt='(5(a,i7,a))') 'TOVS  =',tovs, ', ','QSCAT =',qscat2,', ','PROFL =',profl,', ',&
+write(12, fmt='(5(a,i7,a))') 'TOVS  =',tovs, ', ','QSCAT =',qscat,', ','PROFL =',profl,', ',&
                              'AIRSR =',airsr,', ','OTHER =',other,', '
 
 open(10,file=obs_3dvar_file,status='old',form='formatted',iostat=iost)
@@ -260,39 +224,46 @@ do n=1,total
    read(tstr,'(i14)') t1
    tstr=times(1:4)//times(6:7)//times(9:10)//times(12:13)//times(15:16)//times(18:19)
    read(tstr,'(i14)') t2
+!!!
+latitude = latitude + lat_dif
+longitude = longitude + lon_dif
+!!!
 
-   if ( platform(4:6)=='88 ' .or. platform(4:6)=='35 ') then
+   if ( platform(4:6)=='88 ') then ! .or. platform(4:6)=='35 ') then
      call latlon_to_ij(proj,latitude,longitude,obs_ii,obs_jj)
-     i1 = int( obs_ii )
-     j1 = int( obs_jj )
-     dx  = obs_ii-real(i1)
-     dxm = real(i1+1)-obs_ii
-     dy  = obs_jj-real(j1)
-     dym = real(j1+1)-obs_jj
-     mu1 = dym*(dx*mu(i1+1,j1  ) + dxm*mu(i1,j1  )) + dy*(dx*mu(i1+1,j1+1) + dxm*mu(i1,j1+1))
-     mub1 = dym*(dx*mub(i1+1,j1  ) + dxm*mub(i1,j1  )) + dy*(dx*mub(i1+1,j1+1) + dxm*mub(i1,j1+1))
-     qvt(1:kx) = dym*(dx*qall(i1+1,j1,1:kx) + dxm*qall(i1,j1,1:kx)) + dy*(dx*qall(i1+1,j1+1,1:kx) + dxm*qall(i1,j1+1,1:kx))
-     ptt(1:kx) = dym*(dx*pt(i1+1,j1,1:kx) + dxm*pt(i1,j1,1:kx)) + dy*(dx*pt(i1+1,j1+1,1:kx) + dxm*pt(i1,j1+1,1:kx))
-     zgt(1:kx+1) = dym*(dx*zg(i1+1,j1,1:kx+1) + dxm*zg(i1,j1,1:kx+1)) + dy*(dx*zg(i1+1,j1+1,1:kx+1) + dxm*zg(i1,j1+1,1:kx+1))
-     call eta_to_pres(znw0(1:kx+1), mu1+mub1, qvt(1:kx), zgt(1:kx+1), ptt(1:kx)+to, kx, pres(1:kx))
-!     if (platform(4:6)=='35 ' .or. platform(4:6)=='88 ' ) then  !screening
-!       if(slp(1).ne.-888888.) then !slp
+     if ( obs_ii > 2 .and. obs_ii < proj%nx-1 .and. obs_jj > 2 .and. obs_jj <proj%ny-1) then
+       i1 = int( obs_ii )
+       j1 = int( obs_jj )
+       dx  = obs_ii-real(i1)
+       dxm = real(i1+1)-obs_ii
+       dy  = obs_jj-real(j1)
+       dym = real(j1+1)-obs_jj
+       mu1 = dym*(dx*mu(i1+1,j1  ) + dxm*mu(i1,j1  )) + dy*(dx*mu(i1+1,j1+1) + dxm*mu(i1,j1+1))
+       mub1 = dym*(dx*mub(i1+1,j1  ) + dxm*mub(i1,j1  )) + dy*(dx*mub(i1+1,j1+1) + dxm*mub(i1,j1+1))
+       qvt(1:kx) = dym*(dx*qall(i1+1,j1,1:kx) + dxm*qall(i1,j1,1:kx)) + dy*(dx*qall(i1+1,j1+1,1:kx) + dxm*qall(i1,j1+1,1:kx))
+       ptt(1:kx) = dym*(dx*pt(i1+1,j1,1:kx) + dxm*pt(i1,j1,1:kx)) + dy*(dx*pt(i1+1,j1+1,1:kx) + dxm*pt(i1,j1+1,1:kx))
+       zgt(1:kx+1) = dym*(dx*zg(i1+1,j1,1:kx+1) + dxm*zg(i1,j1,1:kx+1)) + dy*(dx*zg(i1+1,j1+1,1:kx+1) + dxm*zg(i1,j1+1,1:kx+1))
+       call eta_to_pres(znw0(1:kx+1), mu1+mub1, qvt(1:kx), zgt(1:kx+1), ptt(1:kx)+to, kx, pres(1:kx))
+!       if (platform(4:6)=='35 ' .or. platform(4:6)=='88 ' ) then  !screening
+!         if(slp(1).ne.-888888.) then !slp
+!         endif
+!         if(pw(1).ne.-888888.) then !pw
+!         endif
 !       endif
-!       if(pw(1).ne.-888888.) then !pw
+!       if(t1.lt.t2) then
+         ounit=11
+!       else
+!         ounit=12
 !       endif
-!     endif
-     if(t1.lt.t2) then
-       ounit=11
-     else
-       ounit=12
+       write(ounit,fmt=info_fmt)platform,date,name,obs_level,latitude,longitude,elevation,id
+       write(ounit, fmt=srfc_fmt)slp(1),qcint(1),slp(3),pw(1),qcint(2),pw(3)
      endif
-     write(ounit,fmt=info_fmt)platform,date,name,obs_level,latitude,longitude,elevation,id
-     write(ounit, fmt=srfc_fmt)slp(1),qcint(1),slp(3),pw(1),qcint(2),pw(3)
    endif
 
    do k = 1, obs_level
      read(10, fmt=each_fmt)((obs_data(i,1),qcint(i),obs_data(i,3)),i=1,7)
-     if ( platform(4:6)=='88 ' .or. platform(4:6)=='35 ' ) then    !screening
+     if ( platform(4:6)=='88 ') then ! .or. platform(4:6)=='35 ' ) then    !screening
+      if ( obs_ii > 2 .and. obs_ii < proj%nx-1 .and. obs_jj > 2 .and. obs_jj <proj%ny-1) then
         call to_zk(obs_data(1,1), pres(1:kx), obs_kk, kx)
         if ( obs_kk .lt. 1. ) obs_kk = 1.
         k1  = int( obs_kk )
@@ -373,142 +344,12 @@ do n=1,total
           obs_data(:,1)=-888888.
         endif
         write(ounit, fmt=each_fmt)((obs_data(i,1),qcint(i),obs_data(i,3)),i=1,7)
+      endif
      endif
    enddo
 end do
 close(10)
 
-!ATOVS ideal soundings
-n=0
-do j = gridobs_js, gridobs_je, gridobs_int_x
-do i = gridobs_is, gridobs_ie, gridobs_int_x
-   n=n+1
-   if(mod(n,2)==0) then  !make half of the observation valid 1s earlier
-     dt='-1s'
-     tstr=times(1:4)//times(6:7)//times(9:10)//times(12:13)//times(15:16)//times(18:19) 
-     call advance_time(tstr,dt)
-     times1=tstr(1:4)//'-'//tstr(5:6)//'-'//tstr(7:8)//'_'//tstr(9:10)//':'//tstr(11:12)//':'//tstr(13:14)
-     ounit=11
-   else
-     times1=times
-     ounit=12
-   end if
-
-   call ij_to_latlon(proj,real(i),real(j),latitude,longitude)
-   write(ounit,fmt=info_fmt) 'FM-131 TOVS ',times1,'Synthetic sounding from truth ',k_levels,&
-                          latitude,longitude,-888888.,'IDEAL                            '
-   write(ounit,fmt=srfc_fmt)-888888.000,-88,200.00,-888888.000,-88,0.200
-   do k = gridobs_ks, gridobs_ke, gridobs_int_k
-     obs_data(:,1)=-888888.
-     qcint(:)=-88
-     obs_data(:,3)=0.0
-
-     !pres, height
-     obs_pres=p(i,j,k)+pb(i,j,k)
-     obs_data(1,1)=obs_pres
-     qcint(1)=0
-     obs_data(1,3)=100.0
-     obs_data(4,1)=0.5*(zg(i,j,k)+zg(i,j,k+1))/g
-     qcint(4)=0
-     obs_data(4,3)=z_error(obs_pres)
-
-     mean_qv=1000*sum(qv(:,:,k))/(ix*jx)
-
-!     !Wind
-!     gridu=0.5*(u(i,j,k)+u(i+1,j,k))
-!     gridv=0.5*(v(i,j,k)+v(i,j+1,k))
-!     call gridwind_to_truewind(longitude,proj,gridu,gridv,trueu,truev)
-!     qcint(2)=0
-!     qcint(3)=0
-!     obs_data(2,3)=spd_error(obs_pres)
-!     obs_data(3,3)=dir_error(obs_pres)
-!     call date_and_time(rdate, rtime, rzone, rvalues)
-!     trueu = trueu + obs_data(2,3)*gaussdev(sum(rvalues))
-!     truev = truev + obs_data(2,3)*gaussdev(sum(rvalues))
-!     call uv_to_dirspd(trueu,truev,obs_data(3,1),obs_data(2,1))
-
-     !T
-     qcint(5)=0
-     obs_data(5,3)=t_error(obs_pres)
-     obs_data(5,1)=theta_to_temp(pt(i,j,k)+to, obs_pres)
-     call date_and_time(rdate, rtime, rzone, rvalues)
-     obs_data(5,1) = obs_data(5,1) + obs_data(5,3)*gaussdev(sum(rvalues))
-
-     !TD, RH
-     if(obs_pres.ge.20000 .and. mod(k,2).eq.0) then
-       obs_temp=theta_to_temp(pt(i,j,k)+to, obs_pres)
-       obs_q=qv(i,j,k)+qr(i,j,k)+qc(i,j,k)
-
-       qcint(6)=0
-       obs_data(6,3)=td_error(obs_pres)
-       obs_data(6,1)=mixrat_to_tdew(obs_q, obs_pres)
-       call date_and_time(rdate, rtime, rzone, rvalues)
-       obs_data(6,1)=min(obs_data(6,1)+obs_data(6,3)*gaussdev(sum(rvalues)), obs_temp) !Td<=T
-
-       qcint(7)=0
-       !obs_data(7,1)=rel_humidity(obs_q,obs_temp,obs_pres)
-       !obs_data(7,3)=rh_error(obs_pres)
-       !call date_and_time(rdate, rtime, rzone, rvalues)
-       !obs_data(7,1)=obs_data(7,1)+obs_data(7,3)*gaussdev(sum(rvalues))
-       !if(obs_data(7,1)<0.) obs_data(7,1)=0.
-       !if(obs_data(7,1)>100.) obs_data(7,1)=100.
-       obs_data(7,1)=1000*qv(i,j,k)
-       obs_data(7,3)=mean_qv*qpc_error(obs_pres)/100
-       call date_and_time(rdate, rtime, rzone, rvalues)
-       obs_data(7,1)=obs_data(7,1)+obs_data(7,3)*gaussdev(sum(rvalues)) 
-
-     end if
-
-     write(ounit, fmt=each_fmt)((obs_data(m,1),qcint(m),obs_data(m,3)),m=1,7)
-   enddo
-enddo
-enddo
-
-!ideal CYGNSS surface wind speed
-n=0
-do j = cyg_gridobs_js, cyg_gridobs_je, cyg_gridobs_int_x
-do i = cyg_gridobs_is, cyg_gridobs_ie, cyg_gridobs_int_x
-   if(landmask(i,j)==1) cycle
-   n=n+1
-   if(mod(n,2)==0) then  !make half of the observation valid 1s earlier
-     dt='-1s'
-     tstr=times(1:4)//times(6:7)//times(9:10)//times(12:13)//times(15:16)//times(18:19) 
-     call advance_time(tstr,dt)
-     times1=tstr(1:4)//'-'//tstr(5:6)//'-'//tstr(7:8)//'_'//tstr(9:10)//':'//tstr(11:12)//':'//tstr(13:14)
-     ounit=11
-   else
-     times1=times
-     ounit=12
-   end if
-
-   call ij_to_latlon(proj,real(i),real(j),latitude,longitude)
-   write(ounit,fmt=info_fmt) 'FM-281 CYGNSS ',times1,'Synthetic sea surface wind from truth',1,&
-                          latitude,longitude,-888888.,'IDEAL                            '
-   write(ounit,fmt=srfc_fmt)-888888.000,-88,200.00,-888888.000,-88,0.200
-
-     obs_data(:,1)=-888888.
-     qcint(:)=-88
-     obs_data(:,3)=0.0
-
-     !surface pres, height
-     obs_pres=p(i,j,1)+pb(i,j,1)
-     obs_data(1,1)=obs_pres
-     qcint(1)=0
-     obs_data(1,3)=100.0
-
-     !sea surface wind
-     gridu=0.5*(u(i,j,1)+u(i+1,j,1))
-     gridv=0.5*(v(i,j,1)+v(i,j+1,1))
-     call gridwind_to_truewind(longitude,proj,gridu,gridv,trueu,truev)
-     call uv_to_dirspd(trueu,truev,dum,obs_data(2,1))
-     qcint(2)=0
-     obs_data(2,3)=2.0
-     call date_and_time(rdate, rtime, rzone, rvalues)
-     obs_data(2,1) = obs_data(2,1) + obs_data(2,3)*gaussdev(sum(rvalues))
-
-     write(ounit, fmt=each_fmt)((obs_data(m,1),qcint(m),obs_data(m,3)),m=1,7)
-enddo
-enddo
 
 close(11)
 close(12)

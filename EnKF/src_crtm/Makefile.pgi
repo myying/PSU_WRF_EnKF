@@ -1,0 +1,65 @@
+FC=mpif90
+FCFLAG=-fastsse -byteswapio -tp barcelona-64
+
+all: enkf.mpi replace_perturbationmean_by_initial.exe replace_geo_by_initial.exe replace_xfmean_with_gfs.exe enkf_gfs_hybrid_inflation.exe soairborne_to_3dvar.exe so_to_3dvar.exe ensemble_mean.exe replace_mean.exe
+
+clean:
+	rm -f *.o *.mod *.mpi *.exe
+
+mpi_module.o:
+	$(FC) -c $(FCFLAG) -Mfree mpi_module.f
+module_structure.o:
+	$(FC) -c $(FCFLAG) -Mfree module_structure.f
+module_netcdf.o:
+	$(FC) -c $(FCFLAG) -I${NETCDF}/include module_netcdf.f
+module_map_utils.o:
+	$(FC) -c $(FCFLAG) module_map_utils.f
+module_wrf_tools.o:
+	$(FC) -c $(FCFLAG) -Mfree module_wrf_tools.f
+module_radar.o:
+	$(FC) -c $(FCFLAG) -Mfree module_radar.f
+cal_roi.o:
+	$(FC) -c $(FCFLAG) -Mfree cal_roi.f
+hurricane_center.o:
+	$(FC) -c $(FCFLAG) -Mfree hurricane_center.f
+obs_io.o:
+	$(FC) -c $(FCFLAG) -Mfree obs_io.f
+xb.o:
+	$(FC) -c $(FCFLAG) -Mfree xb.f
+sub_enkf_util.o:
+	$(FC) -c $(FCFLAG) -Mfree sub_enkf_util.f
+enkf.o:
+	$(FC) -c $(FCFLAG) -Mfree enkf.f
+main.o:
+	$(FC) -c $(FCFLAG) -Mfree main.f
+ensemble_mean.o:
+	$(FC) -c $(FCFLAG) -Mfree ensemble_mean.f
+replace_mean.o:
+	$(FC) -c $(FCFLAG) -Mfree replace_mean.f
+
+enkf.mpi: module_structure.o mpi_module.o module_netcdf.o module_map_utils.o module_wrf_tools.o module_radar.o cal_roi.o hurricane_center.o obs_io.o xb.o sub_enkf_util.o enkf.o
+	$(FC) -o enkf.mpi $(FCFLAG) -Mfree -I$(NETCDF)/include  module_structure.o mpi_module.o module_netcdf.o module_map_utils.o module_wrf_tools.o module_radar.o cal_roi.o hurricane_center.o obs_io.o xb.o sub_enkf_util.o enkf.o -L$(NETCDF)/lib -lnetcdf main.f
+
+replace_perturbationmean_by_initial.exe: module_netcdf.o
+	$(FC) -o replace_perturbationmean_by_initial.exe $(FCFLAG) -Mfree -I$(NETCDF)/include module_netcdf.o -L$(NETCDF)/lib -lnetcdf replace_perturbationmean_by_initial.f
+
+replace_geo_by_initial.exe: module_netcdf.o
+	$(FC) -o replace_geo_by_initial.exe $(FCFLAG) -Mfree -I$(NETCDF)/include module_netcdf.o -L$(NETCDF)/lib -lnetcdf replace_geo_by_initial.f
+
+replace_xfmean_with_gfs.exe: module_structure.o module_netcdf.o module_wrf_tools.o module_map_utils.o
+	$(FC) -o replace_xfmean_with_gfs.exe $(FCFLAG) -Mfree -I$(NETCDF)/include module_structure.o module_netcdf.o module_wrf_tools.o module_map_utils.o -L$(NETCDF)/lib -lnetcdf replace_xfmean_with_gfs.f
+
+enkf_gfs_hybrid_inflation.exe: module_structure.o module_netcdf.o module_wrf_tools.o module_map_utils.o
+	$(FC) -o enkf_gfs_hybrid_inflation.exe $(FCFLAG) -Mfree -I$(NETCDF)/include module_structure.o module_netcdf.o module_wrf_tools.o module_map_utils.o -L$(NETCDF)/lib -lnetcdf enkf_gfs_hybrid_inflation.f
+
+soairborne_to_3dvar.exe: module_structure.o mpi_module.o module_netcdf.o module_map_utils.o module_wrf_tools.o module_radar.o cal_roi.o hurricane_center.o obs_io.o xb.o sub_enkf_util.o
+	$(FC) -o soairborne_to_3dvar.exe $(FCFLAG) -Mfree -I$(NETCDF)/include module_structure.o mpi_module.o module_netcdf.o module_map_utils.o module_wrf_tools.o module_radar.o cal_roi.o hurricane_center.o obs_io.o xb.o sub_enkf_util.o -L$(NETCDF)/lib -lnetcdf soairborne_to_3dvar.f
+
+so_to_3dvar.exe: module_structure.o mpi_module.o module_netcdf.o module_wrf_tools.o module_map_utils.o module_radar.o cal_roi.o hurricane_center.o obs_io.o xb.o sub_enkf_util.o
+	$(FC) -o so_to_3dvar.exe $(FCFLAG) -Mfree -I$(NETCDF)/include module_structure.o mpi_module.o module_netcdf.o module_map_utils.o module_wrf_tools.o module_radar.o cal_roi.o hurricane_center.o obs_io.o xb.o sub_enkf_util.o -L$(NETCDF)/lib -lnetcdf so_to_3dvar.f
+
+ensemble_mean.exe: module_structure.o mpi_module.o module_netcdf.o module_map_utils.o module_wrf_tools.o sub_enkf_util.o
+	$(FC) -o ensemble_mean.exe $(FCFLAG) -Mfree -I$(NETCDF)/include module_structure.o mpi_module.o module_netcdf.o module_map_utils.o module_wrf_tools.o sub_enkf_util.o -L$(NETCDF)/lib -lnetcdf ensemble_mean.f
+
+replace_mean.exe: module_netcdf.o
+	$(FC) -o replace_mean.exe $(FCFLAG) -Mfree -I$(NETCDF)/include module_netcdf.o -L$(NETCDF)/lib -lnetcdf replace_mean.f

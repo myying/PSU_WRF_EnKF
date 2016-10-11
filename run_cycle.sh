@@ -1,27 +1,18 @@
 #!/bin/bash
-######header for jet######
-##PBS -A hfip-psu
-##PBS -N EnKF_UVTQ
-##PBS -l walltime=8:00:00
-##PBS -q batch
-##PBS -l partition=sjet:vjet
-##PBS -l nodes=16:ppn=16
-##PBS -j oe
-##PBS -o ./log
-##PBS -d .
-
-####header for stampede######
-#SBATCH -J AAC
-#SBATCH -o ./log/%j
-#SBATCH -n 256
-##SBATCH -p normal
-##SBATCH -t 48:00:00
-#SBATCH -p development
-#SBATCH -t 2:00:00
+#BSUB -P UPSU0001
+#BSUB -J run_cycle
+#BSUB -W 12:00
+#BSUB -q regular
+#BSUB -n 256
+#BSUB -R "span[ptile=16]"
+#BSUB -o log/%J.out
+#BSUB -e log/%J.err
+source /glade/u/apps/opt/lmod/4.2.1/init/bash
+source ~/.bashrc_yy
 
 #load configuration files, functions, parameters
 cd $WORK/PSU_WRF_EnKF
-export CONFIG_FILE=$WORK/PSU_WRF_EnKF/config/enkf_osse/AtovsAmvCygnss
+export CONFIG_FILE=$WORK/PSU_WRF_EnKF/config/EnKF_OSSE/control #AtovsAmvMet7Cygnss
 . $CONFIG_FILE
 . util.sh
 
@@ -34,6 +25,9 @@ if [ $JOB_SUBMIT_MODE == 1 ]; then
   fi
   if [[ $HOSTTYPE == "jet" ]]; then
     export total_ntasks=$PBS_NP
+  fi
+  if [[ $HOSTTYPE == "yellowstone" ]]; then
+    export total_ntasks=$LSB_MAX_NUM_PROCESSORS
   fi
 else
   export total_ntasks=9999999

@@ -21,11 +21,13 @@ else
   echo "updatevar    = 'QCLOUD    ', 'QRAIN     ', 'QSNOW     ', 'QICE      ', 'QGRAUP    ',"
 fi
 
+buffer=4 #buffer=0 if update_bc, buffer=spec_bdy_width-1 if bc is fixed as in perfect model case
+
 cat << EOF
-update_is    = 1,
-update_ie    = `echo ${E_WE[$domain_id-1]}-1 |bc`,
-update_js    = 1,
-update_je    = `echo ${E_SN[$domain_id-1]}-1 |bc`,
+update_is    = `echo 1+$buffer |bc`,
+update_ie    = `echo ${E_WE[$domain_id-1]}-$buffer |bc`,
+update_js    = `echo 1+$buffer |bc`,
+update_je    = `echo ${E_SN[$domain_id-1]}-$buffer |bc`,
 update_ks    = 1,
 update_ke    = `echo ${E_VERT[$domain_id-1]}-1 |bc`,
 inflate      = $INFLATION_COEF,

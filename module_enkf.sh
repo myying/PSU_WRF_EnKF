@@ -31,6 +31,7 @@ for n in $domlist; do
   done
   wait
 
+  ln -fs ../../../../../truth/wrfout_${dm}_`wrf_time_string $DATE` fort.70010
   cp -L fort.80011 fort.`expr 80011 + $NUM_ENS`
   cp -L fort.80011 fort.`expr 90011 + $NUM_ENS`
   ln -fs $ENKF_DIR/enkf.mpi .
@@ -46,7 +47,7 @@ for n in $domlist; do
 
 #radiance obs
   ln -fs $WORK/code/CRTM/crtm_wrf/coefficients
-  ln -fs $WORK/DYNAMO/enkf_osse/Met7/Tb_d01_${DATE}_so radiance_${DATE}_so
+  ln -fs $OBS_DIR/Met7/Tb_d01_${DATE}_so radiance_${DATE}_so
 
 #  #link truth for OSSE
 #  ln -fs $WORK/data/DYNAMO/3km_run_9km/wrfout_d01_`wrf_time_string $DATE` fort.80010
@@ -65,6 +66,7 @@ for n in $domlist; do
   if [ -f $dm/${DATE}.finish_flag ]; then continue; fi
   cd $dm
   $SCRIPT_DIR/job_submit.sh $enkf_ntasks $((tid*$enkf_ntasks)) $enkf_ppn ./enkf.mpi >& enkf.log &
+#  mpirun.lsf ./enkf.mpi >& enkf.log
   tid=$((tid+1))
   if [[ $tid == $nt ]]; then
     tid=0

@@ -87,9 +87,6 @@ if [ $use_for == "wrfvar" ]; then
 else
   echo time_step  = `echo "${TIME_STEP[0]}/$time_step_ratio" |bc`,
 fi
-echo time_step_fract_num = 0,
-echo time_step_fract_den = 1,
-echo target_cfl = 0.6,
 
 echo e_we       = $(for i in $domlist; do printf `echo "(${E_WE[$i-1]} -1)/$thin_factor + 1" |bc`, ; done)
 echo e_sn       = $(for i in $domlist; do printf `echo "(${E_SN[$i-1]} -1)/$thin_factor + 1" |bc`, ; done)
@@ -178,8 +175,9 @@ cudt               = $(for i in $domlist; do printf ${CUDT[$i-1]}, ; done)
 EOF
 
 cat << EOF
-sst_update         = ${SST_UPDATE:-1},
-sst_skin           = ${SST_SKIN:-1},
+mp_zero_out        = 2,
+sst_update         = ${SST_UPDATE:-0},
+sst_skin           = ${SST_SKIN:-0},
 
 EOF
 

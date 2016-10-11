@@ -16,7 +16,7 @@ echo "  Perturbing IC using WRF 3DVar..."
 #Run randomcv wrfvar to generate 100 random perturbations
 tid=0
 nt=$((total_ntasks/$var3d_ntasks))
-nm=$NUM_ENS
+nm=`max $NUM_ENS 100`
 
 for i in `seq 1 $nm`; do 
   id=`expr $i + 1000 |cut -c2-`
@@ -28,7 +28,7 @@ for i in `seq 1 $nm`; do
 
   ln -fs $WRFDA_DIR/run/LANDUSE.TBL .
   ln -fs $WRFDA_DIR/var/build/da_wrfvar.exe .
-  cp $WORK_DIR/fc/$DATE_START/wrfinput_d?? .
+  ln -fs $WORK_DIR/fc/$DATE_START/wrfinput_d?? .
   ln -fs wrfinput_d01 fg
   if [[ $CV_OPTIONS == 3 ]]; then
     ln -fs $WRFDA_DIR/var/run/be.dat.cv3 be.dat
@@ -44,7 +44,8 @@ for i in `seq 1 $nm`; do
   export run_minutes=0
   $SCRIPT_DIR/namelist_wrf.sh wrfvar 1 >> namelist.input
 
-  $SCRIPT_DIR/job_submit.sh $var3d_ntasks $((tid*$var3d_ntasks)) $HOSTPPN ./da_wrfvar.exe >& da_wrfvar.log &
+  #$SCRIPT_DIR/job_submit.sh $var3d_ntasks $((tid*$var3d_ntasks)) $HOSTPPN ./da_wrfvar.exe >& da_wrfvar.log &
+  $SCRIPT_DIR/job_submit.sh 64 0 4 ./da_wrfvar.exe >& da_wrfvar.log &
 
   tid=$((tid+1))
   if [[ $tid == $nt ]]; then
@@ -56,29 +57,31 @@ for i in `seq 1 $nm`; do
 done
 wait
 
-for NE in `seq 1 $NUM_ENS`; do
+for NE in `seq 1 $nm`; do
   id=`expr $NE + 1000 |cut -c2-`
   watch_log $id/rsl.error.0000 successfully 1 $rundir
   mv $id/wrfvar_output $WORK_DIR/fc/$DATE/wrfinput_d01_$id
+  rm $id/gts* $id/rej* $id/unpert*
 done
 
+
 #recenter ensemble to first guess
-if [[ ! -d replace_mean ]]; then mkdir -p replace_mean; fi
-cd replace_mean
-  for NE in `seq 1 $NUM_ENS`; do
-    id=`expr $NE + 1000 |cut -c2-`
-    ln -fs $WORK_DIR/fc/$DATE/wrfinput_d01_$id fort.`expr 80010 + $NE`
-    cp fort.`expr 80010 + $NE` fort.`expr 90010 + $NE`
-  done
-  ln -fs $WORK_DIR/fc/$DATE_START/wrfinput_d01 fort.70010
-  ln -fs $ENKF_DIR/replace_mean.exe .
-  ./replace_mean.exe $NUM_ENS >& replace_mean.log
-  watch_log replace_mean.log Successful 1 $rundir
-  for NE in `seq 1 $NUM_ENS`; do
-    id=`expr $NE + 1000 |cut -c2-`
-    mv fort.`expr 90010 + $NE` $WORK_DIR/fc/$DATE/wrfinput_d01_$id
-  done
-cd ..
+#if [[ ! -d replace_mean ]]; then mkdir -p replace_mean; fi
+#cd replace_mean
+#  for NE in `seq 1 $NUM_ENS`; do
+#    id=`expr $NE + 1000 |cut -c2-`
+#    ln -fs $WORK_DIR/fc/$DATE/wrfinput_d01_$id fort.`expr 80010 + $NE`
+#    cp fort.`expr 80010 + $NE` fort.`expr 90010 + $NE`
+#  done
+#  ln -fs $WORK_DIR/fc/$DATE_START/wrfinput_d01 fort.70010
+#  ln -fs $ENKF_DIR/replace_mean.exe .
+#  ./replace_mean.exe $NUM_ENS >& replace_mean.log
+#  watch_log replace_mean.log Successful 1 $rundir
+#  for NE in `seq 1 $NUM_ENS`; do
+#    id=`expr $NE + 1000 |cut -c2-`
+#    mv fort.`expr 90010 + $NE` $WORK_DIR/fc/$DATE/wrfinput_d01_$id
+#  done
+#cd ..
 
 ###
 #for NE in `seq 1 $NUM_ENS`; do

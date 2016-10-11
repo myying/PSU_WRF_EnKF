@@ -83,8 +83,8 @@ begin
    opt@REF_LON           = $REF_LON
    opt@KNOWNI            = `echo "${E_WE[0]}/2" |bc -l`
    opt@KNOWNJ            = `echo "${E_SN[0]}/2" |bc -l`
-   opt@DX                = ${DX[$MAX_DOM-2]}
-   opt@DY                = ${DY[$MAX_DOM-2]}
+   opt@DX                = ${DX[0]}
+   opt@DY                = ${DY[0]}
    loc=wrf_ll_to_ij(${nlon[$i]},${nlat[$i]},opt)
    asciiwrite("ij",round(loc,3))
 end

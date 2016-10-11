@@ -1,7 +1,7 @@
 FC=mpif90
 FCFLAG=-f90=ifort -i4 -w -ftz -align all -fno-alias -fp-model precise -assume realloc_lhs -convert big_endian -traceback
 
-all: enkf.mpi replace_perturbationmean_by_initial.exe replace_geo_by_initial.exe replace_xfmean_with_gfs.exe enkf_gfs_hybrid_inflation.exe soairborne_to_3dvar.exe so_to_3dvar.exe ensemble_mean.exe replace_mean.exe replace_mean_outside_site.exe
+all: enkf.mpi replace_perturbationmean_by_initial.exe replace_geo_by_initial.exe replace_xfmean_with_gfs.exe enkf_gfs_hybrid_inflation.exe soairborne_to_3dvar.exe so_to_3dvar.exe ensemble_mean.exe replace_mean.exe replace_mean_outside_site.exe wrf2obs3dvar
 
 clean:
 	rm -f *.o *.mod *.mpi *.exe
