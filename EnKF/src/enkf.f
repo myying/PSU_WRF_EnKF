@@ -128,10 +128,10 @@ character (len=80), intent(in) :: times
 ! ngx, ngz = roi in horizontall and vertical
 ! var,cov = error variance,covariance of something
 ! y_hxm = y-hxm (the innovation vector, mean), hxa is the perturbation (of ensemble members).
-real      :: fac,d,alpha,var,cov,y_hxm,corr_coef,d_ogn
+real      :: fac,d,alpha,beta,var,cov,y_hxm,corr_coef,d_ogn
 real      :: var_a,var_b,m_d2,m_var_a,m_var_b
 real,dimension(numbers_en) :: hxa
-integer   :: ngx, ngz
+integer   :: ngx, ngz, kzdamp
 integer   :: i, j, k, m, n, iob, iiob, nob, ie, iunit,ounit,ii, jj, kk, is, it, ig, iv, i1,j1, itot
 integer   :: ist,ied,jst,jed,kst,ked, istart,iend,jstart,jend, uist,uied,ujst,ujed
 integer   :: sist,sied,sjst,sjed, sistart,siend,sjstart,sjend,sis,sie,sjs,sje
@@ -151,9 +151,9 @@ real, dimension(3)      :: center_xb
 ! ya=Hxa,Hxm: the state vector translated to observation space. ya(number of obs, number of members + mean)
 ! km        : kalman gain in updating x
 real, dimension(ni,nj,nk,nv,nm), intent(inout) :: x
-real, dimension(ni,nj,nk,nv), intent(inout)    :: xm 
+real, dimension(ni,nj,nk,nv), intent(inout)    :: xm
 real, dimension(ni,nj,nk,nv,nm)                :: xf
-real, dimension(ni,nj,nk,nv)                   :: x_t, std_x,std_xf
+real, dimension(ni,nj,nk,nv)                   :: x_t, std_x,std_xf, xmf
 real, dimension(3,3,nk,nv,nm,nicpu*njcpu) :: xobsend, xob
 real, dimension(3,3,nk,nv) :: tmp, tmpsend
 real, dimension(obs%num,numbers_en+1) :: ya, yasend, yf
@@ -354,6 +354,7 @@ do n = 1, nm
    if ( ie<=numbers_en+1 ) x(:,:,:,:,n)=inflate*(x(:,:,:,:,n)-xm)
 enddo
 xf=x
+xmf=xm
 
 !----------------------------------------------------------------------------------------
 ! III. assimilate obs
@@ -894,6 +895,21 @@ endif !!======================================================================
 
 
 if ( my_proc_id==0 ) write(*,*)'Number of assimilated obs =',assimilated_obs_num
+
+ !!!! removing analysis increment near model top - Yue Ying 2016
+kzdamp=10 !!!number of damping layers from model top: check zdamp 
+if ( my_proc_id==0 ) write(*,*) 'removing analysis increment near model top'
+do n = 1, nm
+   ie = (n-1)*nmcpu+gid+1
+   do k=0,kzdamp
+      beta=(cos((real(k)/real(kzdamp))*4*atan(1.0)/2))**2  !beta=1 at top
+      if( ie<=numbers_en ) then
+        x(:,:,nk-k,:,n) = (1-beta)*x(:,:,nk-k,:,n) + beta*xf(:,:,nk-k,:,n)
+      end if
+      xm(:,:,nk-k,:) = (1-beta)*xm(:,:,nk-k,:) + beta*xmf(:,:,nk-k,:)
+   end do
+enddo
+
 
 !Add the mean back to the analysis field
 if ( my_proc_id==0 ) write(*,*)'Add the mean back to the analysis field...'
