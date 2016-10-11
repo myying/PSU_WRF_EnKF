@@ -8,7 +8,7 @@ dx=`echo ${DX[$domain_id-1]}/1000 |bc -l`
 ##  the radar data is only assimilated for d03
 if [[ $domain_id != 3 ]]; then USE_RADAR_RV=false; fi
 
-buffer=4 #buffer=0 if update bc; buffer=4 if bc is fixed (perfect model)
+buffer=4 #buffer=0 if update bc; buffer=spec_bdy_width-1 if bc is fixed (perfect model)
 
 cat << EOF
 &enkf_parameter
@@ -16,9 +16,9 @@ numbers_en   = $NUM_ENS,
 expername    = '$EXP_NAME',  
 enkfvar      = 'U         ', 'V         ', 'W         ', 'T         ', 'QVAPOR    ', 'QCLOUD    ', 'QRAIN     ', 'PH        ', 'MU        ', 'PSFC      ', 'P         ', 'PHB       ', 'PB        ', 'MUB       ',
 updatevar    = 'U         ', 'V         ', 'W         ', 'T         ', 'QVAPOR    ', 'QCLOUD    ', 'QRAIN     ', 'PH        ', 'MU        ', 'PSFC      ', 'P         ',
-update_is    = 1+$buffer,
+update_is    = `echo 1+$buffer |bc`,
 update_ie    = `echo ${E_WE[$domain_id-1]}-1-$buffer |bc`,
-update_js    = 1+$buffer,
+update_js    = `echo 1+$buffer |bc`,
 update_je    = `echo ${E_SN[$domain_id-1]}-1-$buffer |bc`,
 update_ks    = 1,
 update_ke    = `echo ${E_VERT[$domain_id-1]}-1 |bc`,
