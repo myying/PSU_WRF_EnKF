@@ -133,6 +133,7 @@ for n in $domlist; do
 	done
 	cp fort.`expr 90011 + $NUM_ENS` $WORK_DIR/fc/$DATE/wrfinput_${dm}_mean
 	cp fort.`expr 80011 + $NUM_ENS` $WORK_DIR/fc/$PREVDATE/wrfinput_${dm}_`wrf_time_string $DATE`_mean
+  cp fort.10000 $WORK_DIR/obs/$DATE/assimilated_obs_$dm
   cd ..
 done
 
