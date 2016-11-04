@@ -32,11 +32,11 @@ for n in $domlist; do
   ln -fs $ENKF_DIR/enkf.mpi .
   ln -fs $WRF_DIR/run/LANDUSE.TBL .
 
-#  #link observations
-#  #LITTLE_R format from obsproc
+  #link observations
+  #LITTLE_R format from obsproc
   ln -fs $WORK_DIR/obs/$DATE/obs_gts_`wrf_time_string $DATE`.3DVAR obs_3dvar_${DATE}00
-#  #airborne radar superobs
-#  ln -fs $DATA_DIR/so/${DATE}_all.so_ass airborne_${DATE}_so
+  #airborne radar superobs
+  ln -fs $DATA_DIR/so/${DATE}_all.so_ass airborne_${DATE}_so
 
   #link truth for OSSE
   # ln -fs $WORK/data/DYNAMO/3km_run_9km/wrfout_d01_`wrf_time_string $DATE` fort.80010
