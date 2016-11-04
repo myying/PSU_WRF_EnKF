@@ -14,7 +14,7 @@ ln -fs $WRFDA_DIR/var/obsproc/obsproc.exe .
 ln -fs $WRFDA_DIR/var/obsproc/obserr.txt .
 echo > obs.raw
 
-##### include NCAR_LITTLE_R (3-hourly) #####
+##### include NCAR_LITTLE_R (6-hourly) #####
 if $INCLUDE_LITTLE_R; then
   rm -f datelist
   time_lag=0
