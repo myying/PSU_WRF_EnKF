@@ -112,8 +112,8 @@ for r in 1 3; do
       dm=d`expr $n + 100 |cut -c2-`
       ln -fs ../../../../fc/$DATE/wrfinput_${dm}_$id wrfinput_$dm
     done
-#    ln -fs ../../../../fc/wrfbdy_d01_$id wrfbdy_d01
-    ln -fs ../../../../rc/$DATE_START/wrfbdy_d01 wrfbdy_d01
+    ln -fs ../../../../fc/wrfbdy_d01_$id wrfbdy_d01
+#    ln -fs ../../../../rc/$DATE_START/wrfbdy_d01 wrfbdy_d01
 
     if [ $DATE -gt $DATE_START ]; then
       $SCRIPT_DIR/multi_physics_set.sh $id >& multi_physics_set.log
