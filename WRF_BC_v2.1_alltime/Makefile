@@ -32,7 +32,7 @@ make_rules:
 		echo "FCFLAGS	= -C -free -O2 -fpe0 -convert big_endian -pg -g1" >> compiler_macros	; \
 		echo "LDFLAGS	= -O4 -pg"			>> compiler_macros	; \
 		echo "FPPFLAG	= -DDEC -I/usr/local/netcdf/include -I./"			>> compiler_macros	; \
-		echo "LIBS	= -L/usr/local/netcdf/lib -lnetcdf"	>> compiler_macros	; \
+		echo "LIBS	= -L/usr/local/netcdf/lib -lnetcdf -lnetcdff"	>> compiler_macros	; \
 	else grep AIX .tmpfile	 							; \
 	if [ $$? = 0 ] ; then echo "Compiling for IBM"						; \
 		echo "CPP	= /usr/lib/cpp"			>  compiler_macros	; \
@@ -41,7 +41,7 @@ make_rules:
 		echo "FCFLAGS	= -qlanglvl=90pure -O3 -qarch=auto -qnosave -qmaxmem=-1 -Q"	>> compiler_macros	; \
 		echo "LDFLAGS	= -O2" 				>> compiler_macros	; \
 		echo "FPPFLAG	= -DIBM -I/usr/local/include -I."	>> compiler_macros	; \
-		echo "LIBS	= -L/usr/local/lib32/r4i4 -lnetcdf"	>> compiler_macros	; \
+		echo "LIBS	= -L/usr/local/lib32/r4i4 -lnetcdf -lnetcdff"	>> compiler_macros	; \
 	else grep Darwin .tmpfile	 							; \
 	if [ $$? = 0 ] ; then echo "Compiling for Mac OS X"						; \
 		echo "CPP	= /usr/bin/cpp"			>  compiler_macros	; \
@@ -50,7 +50,7 @@ make_rules:
 		echo "FCFLAGS	= -qlanglvl=90pure -O3 -qarch=auto -qnosave -qmaxmem=-1 -Q"	>> compiler_macros	; \
 		echo "LDFLAGS	= -O2" 				>> compiler_macros	; \
 		echo "FPPFLAG	= -DMAC -I/usr/local/netcdf-3.5.1-xlf/include -I."	>> compiler_macros	; \
-		echo "LIBS	= -L/usr/local/netcdf-3.5.1-xlf/lib -lnetcdf"	>> compiler_macros	; \
+		echo "LIBS	= -L/usr/local/netcdf-3.5.1-xlf/lib -lnetcdf -lnetcdff"	>> compiler_macros	; \
 	else grep Linux .tmpfile 							; \
 	if [ $$? = 0 ] ; then echo "Compiling for Linux"				; \
 		echo "CPP	= /lib/cpp"			>  compiler_macros	; \
@@ -59,7 +59,7 @@ make_rules:
 		echo "FCFLAGS	= -FR -convert big_endian"	>> compiler_macros	; \
 		echo "LDFLAGS	= " 				>> compiler_macros	; \
 		echo "FPPFLAG	= -DLINUX -I$(NETCDF)/include -I."	>> compiler_macros	; \
-		echo "LIBS	= -L$(NETCDF)/lib -lnetcdf -lnetcdf"	>> compiler_macros	; \
+		echo "LIBS	= -L$(NETCDF)/lib -lnetcdf -lnetcdff"	>> compiler_macros	; \
 	else echo "Do not know how to compile for the `cat .tmpfile` machine." 		; \
 	fi ; \
 	fi ; \
