@@ -103,6 +103,7 @@ if ( .not. use_ideal_obs ) then
          if (raw%gts%t(n,j,1).gt.0. .and. raw%gts%t(n,j,1).lt.350. ) iobs = iobs + 1
          if (raw%gts%td(n,j,1).gt.0. .and. raw%gts%td(n,j,1).lt.350. .or.    &
              raw%gts%rh(n,j,1).gt.0. .and. raw%gts%rh(n,j,1).le.100. ) iobs = iobs + 1
+         if (raw%gts%pw(n,1) .gt. 0.1 .and. raw%gts%pw(n,1) .lt. 100.0) iobs=iobs+1
       enddo
    enddo
 else
