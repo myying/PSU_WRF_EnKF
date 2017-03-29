@@ -447,8 +447,13 @@ t0=MPI_Wtime()
    ied = min( update_ie, int(obs%position(iob,1))+ngx ) 
    jst = max( update_js, int(obs%position(iob,2))-ngx ) 
    jed = min( update_je, int(obs%position(iob,2))+ngx ) 
-   kst = max( update_ks, int(obs%position(iob,3))-ngz ) 
-   ked = min( update_ke, int(obs%position(iob,3))+ngz ) 
+   if ( obstype=='Radiance  ' ) then
+      kst = update_ks
+      ked = update_ke
+   else
+      kst = max( update_ks, int(obs%position(iob,3))-ngz )
+      ked = min( update_ke, int(obs%position(iob,3))+ngz )
+   endif
    call wrf_var_dimension ( wrf_file, varname, ix, jx, kx, ii, jj, kk )
    if ( kk == 1 ) then
      kst  = 1
@@ -588,8 +593,13 @@ t0=MPI_Wtime()
    do k = kst,ked
    do j = ujst,ujed
    do i = uist,uied
-     call corr(real(i-obs%position(iob,1)),real(j-obs%position(iob,2)),real(k-obs%position(iob,3)),obs%roi(iob,1),obs%roi(iob,2),corr_coef)
-     if ( obstype == 'longtitude' .or. obstype == 'latitude  ' ) corr_coef = 1.0
+     if ( obstype == 'longtitude' .or. obstype == 'latitude  ' ) then
+        corr_coef = 1.0
+     elseif (  obstype=='Radiance  ' ) then
+        call corr(real(i-obs%position(iob,1)),real(j-obs%position(iob,2)),0.,ngx,ngz,corr_coef)
+     else
+        call corr(real(i-obs%position(iob,1)),real(j-obs%position(iob,2)),real(k-obs%position(iob,3)),ngx,ngz,corr_coef)
+     endif
      km(i-uist+1,j-ujst+1,k-kst+1) = km(i-uist+1,j-ujst+1,k-kst+1) * corr_coef
    enddo
    enddo
@@ -748,16 +758,26 @@ enddo update_x_var
    ied = min( update_ie, int(obs%position(iob,1))+ngx )
    jst = max( update_js, int(obs%position(iob,2))-ngx )
    jed = min( update_je, int(obs%position(iob,2))+ngx )
-   kst = max( update_ks, int(obs%position(iob,3))-ngz )
-   ked = min( update_ke, int(obs%position(iob,3))+ngz )
+   if ( obstype=='Radiance  ' ) then
+      kst = update_ks
+      ked = update_ke
+   else
+      kst = max( update_ks, int(obs%position(iob,3))-ngz )
+      ked = min( update_ke, int(obs%position(iob,3))+ngz )
+   endif
    update_y_cycle : do iiob=1,obs%num
 ! skip those ya outside update zone
       if ( obs%position(iiob,1)<ist .or. obs%position(iiob,1)>ied .or. &
            obs%position(iiob,2)<jst .or. obs%position(iiob,2)>jed .or. & 
            obs%position(iiob,3)<kst .or. obs%position(iiob,3)>ked ) cycle update_y_cycle
 
-      call corr(real(obs%position(iiob,1)-obs%position(iob,1)), real(obs%position(iiob,2)-obs%position(iob,2)), &
-                real(obs%position(iiob,3)-obs%position(iob,3)), obs%roi(iob,1), obs%roi(iob,2), corr_coef)
+      if ( obstype=='Radiance  ' ) then
+         call corr(real(obs%position(iiob,1)-obs%position(iob,1)), real(obs%position(iiob,2)-obs%position(iob,2)), &
+                   0., obs%roi(iob,1), obs%roi(iob,2), corr_coef)
+      else
+         call corr(real(obs%position(iiob,1)-obs%position(iob,1)), real(obs%position(iiob,2)-obs%position(iob,2)), &
+                   real(obs%position(iiob,3)-obs%position(iob,3)), obs%roi(iob,1), obs%roi(iob,2), corr_coef)
+      endif
       obstype = obs%type(iiob)
       var=0.
       cov=0.
