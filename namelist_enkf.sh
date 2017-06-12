@@ -18,7 +18,8 @@ EOF
 if [ $minute_off == 0 ] || [ $minute_off == 180 ]; then
   echo "updatevar    = 'U         ', 'V         ', 'W         ', 'T         ', 'QVAPOR    ', 'QCLOUD    ', 'QRAIN     ', 'QSNOW     ', 'QICE      ', 'QGRAUP    ', 'PH        ', 'MU        ', 'PSFC      ', 'P         ',"
 else
-  echo "updatevar    = 'QCLOUD    ', 'QRAIN     ', 'QSNOW     ', 'QICE      ', 'QGRAUP    ',"
+  echo "updatevar    = 'U         ', 'V         ', 'W         ', 'T         ', 'QVAPOR    ', 'QCLOUD    ', 'QRAIN     ', 'QSNOW     ', 'QICE      ', 'QGRAUP    ', 'PH        ', 'MU        ', 'PSFC      ', 'P         ',"
+	#echo "updatevar    = 'QCLOUD    ', 'QRAIN     ', 'QSNOW     ', 'QICE      ', 'QGRAUP    ',"
 fi
 
 buffer=4 #buffer=0 if update_bc, buffer=spec_bdy_width-1 if bc is fixed as in perfect model case
