@@ -8,11 +8,11 @@
 #BSUB -o log/%J.out
 #BSUB -e log/%J.err
 source /glade/u/apps/opt/lmod/4.2.1/init/bash
-source ~/.bashrc_yy
+source ~/.bashrc
 
 #load configuration files, functions, parameters
 cd $WORK/PSU_WRF_EnKF
-export CONFIG_FILE=$WORK/PSU_WRF_EnKF/config/EnKF_OSSE/control #AtovsAmvMet7Cygnss
+export CONFIG_FILE=$WORK/PSU_WRF_EnKF/config/EnKF_OSSE/AtovsAmv_forecast/201110200000
 . $CONFIG_FILE
 . util.sh
 
@@ -73,13 +73,11 @@ while [[ $NEXTDATE -le $DATE_CYCLE_END ]]; do  #CYCLE LOOP
   # ICBC
   $SCRIPT_DIR/module_icbc.sh &
   # Ensemble initialization and forecast
-  if $RUN_ENKF; then
-    if [ $DATE == $DATE_START ]; then
-      $SCRIPT_DIR/module_perturb_ic.sh &
-    fi
-    if [ $NEXTDATE -le $DATE_CYCLE_END ]; then
-      $SCRIPT_DIR/module_wrf_ens.sh &
-    fi
+  if [ $DATE == $DATE_START ]; then
+    $SCRIPT_DIR/module_perturb_ic.sh &
+  fi
+  if [ $NEXTDATE -le $DATE_CYCLE_END ]; then
+    $SCRIPT_DIR/module_wrf_ens.sh &
   fi
   # First deterministic run for 4DVar
   if $RUN_4DVAR && ! $RUN_ENKF && [ $DATE == $DATE_START ]; then
