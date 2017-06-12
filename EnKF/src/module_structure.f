@@ -299,7 +299,7 @@ module obs_define
    type radiance_data_type
         integer                                    :: num
         character(len=15),allocatable,dimension(:) :: platform
-        real, allocatable,dimension(:)             :: lat, lon,ii, jj, tb, err
+        real, allocatable,dimension(:)             :: lat, lon,ii, jj, tb, err, height
         integer, allocatable,dimension(:)          :: ch, hroi, hroi_d
    end type radiance_data_type
 

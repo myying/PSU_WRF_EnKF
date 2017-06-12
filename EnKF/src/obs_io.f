@@ -935,7 +935,7 @@ end subroutine get_airborne
   character (len=12)                  :: so_time
   character (len=15)                  :: sat_id
   integer                             :: i, n, iost, num
-  integer                             :: ch_info,hroi_rad,hroi_drad
+  integer                             :: ch_info,hroi_rad,hroi_drad,height
   real                                :: lat, lon, tb, err
   real                                :: s, h, rx, ry, ir1, jr1, is, js
 
@@ -979,6 +979,7 @@ end subroutine get_airborne
      allocate( raw%radiance%hroi( num ) )
      allocate( raw%radiance%hroi_d( num ) )
      allocate( raw%radiance%err( num ) )
+     allocate( raw%radiance%height( num ) )
 
 !...... get data
      rewind(10)
@@ -986,7 +987,8 @@ end subroutine get_airborne
      do_get_raw_data_loop : do
 
 !......... Enkf with odd data, and verify with even data
-        read(10, '(a12,a15,i12,3f12.3,2i12,f12.3)', iostat = iost ) so_time, sat_id, ch_info, lat, lon, tb, hroi_rad,hroi_drad,err
+        read(10, '(a12,a15,i12,3f12.3,2i12,f12.3,i12)', iostat = iost ) so_time, sat_id, ch_info, &
+            lat, lon, tb, hroi_rad,hroi_drad,err,height
         if( iost .ne. 0 ) exit
 !......... calculate radar center's position according to wrf domain grid
         call latlon_to_ij( proj, lat, lon, is, js )
@@ -1003,6 +1005,7 @@ end subroutine get_airborne
               raw%radiance%hroi(num) = (hroi_rad*1000)/proj%dx
               raw%radiance%hroi_d(num) = (hroi_drad*1000)/proj%dx
               raw%radiance%err(num) = err
+              raw%radiance%height(num) = real(height)
            else
            endif
 
@@ -2328,7 +2331,7 @@ sta = 0
 do nr = 1, raw%radiance%num
    sta = sta + 1
 enddo
-allocate(data(sta,4))
+allocate(data(sta,5))
 allocate(data_sat(sta))
 allocate(data_ch(sta))
 allocate(data_hroi(sta))
@@ -2341,6 +2344,7 @@ do nr = 1, raw%radiance%num
     data(ista,2) = raw%radiance%err(nr)
     data(ista,3) = raw%radiance%ii(nr)
     data(ista,4) = raw%radiance%jj(nr)
+    data(ista,5) = raw%radiance%height(nr)
     data_sat(ista) = raw%radiance%platform(nr)
     data_ch(ista)  = raw%radiance%ch(nr)
     data_hroi(ista)  = raw%radiance%hroi(nr)
@@ -2368,6 +2372,7 @@ do_reports : do n = start_data, ista,inter_data
   obs%err(obs%num)        = data(n,2)
   obs%position(obs%num,1) = data(n,3)
   obs%position(obs%num,2) = data(n,4)
+  obs%position(obs%num,4) = data(n,5)
   obs%sat(obs%num)        = data_sat(n)
   obs%ch(obs%num)         = data_ch(n)
   !obs%roi(obs%num,1)      = data_hroi(n)*ngxn

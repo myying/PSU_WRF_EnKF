@@ -294,8 +294,6 @@ obs_cycle: do ig=1,int(obs%num/nob)+1
    iob=(ig-1)*nob+sid+1
    if(iob>obs%num) cycle obs_cycle
    obstype=obs%type(iob)
-   if(print_detail>4 .and. gid==0) &
-     write(*,'(a,i6,3a,f10.2,a,3f10.2)') 'No.', iob,' ',obstype,'=', obs%dat(iob), ' at (x,y,z)=', obs%position(iob,1:3)
    do n = 1, nm
      ie=(n-1)*nmcpu+gid+1
      if (ie<=numbers_en+1) then
@@ -341,10 +339,18 @@ call MPI_Allreduce(yasend,ya,obs%num*(numbers_en+1),MPI_REAL,MPI_SUM,comm,ierr)
 
 !make a copy of yf (prior)
 yf=ya
-write(format1,'(a,i4,a)') '(i5,a,',numbers_en+1,'f10.2)'
-do iob=1,obs%num
-  if(print_detail>4 .and. my_proc_id==0) write(*,format1) iob, ' '//obs%type(iob)//' ya=',ya(iob,:)!numbers_en+1)
-enddo
+
+!print out obs/prior for debugging
+if(print_detail>4 .and. my_proc_id==0) then
+   do iob=1,obs%num
+     write(*,'(a,i6,3a,f10.2,a,3f10.2)') 'No.', iob,' ',obs%type(iob),'=', obs%dat(iob), ' at (x,y,z)=', obs%position(iob,1:3)
+   enddo
+   write(format1,'(a,i4,a)') '(i5,a,',numbers_en+1,'f10.2)'
+   do iob=1,obs%num
+     if(print_detail>4 .and. my_proc_id==0) write(*,format1) iob, ' '//obs%type(iob)//' ya=',ya(iob,:)!numbers_en+1)
+   enddo
+endif
+
 if ( my_proc_id == 0 ) write(*,'(a,f7.2,a)')' Calculation of y=Hx tooks ', MPI_Wtime()-timer, ' seconds.'
 
 !----------------------------------------------------------------------------------------
