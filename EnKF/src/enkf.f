@@ -382,8 +382,8 @@ obs_assimilate_cycle : do it = 1,obs%num
       ' err=',error,' hroi=',obs%roi(iob,1),' vroi=',obs%roi(iob,2)
 
    if( abs(y_hxm)>(error*5.) .and. &
-      .not.(obstype=='min_slp   ' .or. obstype=='longtitude' .or. obstype=='latitude  ' .or. obstype=='slp       '&
-       .or. obstype=='Radiance  ') ) then
+      .not.( obstype=='min_slp   ' .or. obstype=='longtitude' .or. obstype=='latitude  ' .or. &
+             obstype=='slp       ' .or. obstype=='Radiance  ') ) then
       if ( my_proc_id==0 ) write(*,*)' ...kicked off for large error'
       kick_flag(iob)=1
       cycle obs_assimilate_cycle
@@ -437,14 +437,14 @@ t0=MPI_Wtime()
    endif
 !!---OEI & SCL end
 
-   if (obstype=='Radiance  ') then
-     if (varname=='QCLOUD    ' .or. varname=='QRAIN     ' .or. varname=='QICE      ' .or. &
-       varname=='QGRAUP    ' .or. varname=='QSNOW     ') then
-       update_flag=1
-     else
-       update_flag=0
-     end if
-   end if
+    !if (obstype=='Radiance  ') then
+     !if (varname=='QCLOUD    ' .or. varname=='QRAIN     ' .or. varname=='QICE      ' .or. &
+       !varname=='QGRAUP    ' .or. varname=='QSNOW     ') then
+       !update_flag=1
+     !else
+       !update_flag=0
+     !end if
+   !end if
 
    if ( update_flag==0 ) cycle update_x_var
 
@@ -928,38 +928,38 @@ enddo
 !!! Removing negative Q-value by Minamide 2015.5.26 
 if ( my_proc_id==0 ) write(*,*) 'updating negative values'
 if(raw%radiance%num.ne.0) then
- do m=1,nv
-   varname=enkfvar(m)
-   xq_p = 0.
-   xq_n = 0.
-   xq_psend = 0.
-   xq_nsend = 0.
-   if (varname=='QCLOUD    ' .or. varname=='QRAIN     ' .or. varname=='QICE      ' .or. &
-       varname=='QGRAUP    ' .or. varname=='QSNOW     ') then
-    do n=1,nm
-     ie=(n-1)*nmcpu+gid+1
-     if(ie==numbers_en+1) write(*,*)'original xq value',minval(x(:,:,:,m,n)),'~',maxval(x(:,:,:,m,n))
-     if(ie<=numbers_en) then
-       where(x(:,:,:,m,n) >= 0.) xq_psend(:,:,:,n) = x(:,:,:,m,n)
-       where(x(:,:,:,m,n) < 0.) xq_nsend(:,:,:,n) = x(:,:,:,m,n)
-     endif
-    enddo
-    call MPI_Allreduce(sum(xq_psend,4),xq_p,ni*nj*nk,MPI_REAL,MPI_SUM,comm,ierr)
-    call MPI_Allreduce(sum(xq_nsend,4),xq_n,ni*nj*nk,MPI_REAL,MPI_SUM,comm,ierr)
-    if ( my_proc_id==0 ) write(*,*) 'xq_p',minval(xq_p),'~',maxval(xq_p)
-    if ( my_proc_id==0 ) write(*,*) 'xq_n',minval(xq_n),'~',maxval(xq_n)
-    do n=1,nm
-     ie=(n-1)*nmcpu+gid+1
-     if(ie<=numbers_en) then
-       where(x(:,:,:,m,n) < 0.) x(:,:,:,m,n) = 0.
-       where(xq_p >= abs(xq_n).and.xq_p > 0.) x(:,:,:,m,n) = x(:,:,:,m,n)*(xq_p+xq_n)/xq_p
-       where(xq_p < abs(xq_n).or. xq_p == 0.) x(:,:,:,m,n) = 0.
-     endif
-     if(ie<=numbers_en+1) where(xm(:,:,:,m) < 0.) x(:,:,:,m,n) = 0.
-     if(ie==numbers_en+1) write(*,*)'non-negative xq value',minval(x(:,:,:,m,n)),'~',maxval(x(:,:,:,m,n))
-    enddo
-   endif
- enddo
+  do m=1,nv
+    varname=enkfvar(m)
+    xq_p = 0.
+    xq_n = 0.
+    xq_psend = 0.
+    xq_nsend = 0.
+    if (varname=='QCLOUD    ' .or. varname=='QRAIN     ' .or. varname=='QICE      ' .or. &
+        varname=='QGRAUP    ' .or. varname=='QSNOW     ') then
+      do n=1,nm
+        ie=(n-1)*nmcpu+gid+1
+        if(ie==numbers_en+1) write(*,*)'original xq value',minval(x(:,:,:,m,n)),'~',maxval(x(:,:,:,m,n))
+        if(ie<=numbers_en) then
+          where(x(:,:,:,m,n) >= 0.) xq_psend(:,:,:,n) = x(:,:,:,m,n)
+          where(x(:,:,:,m,n) < 0.) xq_nsend(:,:,:,n) = x(:,:,:,m,n)
+        endif
+      enddo
+      call MPI_Allreduce(sum(xq_psend,4),xq_p,ni*nj*nk,MPI_REAL,MPI_SUM,comm,ierr)
+      call MPI_Allreduce(sum(xq_nsend,4),xq_n,ni*nj*nk,MPI_REAL,MPI_SUM,comm,ierr)
+      if ( my_proc_id==0 ) write(*,*) 'xq_p',minval(xq_p),'~',maxval(xq_p)
+      if ( my_proc_id==0 ) write(*,*) 'xq_n',minval(xq_n),'~',maxval(xq_n)
+      do n=1,nm
+        ie=(n-1)*nmcpu+gid+1
+        if(ie<=numbers_en) then
+          where(x(:,:,:,m,n) < 0.) x(:,:,:,m,n) = 0.
+          where(xq_p >= abs(xq_n).and.xq_p > 0.) x(:,:,:,m,n) = x(:,:,:,m,n)*(xq_p+xq_n)/xq_p
+          where(xq_p < abs(xq_n).or. xq_p == 0.) x(:,:,:,m,n) = 0.
+        endif
+        if(ie<=numbers_en+1) where(xm(:,:,:,m) < 0.) x(:,:,:,m,n) = 0.
+        if(ie==numbers_en+1) write(*,*)'non-negative xq value',minval(x(:,:,:,m,n)),'~',maxval(x(:,:,:,m,n))
+      enddo
+    endif
+  enddo
 endif
 
 end subroutine enkf
