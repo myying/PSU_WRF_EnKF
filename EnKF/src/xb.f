@@ -862,7 +862,7 @@ subroutine xb_to_radiance(inputfile,proj,ix,jx,kx,xlong,xlat,landmask,iob_radmin
   real, dimension(obs%num), intent(out)    :: xb_tb
   real, dimension(ix, jx ), intent(in)     :: xlong,xlat,landmask
   integer                                  :: iob,irad, i1,j1
-  real                                     :: obs_ii,obs_jj,obs_kk,obs_pp, dx,dxm,dy,dym,mu1,mub1
+  real                                     :: obs_ii,obs_jj, dx,dxm,dy,dym,mu1,mub1
 
   CHARACTER(*), PARAMETER :: PROGRAM_NAME   = 'ctrm'
   REAL, PARAMETER :: P1000MB=100000.D0
@@ -905,26 +905,12 @@ subroutine xb_to_radiance(inputfile,proj,ix,jx,kx,xlong,xlat,landmask,iob_radmin
   INTEGER :: ncl,icl,k1,k2
   real :: lat_radiance(ix*jx)  ! latitude
   real :: lon_radiance(ix*jx) ! longitude
-  real :: lat(ix,jx)   ! in radian
-  real :: lon(ix,jx)   ! in radian
-  real :: p(ix,jx,kx)
-  real :: pb(ix,jx,kx)
-  real :: pres(ix,jx,kx)
-  real :: ph(ix,jx,kx+1)
-  real :: phb(ix,jx,kx+1)
-  real :: delz(kx)
-  real :: t(ix,jx,kx)
-  real :: tk(ix,jx,kx)
-  real :: qvapor(ix,jx,kx)
-  real :: qcloud(ix,jx,kx)
-  real :: qrain(ix,jx,kx)
-  real :: qice(ix,jx,kx)
-  real :: qsnow(ix,jx,kx)
-  real :: qgraup(ix,jx,kx)
-  real :: psfc(ix,jx)
-  real :: hgt(ix,jx)
-  real :: tsk(ix,jx)
-!  real :: landmask(ix,jx)
+  real, dimension(ix,jx) :: lat,lon,psfc,hgt,tsk,mu,mub
+  real, dimension(ix,jx,kx) :: p,pb,t,tk,qvapor,qcloud,qrain,qice,qsnow,qgraup
+  real, dimension(ix,jx,kx+1) :: ph,phb
+  real, dimension(kx) :: delz, pres,ptt,qvt,ht
+  real, dimension(kx+1) :: znw
+  real, dimension(2,2,kx+1) :: ph1
   real :: Tbsend(ix,jx,n_ch)
   real :: Tb(ix,jx,n_ch)
 
@@ -1050,8 +1036,6 @@ subroutine xb_to_radiance(inputfile,proj,ix,jx,kx,xlong,xlat,landmask,iob_radmin
   !
   ! 4a1. Loading Atmosphere and Surface input
   ! --------------------------------
-!  call get_variable2d(inputfile,'XLAT',ix,jx,1,xlat)
-!  call get_variable2d(inputfile,'XLONG',ix,jx,1,xlong)
   call get_variable3d(inputfile,'P',ix,jx,kx,1,p)
   call get_variable3d(inputfile,'PB',ix,jx,kx,1,pb)
   call get_variable3d(inputfile,'PH',ix,jx,kx+1,1,ph)
@@ -1066,11 +1050,13 @@ subroutine xb_to_radiance(inputfile,proj,ix,jx,kx,xlong,xlat,landmask,iob_radmin
   call get_variable2d(inputfile,'PSFC',ix,jx,1,psfc)
   call get_variable2d(inputfile,'TSK',ix,jx,1,tsk)
   call get_variable2d(inputfile,'HGT',ix,jx,1,hgt)
-!  call get_variable2d(inputfile,'LANDMASK',ix,jx,1,landmask)
+  call get_variable2d(inputfile,'MU',ix,jx,1,mu)
+  call get_variable2d(inputfile,'MUB',ix,jx,1,mub)
+  call get_variable1d(inputfile,'ZNW',kx+1,1,znw)
   lat = xlat/180.0*3.14159
   lon = xlong/180.0*3.14159
-  pres = P + PB
-  tk = (T + 300.0) * ( (pres / P1000MB) ** (R_D/Cpd) )
+  p = p + pb
+  tk = (t + 300.0) * ( (p / P1000MB) ** (R_D/Cpd) )
   where(qvapor.lt.0.0) qvapor=1.0e-8
   where(qcloud.lt.0.0) qcloud=0.0
   where(qice.lt.0.0) qice=0.0
@@ -1122,15 +1108,15 @@ subroutine xb_to_radiance(inputfile,proj,ix,jx,kx,xlong,xlat,landmask,iob_radmin
    atm(1)%Climatology         = TROPICAL
    atm(1)%Absorber_Id(1:2)    = (/ H2O_ID, O3_ID /)
    atm(1)%Absorber_Units(1:2) = (/ MASS_MIXING_RATIO_UNITS,VOLUME_MIXING_RATIO_UNITS /)
-   atm(1)%Level_Pressure(0) = (pres(x,y,kx)*3.0/2.0 - pres(x,y,kx-1)/2.0)/100.0  ! convert from Pa to hPA
+   atm(1)%Level_Pressure(0) = (p(x,y,kx)*3.0/2.0 - p(x,y,kx-1)/2.0)/100.0  ! convert from Pa to hPA
 !   atm(1)%Level_Pressure(0) = 0.05
    do z=kx,1,-1
      if(z.eq.1) then
        atm(1)%Level_Pressure(kx-z+1) = psfc(x,y)/100.0  ! convert from Pa tohPA
      else
-       atm(1)%Level_Pressure(kx-z+1) = ((pres(x,y,z-1)+pres(x,y,z))/2.0)/100.0  ! convert from Pa to hPA
+       atm(1)%Level_Pressure(kx-z+1) = ((p(x,y,z-1)+p(x,y,z))/2.0)/100.0  ! convert from Pa to hPA
      endif
-     atm(1)%Pressure(kx-z+1)       = pres(x,y,z) / 100.0
+     atm(1)%Pressure(kx-z+1)       = p(x,y,z) / 100.0
      atm(1)%Temperature(kx-z+1)    = tk(x,y,z)
      atm(1)%Absorber(kx-z+1,1)     = qvapor(x,y,z)*1000.0
    enddo
@@ -1179,7 +1165,7 @@ subroutine xb_to_radiance(inputfile,proj,ix,jx,kx,xlong,xlat,landmask,iob_radmin
        atm(1)%Cloud(icl)%Type = WATER_CLOUD
        atm(1)%Cloud(icl)%Effective_Radius(k1:k2) = 16.8_fp
        atm(1)%Cloud(icl)%Water_Content(k1:k2)    = &
-           qcloud(x,y,z)*pres(x,y,z)/287.2/(tk(x,y,z)+0.61*(qvapor(x,y,z)/(1+qvapor(x,y,z))))*delz(z)
+           qcloud(x,y,z)*p(x,y,z)/287.2/(tk(x,y,z)+0.61*(qvapor(x,y,z)/(1+qvapor(x,y,z))))*delz(z)
      endif
    enddo
    do z=kx,1,-1
@@ -1190,7 +1176,7 @@ subroutine xb_to_radiance(inputfile,proj,ix,jx,kx,xlong,xlat,landmask,iob_radmin
        atm(1)%Cloud(icl)%Type = RAIN_CLOUD
        atm(1)%Cloud(icl)%Effective_Radius(k1:k2) = 1000.0_fp
        atm(1)%Cloud(icl)%Water_Content(k1:k2)    = &
-           qrain(x,y,z)*pres(x,y,z)/287.2/(tk(x,y,z)+0.61*(qvapor(x,y,z)/(1+qvapor(x,y,z))))*delz(z)
+           qrain(x,y,z)*p(x,y,z)/287.2/(tk(x,y,z)+0.61*(qvapor(x,y,z)/(1+qvapor(x,y,z))))*delz(z)
      endif
    enddo
    do z=kx,1,-1
@@ -1201,7 +1187,7 @@ subroutine xb_to_radiance(inputfile,proj,ix,jx,kx,xlong,xlat,landmask,iob_radmin
        atm(1)%Cloud(icl)%Type = ICE_CLOUD
        atm(1)%Cloud(icl)%Effective_Radius(k1:k2) = 25.0_fp
        atm(1)%Cloud(icl)%Water_Content(k1:k2)    = &
-           qice(x,y,z)*pres(x,y,z)/287.2/(tk(x,y,z)+0.61*(qvapor(x,y,z)/(1+qvapor(x,y,z))))*delz(z)
+           qice(x,y,z)*p(x,y,z)/287.2/(tk(x,y,z)+0.61*(qvapor(x,y,z)/(1+qvapor(x,y,z))))*delz(z)
      endif
    enddo
    do z=kx,1,-1
@@ -1212,7 +1198,7 @@ subroutine xb_to_radiance(inputfile,proj,ix,jx,kx,xlong,xlat,landmask,iob_radmin
        atm(1)%Cloud(icl)%Type = SNOW_CLOUD
        atm(1)%Cloud(icl)%Effective_Radius(k1:k2) = 750.0_fp
        atm(1)%Cloud(icl)%Water_Content(k1:k2)    = &
-           qsnow(x,y,z)*pres(x,y,z)/287.2/(tk(x,y,z)+0.61*(qvapor(x,y,z)/(1+qvapor(x,y,z))))*delz(z)
+           qsnow(x,y,z)*p(x,y,z)/287.2/(tk(x,y,z)+0.61*(qvapor(x,y,z)/(1+qvapor(x,y,z))))*delz(z)
      endif
    enddo
    do z=kx,1,-1
@@ -1223,7 +1209,7 @@ subroutine xb_to_radiance(inputfile,proj,ix,jx,kx,xlong,xlat,landmask,iob_radmin
        atm(1)%Cloud(icl)%Type = GRAUPEL_CLOUD
        atm(1)%Cloud(icl)%Effective_Radius(k1:k2) = 1500.0_fp
        atm(1)%Cloud(icl)%Water_Content(k1:k2)    = &
-           qgraup(x,y,z)*pres(x,y,z)/287.2/(tk(x,y,z)+0.61*(qvapor(x,y,z)/(1+qvapor(x,y,z))))*delz(z)
+           qgraup(x,y,z)*p(x,y,z)/287.2/(tk(x,y,z)+0.61*(qvapor(x,y,z)/(1+qvapor(x,y,z))))*delz(z)
      endif
    enddo
    ENDIF
@@ -1304,13 +1290,31 @@ subroutine xb_to_radiance(inputfile,proj,ix,jx,kx,xlong,xlat,landmask,iob_radmin
   enddo
 
   CALL MPI_Allreduce(Tbsend,Tb,ix*jx*n_ch,MPI_REAL,MPI_SUM,comm,ierr)
-!  if(x==24 .and. y==184) write(*,*) my_proc_id
 
   ! ============================================================================
+  !find observation location in z
+  qvapor = qvapor+qcloud+qrain
+  do iob = iob_radmin, iob_radmax
+      obs_ii=obs%position(iob,1)
+      obs_jj=obs%position(iob,2)
+      i1=int(obs_ii)
+      j1=int(obs_jj)
+      dx  = obs_ii-real(i1)
+      dxm = real(i1+1)-obs_ii
+      dy  = obs_jj-real(j1)
+      dym = real(j1+1)-obs_jj
+      mu1 = dym*(dx*mu(i1+1,j1  ) + dxm*mu(i1,j1  )) + dy*(dx*mu(i1+1,j1+1) + dxm*mu(i1,j1+1))
+      mub1 = dym*(dx*mub(i1+1,j1  ) + dxm*mub(i1,j1  )) + dy*(dx*mub(i1+1,j1+1) + dxm*mub(i1,j1+1))
+      qvt = dym*(dx*qvapor(i1+1,j1,:) + dxm*qvapor(i1,j1,:)) + dy*(dx*qvapor(i1+1,j1+1,:) + dxm*qvapor(i1,j1+1,:))
+      ptt = dym*(dx*t(i1+1,j1,:) + dxm*t(i1,j1,:)) + dy*(dx*t(i1+1,j1+1,:) + dxm*t(i1,j1+1,:))
+      ph1(1:2,1:2,:) = ph(i1:i1+1, j1:j1+1, :) + phb(i1:i1+1, j1:j1+1, :)
+      ph1(1,1,:) = dym*(dx*ph1(2,1,:) + dxm*ph1(1,1,:)) + dy*(dx*ph1(2,2,:) + dxm*ph1(1,2,:))
+      call eta_to_pres(znw, mu1+mub1, qvt, ph1(1,1,:), ptt+to, kx, pres)
+      call to_zk(obs%position(iob,4), pres, obs%position(iob,3), kx)
+      if ( obs%position(iob,3) .lt. 1. ) obs%position(iob,3) = 1.
+  enddo
 
-  ! ============================================================================
   !6.5  **** writing the output ****
-  !
   if(my_proc_id==0) then
     do iob = iob_radmin, iob_radmax
       obs_ii=obs%position(iob,1)
