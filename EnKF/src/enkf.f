@@ -396,7 +396,7 @@ obs_assimilate_cycle : do it = 1,obs%num
    endif
 
    assimilated_obs_num=assimilated_obs_num+1
-   ngx = max(obs%roi(iob,1),max(nicpu,njcpu)/2+1)
+   ngx = max(obs%roi(iob,1),max(nicpu,njcpu))
    ngz = obs%roi(iob,2)
 ! Gaussian error added if using truth/idealized as obs
    if ( use_simulated .or. use_ideal_obs ) then
@@ -472,7 +472,7 @@ t0=MPI_Wtime()
         write(*,'(a,i6,a)') '*******update zone of obs #',iob,' is too small to be decomposed.********'
         write(*,*) 'update zone', uist,uied,ujst,ujed,kst,ked
         write(*,*) 'obs location', obs%position(iob,:)
-         stop
+        stop
      endif
    endif
    allocate(x1(uied-uist+1, ujed-ujst+1, ked-kst+1, nm))
