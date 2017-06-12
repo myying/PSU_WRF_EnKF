@@ -840,16 +840,12 @@ end subroutine xb_to_slp
 
 
 
-
-
-
 !=======================================================================================
 subroutine xb_to_radiance(inputfile,proj,ix,jx,kx,xlong,xlat,landmask,iob_radmin,iob_radmax,xb_tb)
 
 !---------------------
 ! radiance subroutine calculates brightness temperature for satellite channels
 !---------------------
-
   USE constants
   USE netcdf
   USE mpi_module
@@ -858,19 +854,15 @@ subroutine xb_to_radiance(inputfile,proj,ix,jx,kx,xlong,xlat,landmask,iob_radmin
   use obs_define
   use wrf_tools
 
-
   implicit none
-
   integer, intent(in)                      :: ix, jx, kx
   integer, intent(out)                     :: iob_radmin,iob_radmax
   character(len=10), intent(in)            :: inputfile
   type(proj_info), intent(in)              :: proj                   ! 1st guestmap info
   real, dimension(obs%num), intent(out)    :: xb_tb
-  real, dimension(ix, jx ), intent(in)     :: xlong
-  real, dimension(ix, jx ), intent(in)     :: xlat
-  real, dimension(ix, jx ), intent(in)     :: landmask
-  integer                                  :: iob,irad
-  real                                     :: obs_ii, obs_jj, dx,dxm,dy,dym
+  real, dimension(ix, jx ), intent(in)     :: xlong,xlat,landmask
+  integer                                  :: iob,irad, i1,j1
+  real                                     :: obs_ii,obs_jj,obs_kk,obs_pp, dx,dxm,dy,dym,mu1,mub1
 
   CHARACTER(*), PARAMETER :: PROGRAM_NAME   = 'ctrm'
   REAL, PARAMETER :: P1000MB=100000.D0
@@ -881,7 +873,7 @@ subroutine xb_to_radiance(inputfile,proj,ix,jx,kx,xlong,xlat,landmask,iob_radmin
   !setup for GOES-ABI
    REAL, PARAMETER :: sat_h=35780000.0
    REAL, PARAMETER :: sat_lon=57.0/180.0*3.14159
-   INTEGER, parameter :: n_ch=2        !for GOES-ABI
+   INTEGER, parameter :: n_ch=2
   !====================
 !  INTEGER, intent(in) :: ix = ix  !total number of the x-grid
 !  INTEGER, parameter, intent(in) :: jx = jx  !total number of the y-grid
@@ -954,24 +946,23 @@ subroutine xb_to_radiance(inputfile,proj,ix,jx,kx,xlong,xlat,landmask,iob_radmin
   check_cycle:do iob=1,obs%num
     obstype = obs%type(iob)
     if ( obstype(1:8) == 'Radiance' ) then
-     if(num_radgrid == 0) then
-      num_radgrid = num_radgrid + 1
-      lon_radiance(num_radgrid) = obs%position(iob,1)
-      lat_radiance(num_radgrid) = obs%position(iob,2)
-      iob_radmin = iob
-      iob_radmax = iob
-     else
-      iob_radmax = iob
-      do irad = 1,num_radgrid
-      if((lon_radiance(irad).eq.obs%position(iob,1)).and.(lat_radiance(irad).eq.obs%position(iob,2)))cycle check_cycle
-      enddo
-      num_radgrid = num_radgrid + 1
-      lon_radiance(num_radgrid) = obs%position(iob,1)
-      lat_radiance(num_radgrid) = obs%position(iob,2)
-     endif
+      if(num_radgrid == 0) then
+        num_radgrid = num_radgrid + 1
+        lon_radiance(num_radgrid) = obs%position(iob,1)
+        lat_radiance(num_radgrid) = obs%position(iob,2)
+        iob_radmin = iob
+        iob_radmax = iob
+      else
+        iob_radmax = iob
+        do irad = 1,num_radgrid
+          if((lon_radiance(irad).eq.obs%position(iob,1)).and.(lat_radiance(irad).eq.obs%position(iob,2)))cycle check_cycle
+        enddo
+        num_radgrid = num_radgrid + 1
+        lon_radiance(num_radgrid) = obs%position(iob,1)
+        lat_radiance(num_radgrid) = obs%position(iob,2)
+      endif
     endif
   enddo check_cycle
-
 
   ! ============================================================================
   ! --------------
@@ -1005,15 +996,16 @@ subroutine xb_to_radiance(inputfile,proj,ix,jx,kx,xlong,xlat,landmask,iob_radmin
   ! 2b. Determine the total number of channels
   !     for which the CRTM was initialized
   ! ------------------------------------------
-  ! Specify channel 14 for GOES-R ABI
   !if (Sensor_Id == 'abi_gr' ) then
+  !endif
+  if (Sensor_Id == 'mviriNOM_m07' ) then
     Error_Status = CRTM_ChannelInfo_Subset( ChannelInfo(1), Channel_Subset =(/2,3/) )
     IF ( Error_Status /= SUCCESS ) THEN
       Message = 'Error initializing CRTM'
       CALL Display_Message( PROGRAM_NAME, Message, FAILURE )
       STOP
     END IF
-  !endif 
+  endif 
   n_Channels = SUM(CRTM_ChannelInfo_n_Channels(ChannelInfo))
   ! ============================================================================
 
@@ -1325,16 +1317,18 @@ subroutine xb_to_radiance(inputfile,proj,ix,jx,kx,xlong,xlat,landmask,iob_radmin
       obs_jj=obs%position(iob,2)
       x = int( obs_ii )
       y = int( obs_jj )
-      !if (Sensor_Id == 'abi_gr' ) then
-         !if (obs%ch(iob) .eq. 8) xb_tb(iob) = Tb(x,y,1) !6.19um
-         !if (obs%ch(iob) .eq. 9) xb_tb(iob) = Tb(x,y,2) !6.95um
-         !if (obs%ch(iob) .eq. 10) xb_tb(iob) = Tb(x,y,3) !7.34um
-         !if (obs%ch(iob) .eq. 14) write(*,*)'change channel setting for ch14' !xb_tb(iob) = Tb(x,y,4) !11.2um
-      !elseif (Sensor_Id == 'imgr_g13' ) then
-         !if (obs%ch(iob) .eq. 3) xb_tb(iob) = Tb(x,y,2) !6.19um
-         !if (obs%ch(iob) .eq. 4) xb_tb(iob) = Tb(x,y,3) !11.2um
-      !endif
-      xb_tb(iob) = Tb(x,y,2)   !Meteosat7 ch-3
+      if (Sensor_Id == 'abi_gr' ) then
+         if (obs%ch(iob) .eq. 8) xb_tb(iob) = Tb(x,y,1) !6.19um
+         if (obs%ch(iob) .eq. 9) xb_tb(iob) = Tb(x,y,2) !6.95um
+         if (obs%ch(iob) .eq. 10) xb_tb(iob) = Tb(x,y,3) !7.34um
+         if (obs%ch(iob) .eq. 14) write(*,*)'change channel setting for ch14' !xb_tb(iob) = Tb(x,y,4) !11.2um
+      elseif (Sensor_Id == 'imgr_g13' ) then
+         if (obs%ch(iob) .eq. 3) xb_tb(iob) = Tb(x,y,2) !6.19um
+         if (obs%ch(iob) .eq. 4) xb_tb(iob) = Tb(x,y,3) !11.2um
+      elseif (Sensor_Id == 'mviriNOM_m07' ) then
+         if (obs%ch(iob) .eq. 2) xb_tb(iob) = Tb(x,y,1)   !Meteosat7 ch-2 IR window
+         if (obs%ch(iob) .eq. 3) xb_tb(iob) = Tb(x,y,2)   !Meteosat7 ch-3 WV absorb band
+      endif
     enddo
     !--initializing the Tbsend fields for Bcast
     !Tbsend = 0.0
