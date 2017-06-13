@@ -190,5 +190,5 @@ if $CLEAN; then
 fi
 
 echo complete > stat
-rm ???/rsl.*
+rm ???/rsl.* &
 

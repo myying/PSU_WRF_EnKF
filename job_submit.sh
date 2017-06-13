@@ -52,7 +52,7 @@ if [[ $HOSTTYPE == "yellowstone" ]]; then
 #BSUB -e log.%J.err
 
 source /glade/u/apps/opt/lmod/4.2.1/init/bash
-source ~/.bashrc_yy
+source ~/.bashrc
 cd `pwd`
 mpirun.lsf $exe >& $jobname.log
 EOF
