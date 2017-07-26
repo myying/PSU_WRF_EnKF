@@ -12,7 +12,7 @@ source ~/.bashrc
 
 #load configuration files, functions, parameters
 cd $WORK/PSU_WRF_EnKF
-export CONFIG_FILE=$WORK/PSU_WRF_EnKF/config/EnKF_OSSE/AtovsAmv_forecast/201110200000
+export CONFIG_FILE=$WORK/PSU_WRF_EnKF/config/EnKF_OSSE/AmvMet7CygnssAtovs
 . $CONFIG_FILE
 . util.sh
 
