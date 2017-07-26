@@ -3,6 +3,9 @@
 domain_id=$1
 dx=`echo ${DX[$domain_id-1]}/1000 |bc -l`
 
+##switch certain obs type off if OBSINT (obs interval) is set less frequent than CYCLE_PERIOD
+offset=`echo "(${DATE:8:2}*60+${DATE:10:2})%${OBSINT_ATOVS:-$CYCLE_PERIOD}" |bc`
+if [ $offset != 0 ]; then USE_ATOVS=false; fi
 
 ##This if statement swiths the radar rv data off for parent domains
 ##  the radar data is only assimilated for d03
