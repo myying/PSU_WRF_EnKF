@@ -1706,7 +1706,7 @@ if(print_detail > 20) then
 write(*,*)'start_data, ista, inter_data =',start_data, ista, inter_data
 end if
 iroi = 0
-do_reports : do n = start_data, ista, inter_data
+do_reports : do n = start_data, ista/inter_data, inter_data
 
   iroi = iroi + 1
   call cal_hroi ( instrument, grid_id, iroi, ngxn )
