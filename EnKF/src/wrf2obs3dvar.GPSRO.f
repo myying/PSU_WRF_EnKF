@@ -141,37 +141,36 @@ do n=1,total
      obs_data(4,3)=0.0
 
      call to_zk(obs_pres, pres(1:kx), obs_kk, kx)
-     if (obs_pres.eq.-888888. .or. obs_kk.lt.1. .or. obs_kk.gt.real(kx)) cycle
+     if (obs_pres.ne.-888888. .and. obs_kk.ge.1. .and. obs_kk.le.real(kx)) then
+       k1  = int( obs_kk )
+       dz  = obs_kk-real(k1)
+       dzm = real(k1+1)-obs_kk
 
-     k1  = int( obs_kk )
-     dz  = obs_kk-real(k1)
-     dzm = real(k1+1)-obs_kk
-
-     !T
-     do m = k1,k1+1
-        work(m-k1+1) = theta_to_temp(ptt(m)+to, pres(m))
-     enddo
-     qcint(5)=0
-     obs_data(5,1) = dzm*work(1)+dz*work(2)
-     obs_data(5,3)=t_error(obs_pres)
-     call date_and_time(rdate, rtime, rzone, rvalues)
-     obs_data(5,1) = obs_data(5,1) + obs_data(5,3)*gaussdev(sum(rvalues))
-
-     !Qv
-     if(obs_pres.ge.20000) then
+       !T
        do m = k1,k1+1
-         work(m-k1+1) = 1000*qvt(m)
+          work(m-k1+1) = theta_to_temp(ptt(m)+to, pres(m))
        enddo
-       qcint(7)=0
-       obs_data(7,1)=dzm*work(1)+dz*work(2)
-       obs_data(7,3)=q_error(obs_pres)
+       qcint(5)=0
+       obs_data(5,1) = dzm*work(1)+dz*work(2)
+       obs_data(5,3)=t_error(obs_pres)
        call date_and_time(rdate, rtime, rzone, rvalues)
-       obs_data(7,1) = obs_data(7,1) + obs_data(7,3)*gaussdev(sum(rvalues))
+       obs_data(5,1) = obs_data(5,1) + obs_data(5,3)*gaussdev(sum(rvalues))
+
+       !Qv
+       if(obs_pres.ge.20000) then
+         do m = k1,k1+1
+           work(m-k1+1) = 1000*qvt(m)
+         enddo
+         qcint(7)=0
+         obs_data(7,1)=dzm*work(1)+dz*work(2)
+         obs_data(7,3)=q_error(obs_pres)
+         call date_and_time(rdate, rtime, rzone, rvalues)
+         obs_data(7,1) = obs_data(7,1) + obs_data(7,3)*gaussdev(sum(rvalues))
+       end if
      end if
 
      write(ounit, fmt=each_fmt)((obs_data(i,1),qcint(i),obs_data(i,3)),i=1,7)
   enddo
-
 end do
 
 close(ounit)
