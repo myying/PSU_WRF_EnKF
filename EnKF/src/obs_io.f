@@ -622,7 +622,7 @@ do n = 1, total
                          raw%gts%pw(n,1), qcint(2),raw%gts%pw(n,3)
    raw%gts%slp(n,2) = real(qcint(1))
    raw%gts%pw(n,2) = real(qcint(2))
-   
+
    do k = 1, obs_level
       read(10, fmt=each_fmt)((obs_data(i,1,k),qcint(i),obs_data(i,3,k)),i=1,7) 
       obs_data(1:7,2,k) = real(qcint(1:7))
@@ -635,57 +635,57 @@ do n = 1, total
    enddo
 
 !!.Selecting the data close to model level.
-   call latlon_to_ij( proj, raw%gts%latitude(n), raw%gts%longitude(n), aio, ajo )
-   io = int(aio)
-   jo = int(ajo)
-   if( io.gt.0 .and. io.lt.ix .and. jo.gt.0 .and. jo.lt.jx) then
-     ksund = 0
-     do k = 1, kx-1
-        p_diff = p(io,jo,k) - p(io,jo,k+1)
-        z_diff = ph(io,jo,k+1) - ph(io,jo,k)
-        kk = -99
-        do i = 1, obs_level
-           if ( obs_data(1,1,i) .gt. 1000. .and. obs_data(1,1,i) .lt. 105000. ) then   ! decided by pressure
-              po_diff=obs_data(1,1,i)-p(io,jo,k)
-              if (po_diff.gt.0 .and. po_diff.lt.p_diff ) then
-                 p_diff = po_diff
-                 kk = i
-              endif
-           end if
-           if ( obs_data(4,1,i) .ge. 0. .and. obs_data(4,1,i) .lt. 90000. )then   ! decided by height
-              zo_diff=obs_data(4,1,i)-ph(io,jo,k)
-              if (zo_diff.gt.0 .and. zo_diff.lt.z_diff ) then
-                 z_diff = zo_diff
-                 kk = i
-              endif
-           endif
-        end do
-        if ( kk > 0 .and. kk < obs_level+1 ) then
-           ksund = ksund + 1
-           do j = 1, 3
-              raw%gts%pres(n, ksund, j) = obs_data(1, j, kk)
-              raw%gts%spd(n, ksund, j) = obs_data(2, j, kk)
-              raw%gts%wd(n, ksund, j) = obs_data(3, j, kk)
-              raw%gts%height(n, ksund, j) = obs_data(4, j, kk)
-              raw%gts%t(n, ksund, j) = obs_data(5, j, kk)
-              raw%gts%td(n, ksund, j) = obs_data(6, j, kk)
-              raw%gts%rh(n, ksund, j) = obs_data(7, j, kk)
-           enddo
-        endif
-     enddo    !do k = 1, kx-1 
-     raw%gts%levels(n) = ksund
-   end if
+   !call latlon_to_ij( proj, raw%gts%latitude(n), raw%gts%longitude(n), aio, ajo )
+   !io = int(aio)
+   !jo = int(ajo)
+   !if( io.gt.0 .and. io.lt.ix .and. jo.gt.0 .and. jo.lt.jx) then
+     !ksund = 0
+     !do k = 1, kx-1
+        !p_diff = p(io,jo,k) - p(io,jo,k+1)
+        !z_diff = ph(io,jo,k+1) - ph(io,jo,k)
+        !kk = -99
+        !do i = 1, obs_level
+           !if ( obs_data(1,1,i) .gt. 1000. .and. obs_data(1,1,i) .lt. 105000. ) then   ! decided by pressure
+              !po_diff=obs_data(1,1,i)-p(io,jo,k)
+              !if (po_diff.gt.0 .and. po_diff.lt.p_diff ) then
+                 !p_diff = po_diff
+                 !kk = i
+              !endif
+           !end if
+           !if ( obs_data(4,1,i) .ge. 0. .and. obs_data(4,1,i) .lt. 90000. )then   ! decided by height
+              !zo_diff=obs_data(4,1,i)-ph(io,jo,k)
+              !if (zo_diff.gt.0 .and. zo_diff.lt.z_diff ) then
+                 !z_diff = zo_diff
+                 !kk = i
+              !endif
+           !endif
+        !end do
+        !if ( kk > 0 .and. kk < obs_level+1 ) then
+           !ksund = ksund + 1
+           !do j = 1, 3
+              !raw%gts%pres(n, ksund, j) = obs_data(1, j, kk)
+              !raw%gts%spd(n, ksund, j) = obs_data(2, j, kk)
+              !raw%gts%wd(n, ksund, j) = obs_data(3, j, kk)
+              !raw%gts%height(n, ksund, j) = obs_data(4, j, kk)
+              !raw%gts%t(n, ksund, j) = obs_data(5, j, kk)
+              !raw%gts%td(n, ksund, j) = obs_data(6, j, kk)
+              !raw%gts%rh(n, ksund, j) = obs_data(7, j, kk)
+           !enddo
+        !endif
+     !enddo    !do k = 1, kx-1 
+     !raw%gts%levels(n) = ksund
+   !end if
 !!.Without selecting obs_level close to model_level.
-!  raw%gts%levels(n) = obs_level
-!  do i = 1, 3
-!     raw%gts%pres(n, 1:obs_level, i) = obs_data(1, i, 1:obs_level)
-!     raw%gts%spd(n, 1:obs_level, i) = obs_data(2, i, 1:obs_level)
-!     raw%gts%wd(n, 1:obs_level, i) = obs_data(3, i, 1:obs_level)
-!     raw%gts%height(n, 1:obs_level, i) = obs_data(4, i, 1:obs_level)
-!     raw%gts%t(n, 1:obs_level, i) = obs_data(5, i, 1:obs_level)
-!     raw%gts%td(n, 1:obs_level, i) = obs_data(6, i, 1:obs_level)
-!     raw%gts%rh(n, 1:obs_level, i) = obs_data(7, i, 1:obs_level)
-!  enddo
+  raw%gts%levels(n) = obs_level
+  do i = 1, 3
+     raw%gts%pres(n, 1:obs_level, i) = obs_data(1, i, 1:obs_level)
+     raw%gts%spd(n, 1:obs_level, i) = obs_data(2, i, 1:obs_level)
+     raw%gts%wd(n, 1:obs_level, i) = obs_data(3, i, 1:obs_level)
+     raw%gts%height(n, 1:obs_level, i) = obs_data(4, i, 1:obs_level)
+     raw%gts%t(n, 1:obs_level, i) = obs_data(5, i, 1:obs_level)
+     raw%gts%td(n, 1:obs_level, i) = obs_data(6, i, 1:obs_level)
+     raw%gts%rh(n, 1:obs_level, i) = obs_data(7, i, 1:obs_level)
+  enddo
 enddo   !do n = 1, total
 close(10)
 

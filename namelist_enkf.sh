@@ -85,8 +85,8 @@ vroi_sounding     = ${VROI_SOUNDING:-$VROI},
 &profiler_obs
 use_profiler      = .$USE_PROFILEROBS.,
 datathin_profiler = $THIN_PROFILER,
-hroi_profiler     = $(printf %.0f `echo $HROI_UPPER/$dx |bc -l`),
-vroi_profiler     = $VROI,
+hroi_profiler     = $(printf %.0f `echo $HROI_PROFL/$dx |bc -l`),
+vroi_profiler     = $VROI_PROFL,
 /
 
 &aircft_obs

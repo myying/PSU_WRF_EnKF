@@ -322,7 +322,7 @@ subroutine  read_namelist(ix, jx, kx)
       endif
 
       if ( use_profiler ) then
-         write(6,'(a      )') ' ===== assimilate WIND PROFILER REPORTS ===== '
+         write(6,'(a      )') ' ===== assimilate PROFILER REPORTS ===== '
          write(6,'(a,i4   )') '       data thinning: ',datathin_profiler
          write(6,'(a,2i4  )') '       ROI for horizonal and vertical is:', hroi_profiler, vroi_profiler
       endif
@@ -352,7 +352,7 @@ subroutine  read_namelist(ix, jx, kx)
       endif
 
       if ( use_atovs ) then
-         write(6,'(a      )') ' ===== assimilate WIND PROFILER REPORTS ===== '
+         write(6,'(a      )') ' ===== assimilate ATOVS retrievals ===== '
          write(6,'(a,i4   )') '       data thinning: ',datathin_atovs
          write(6,'(a,2i4  )') '       ROI for horizonal and vertical is:', hroi_atovs, vroi_atovs
       endif
