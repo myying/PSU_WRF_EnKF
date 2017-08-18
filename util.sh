@@ -83,7 +83,7 @@ function watch_log {
       l=$l1
       t=0
     fi
-    if [ $t -gt $timeout ]; then
+    if [ !-z $logfile -a $t -gt $timeout ]; then
       echo `pwd`/$logfile stagnant for $timeout minutes! Abort.
       echo error > $rundir/stat
       exit 1
