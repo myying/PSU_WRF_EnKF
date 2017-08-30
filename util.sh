@@ -73,7 +73,7 @@ function watch_log {
   rundir=$4
   l=0
   t=0
-  until [ -f $logfile ]; do sleep 10 ; done
+  until [ -s $logfile ]; do sleep 10 ; done
   until [[ `tail -n5 $logfile |grep $keyword` ]]; do
     sleep 1m
     l1=`cat $logfile |wc -l`
@@ -84,7 +84,7 @@ function watch_log {
       t=0
     fi
     if [ $t -gt $timeout ]; then
-      echo `pwd`/$logfile stagnant for $timeout minutes! Abort.
+      echo "`pwd`/$logfile stagnant for $timeout minutes! Abort."
       echo error > $rundir/stat
       exit 1
     fi
