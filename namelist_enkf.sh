@@ -120,6 +120,7 @@ vroi_spssmi     = $VROI,
 &atovs_obs
 use_atovs      = .$USE_ATOVS.,
 datathin_atovs = $THIN_ATOVS,
+datathin_atovs_vert = $THIN_ATOVS_VERT,
 hroi_atovs     = $(printf %.0f `echo ${HROI_ATOVS:-$HROI_UPPER}/$dx |bc -l`),
 vroi_atovs     = ${VROI_ATOVS:-$VROI},
 /

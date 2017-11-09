@@ -204,25 +204,25 @@ obs%num = 0               ! obs%num for all observation, not only Rv
 !....... Get Profiler U, V
    if ( use_profiler ) then
          call sort_upperair_data( wrf_file, ix, jx, kx, proj, 'profiler', &
-              datathin_profiler, hroi_profiler, vroi_profiler, grid_id)
+              datathin_profiler, 0, hroi_profiler, vroi_profiler, grid_id)
    endif
 
 !....... Get Aircft U, V, T
    if ( use_aircft ) then
          call sort_upperair_data( wrf_file, ix, jx, kx, proj, 'aircft  ', &
-              datathin_aircft  , hroi_aircft  , vroi_aircft  , grid_id)
+              datathin_aircft  , 0, hroi_aircft  , vroi_aircft  , grid_id)
    endif
 
 !....... Get Atovs T and Td
    if ( use_atovs ) then
          call sort_upperair_data( wrf_file, ix, jx, kx, proj, 'atovs   ', &
-              datathin_atovs   , hroi_atovs   , vroi_atovs   , grid_id)
+              datathin_atovs ,datathin_atovs_vert  , hroi_atovs   , vroi_atovs   , grid_id)
    endif
 
 !....... Get SatwndU, V, T
    if ( use_satwnd ) then
          call sort_upperair_data( wrf_file, ix, jx, kx, proj, 'satwnd  ', &
-              datathin_satwnd  , hroi_satwnd  , vroi_satwnd  , grid_id)
+              datathin_satwnd  , 0, hroi_satwnd  , vroi_satwnd  , grid_id)
    endif
 
 !....... Get SeaWind Speed
@@ -1582,7 +1582,7 @@ do_reports : do n = start_data, ista
 
 end subroutine sort_sounding_data
 !=======================================================================================
-subroutine sort_upperair_data( wrf_file, ix, jx, kx, proj, instrument, datathin, hroi, vroi, grid_id)
+subroutine sort_upperair_data( wrf_file, ix, jx, kx, proj, instrument, datathin, datathin_vert, hroi, vroi, grid_id)
 use constants
 use namelist_define
 use mpi_module
@@ -1596,7 +1596,7 @@ implicit none
 type(proj_info)                      :: proj
 character (len=10), intent(in)       :: wrf_file
 integer, intent(in)                  :: ix, jx, kx
-integer, intent(in)                  :: datathin, hroi, vroi, grid_id
+integer, intent(in)                  :: datathin,datathin_vert, hroi, vroi, grid_id
 character (len=8), intent(in)       :: instrument
 integer                              :: i, j, k, n, ista,sta, level,numlevs
 real                                 :: x, y, gridu, gridv, trueu, truev
@@ -1606,7 +1606,7 @@ real, allocatable, dimension(:,:,:,:) :: data
 real, allocatable, dimension(:)     :: obs_lat, obs_lon, obs_elv
 character(len=12)                    :: fm
 character(len=6)                     :: pfile
-integer                              :: start_data, inter_data, iroi, ngxn
+integer                   :: start_data, inter_data, inter_data_vert, kstart, iroi, ngxn
 
 
 
@@ -1701,6 +1701,9 @@ start_data = 1
 inter_data = 1
 if ( datathin .lt. -1 ) start_data = abs(datathin) - 1
 if ( abs(datathin) .gt. 1 ) inter_data = abs(datathin)
+kstart = 2  !!!!!!!EnKF_OSSE only
+inter_data_vert = 1
+if ( abs(datathin_vert) .gt. 1 ) inter_data_vert = abs(datathin_vert)
 
 if(print_detail > 20) then
 write(*,*)'start_data, ista, inter_data =',start_data, ista, inter_data
@@ -1750,7 +1753,7 @@ do_reports : do n = start_data, ista/inter_data, inter_data
    endif
 
 !..... T
-   do k = 1, levels(n)
+   do k = kstart, levels(n), inter_data_vert
       if ( data(n,k,1,1) .gt. 100. .and. data(n,k,1,1) .le. 100000. ) then     !
           if ( data(n,k,1,5).ge.100. .and. data(n,k,1,5) .le. 350. .and. abs(data(n,k,2,5)).lt. 90. ) then 
                obs%num                 = obs%num + 1
@@ -1789,7 +1792,7 @@ do_reports : do n = start_data, ista/inter_data, inter_data
    enddo
 
 !................ u, v
-   do k = 1, levels(n)
+   do k = kstart, levels(n), inter_data_vert
      if ( data(n,k,1,1) .gt. 100. .and. data(n,k,1,1) .lt. 105000. ) then
           if ( data(n,k,1,2).ge.0. .and. data(n,k,1,2).le.200. .and.   &
                data(n,k,1,3).ge.0. .and. data(n,k,1,3).lt.360. .and.   & 
@@ -1911,7 +1914,7 @@ do_reports : do n = start_data, ista/inter_data, inter_data
    enddo
 
 !................ Q(g/kg)
-   do k = 1, levels(n)
+   do k = kstart, levels(n), inter_data_vert
       if ( data(n,k,1,1) .gt. 25000. .and. data(n,k,1,1) .lt. 100000. ) then     !
           if ( data(n,k,1,7).ge.0.01 .and. data(n,k,1,7) .le. 100. .and. abs(data(n,k,2,7)).lt. 5.) then 
                obs%num                 = obs%num + 1
