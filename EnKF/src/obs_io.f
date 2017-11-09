@@ -1701,7 +1701,8 @@ start_data = 1
 inter_data = 1
 if ( datathin .lt. -1 ) start_data = abs(datathin) - 1
 if ( abs(datathin) .gt. 1 ) inter_data = abs(datathin)
-kstart = 2  !!!!!!!EnKF_OSSE only
+kstart = 1
+if (instrument.eq.'atovs   ' .and.  fm(4:6).eq.'131' ) kstart = 2
 inter_data_vert = 1
 if ( abs(datathin_vert) .gt. 1 ) inter_data_vert = abs(datathin_vert)
 
