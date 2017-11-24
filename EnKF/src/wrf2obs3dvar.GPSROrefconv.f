@@ -139,6 +139,7 @@ do n=1,total
         dzm = real(k1+1)-obs_kk
              do m = k1,k1+1
                 work(m-k1+1) = theta_to_temp(ptt(m)+to, pres(m))
+                if(qvt(m).eq.-888888) qvt(m)=0.0
                 work(m-k1+1) = gpsref(pres(m),work(m-k1+1),1000*qvt(m))
              enddo
              if ( obs_kk .le. 1. ) then

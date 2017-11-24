@@ -437,6 +437,15 @@ t0=MPI_Wtime()
    endif
 !!---OEI & SCL end
 
+!!!cross variable covariance localization (on/off)
+    !if (obstype=='PprofilerN') then
+     !if (varname=='QVAPOR    ' .or. varname=='T         ' ) then
+       !update_flag=1
+     !else
+       !update_flag=0
+     !end if
+    !end if
+
     !if (obstype=='Radiance  ') then
      !if (varname=='QCLOUD    ' .or. varname=='QRAIN     ' .or. varname=='QICE      ' .or. &
        !varname=='QGRAUP    ' .or. varname=='QSNOW     ') then
@@ -444,7 +453,7 @@ t0=MPI_Wtime()
      !else
        !update_flag=0
      !end if
-   !end if
+    !end if
 
    if ( update_flag==0 ) cycle update_x_var
 

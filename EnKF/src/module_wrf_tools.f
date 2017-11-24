@@ -1129,6 +1129,27 @@
         return
         end function
 
+
+!!!! GPSRO Refractivity (local), units 1e-6 N-1
+!!!! input: p=pressure in Pa, 
+!           t=temperature in K, 
+!           q=water vapor mixing ratio in kg/kg
+
+        function gpsref(p,t,q)
+          real, intent(in) :: p,t,q
+          real pres,qv,ew,gpsref
+          real,parameter :: rd=287.05, rv=461.51, c1=77.6d-6, c2=3.73d-1
+          real,parameter :: rdorv=rd/rv
+          pres=0.01*p
+          qv=max(q,0.0)
+          ew=qv*pres/(rdorv+(1.0-rdorv)*qv)
+          gpsref=c1*pres/t+c2*ew/(t**2)
+          gpsref=gpsref*1.0d6
+          return
+        end function
+
+
+
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 !
 !   uv_to_dirspd - subroutine that converts from a u and v component of 

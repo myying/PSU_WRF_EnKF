@@ -201,7 +201,7 @@ obs%num = 0               ! obs%num for all observation, not only Rv
       endif
    endif
 
-!....... Get Profiler U, V
+!....... Get Profiler U, V  !!GPSRO T/Q/refractivity here!!
    if ( use_profiler ) then
          call sort_upperair_data( wrf_file, ix, jx, kx, proj, 'profiler', &
               datathin_profiler, 0, hroi_profiler, vroi_profiler, grid_id)
@@ -1581,6 +1581,10 @@ do_reports : do n = start_data, ista
   return
 
 end subroutine sort_sounding_data
+
+
+
+
 !=======================================================================================
 subroutine sort_upperair_data( wrf_file, ix, jx, kx, proj, instrument, datathin, datathin_vert, hroi, vroi, grid_id)
 use constants
@@ -1663,8 +1667,9 @@ do n = 1, raw%gts%num
                data(ista,k,i,4) = raw%gts%height(n,k,i)
                data(ista,k,i,5) = raw%gts%t(n,k,i)
                data(ista,k,i,6) = raw%gts%td(n,k,i)
-!!!HACK: obs_3dvar file rh entries contain Qv instead:
                data(ista,k,i,7) = raw%gts%rh(n,k,i)
+!!!HACK: obs_3dvar file rh entries contain ATOVS/GPSRO retrieval Qv instead:
+!!!HACK: obs_3dvar file td entries contain GPSRO refractivity N instead:
             enddo
 !................ convert rh to q and calculate q_error from rh_error
                !call rel_humidity_to_q(raw%gts%pres(n,k,1), raw%gts%t(n,k,1), raw%gts%rh(n,k,1), data(ista,k,1,7), &
@@ -1751,47 +1756,9 @@ do_reports : do n = start_data, ista/inter_data, inter_data
           obs%roi     (obs%num,2) = vroi
       endif
    enddo
-   endif
+  endif
 
-!..... T
-   do k = kstart, levels(n), inter_data_vert
-      if ( data(n,k,1,1) .gt. 100. .and. data(n,k,1,1) .le. 100000. ) then     !
-          if ( data(n,k,1,5).ge.100. .and. data(n,k,1,5) .le. 350. .and. abs(data(n,k,2,5)).lt. 90. ) then 
-               obs%num                 = obs%num + 1
-               obs%dat     (obs%num  ) = data(n,k,1,5)
-               obs%type    (obs%num  ) = 'P'//instrument//'T'
-               if( abs(data(n,k,1,4)-obs_elv(n)) .le. 5. .and. obs_elv(n).gt.50. )obs%type(obs%num  ) = 'S'//instrument//'T' 
-               obs%err     (obs%num  ) = data(n,k,3,5)
-               obs%position(obs%num,1) = x
-               obs%position(obs%num,2) = y
-               obs%position(obs%num,4) = data(n,k,1,1)
-               obs%sta     (obs%num,1) = obs_elv(n)
-               obs%sta     (obs%num,2) = data(n,1,1,1)
-               obs%sta     (obs%num,3) = data(n,1,1,5)
-               obs%sta     (obs%num,4) = data(n,1,1,7)
-               obs%roi     (obs%num,1) = hroi * ngxn
-               obs%roi     (obs%num,2) = vroi
-          endif
-      else if ( data(n,k,1,1) .lt. 0. .or. data(n,k,1,1) .gt. 200000. ) then
-          if ( data(n,k,1,5).ge.100. .and. data(n,k,1,5) .le. 350. .and. abs(data(n,k,2,5)).lt. 90. ) then
-               obs%num                 = obs%num + 1
-               obs%dat     (obs%num  ) = data(n,k,1,5)
-               obs%type    (obs%num  ) = 'H'//instrument//'T'
-               if( abs(data(n,k,1,4)-obs_elv(n)) .le. 5. .and. obs_elv(n).gt.50. )obs%type(obs%num  ) = 'S'//instrument//'T'
-               obs%err     (obs%num  ) = data(n,k,3,5)
-               obs%position(obs%num,1) = x
-               obs%position(obs%num,2) = y
-               obs%position(obs%num,4) = data(n,k,1,4)
-               obs%sta     (obs%num,1) = obs_elv(n)
-               obs%sta     (obs%num,2) = data(n,1,1,1)
-               obs%sta     (obs%num,3) = data(n,1,1,5)
-               obs%sta     (obs%num,4) = data(n,1,1,7)
-               obs%roi     (obs%num,1) = hroi * ngxn
-               obs%roi     (obs%num,2) = vroi
-          endif
-      endif
-   enddo
-
+  if ( instrument.eq.'satwnd  ' ) then  !!AMV satellite wind vectors
 !................ u, v
    do k = kstart, levels(n), inter_data_vert
      if ( data(n,k,1,1) .gt. 100. .and. data(n,k,1,1) .lt. 105000. ) then
@@ -1913,6 +1880,47 @@ do_reports : do n = start_data, ista/inter_data, inter_data
 
      endif
    enddo
+  endif
+
+  if ( instrument.eq.'atovs   ' ) then  !!!ATOVS T/Q profiles
+!..... T
+   do k = kstart, levels(n), inter_data_vert
+      if ( data(n,k,1,1) .gt. 100. .and. data(n,k,1,1) .le. 100000. ) then     !
+          if ( data(n,k,1,5).ge.100. .and. data(n,k,1,5) .le. 350. .and. abs(data(n,k,2,5)).lt. 90. ) then 
+               obs%num                 = obs%num + 1
+               obs%dat     (obs%num  ) = data(n,k,1,5)
+               obs%type    (obs%num  ) = 'P'//instrument//'T'
+               if( abs(data(n,k,1,4)-obs_elv(n)) .le. 5. .and. obs_elv(n).gt.50. )obs%type(obs%num  ) = 'S'//instrument//'T' 
+               obs%err     (obs%num  ) = data(n,k,3,5)
+               obs%position(obs%num,1) = x
+               obs%position(obs%num,2) = y
+               obs%position(obs%num,4) = data(n,k,1,1)
+               obs%sta     (obs%num,1) = obs_elv(n)
+               obs%sta     (obs%num,2) = data(n,1,1,1)
+               obs%sta     (obs%num,3) = data(n,1,1,5)
+               obs%sta     (obs%num,4) = data(n,1,1,7)
+               obs%roi     (obs%num,1) = hroi * ngxn
+               obs%roi     (obs%num,2) = vroi
+          endif
+      else if ( data(n,k,1,1) .lt. 0. .or. data(n,k,1,1) .gt. 200000. ) then
+          if ( data(n,k,1,5).ge.100. .and. data(n,k,1,5) .le. 350. .and. abs(data(n,k,2,5)).lt. 90. ) then
+               obs%num                 = obs%num + 1
+               obs%dat     (obs%num  ) = data(n,k,1,5)
+               obs%type    (obs%num  ) = 'H'//instrument//'T'
+               if( abs(data(n,k,1,4)-obs_elv(n)) .le. 5. .and. obs_elv(n).gt.50. )obs%type(obs%num  ) = 'S'//instrument//'T'
+               obs%err     (obs%num  ) = data(n,k,3,5)
+               obs%position(obs%num,1) = x
+               obs%position(obs%num,2) = y
+               obs%position(obs%num,4) = data(n,k,1,4)
+               obs%sta     (obs%num,1) = obs_elv(n)
+               obs%sta     (obs%num,2) = data(n,1,1,1)
+               obs%sta     (obs%num,3) = data(n,1,1,5)
+               obs%sta     (obs%num,4) = data(n,1,1,7)
+               obs%roi     (obs%num,1) = hroi * ngxn
+               obs%roi     (obs%num,2) = vroi
+          endif
+      endif
+   enddo
 
 !................ Q(g/kg)
    do k = kstart, levels(n), inter_data_vert
@@ -1952,6 +1960,30 @@ do_reports : do n = start_data, ista/inter_data, inter_data
           endif
       endif
    enddo
+  endif
+
+  if ( instrument.eq.'profiler' ) then  !!!GPSRO refractivity profiles
+!................ N (refractivity GPSRO) units: 1e-6 N-1
+   do k = kstart, levels(n), inter_data_vert
+      if ( data(n,k,1,1) .gt. 25000. .and. data(n,k,1,1) .lt. 100000. ) then     !
+          if ( data(n,k,1,6).ge.0.0 .and. data(n,k,1,6) .le. 400. ) then 
+               obs%num                 = obs%num + 1
+               obs%dat     (obs%num  ) = data(n,k,1,6)
+               obs%type    (obs%num  ) = 'P'//instrument//'N'
+               obs%err     (obs%num  ) = data(n,k,3,6)
+               obs%position(obs%num,1) = x
+               obs%position(obs%num,2) = y
+               obs%position(obs%num,4) = data(n,k,1,1)
+               obs%sta     (obs%num,1) = obs_elv(n)
+               obs%sta     (obs%num,2) = data(n,1,1,1)
+               obs%sta     (obs%num,3) = data(n,1,1,5)
+               obs%sta     (obs%num,4) = data(n,1,1,7)
+               obs%roi     (obs%num,1) = hroi * ngxn
+               obs%roi     (obs%num,2) = vroi
+          endif
+      endif
+   enddo
+  endif
 
   end do do_reports
 

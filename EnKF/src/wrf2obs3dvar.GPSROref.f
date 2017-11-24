@@ -27,7 +27,7 @@ real, dimension(7,3)       :: obs_data
 
 type(proj_info) :: proj
 integer :: ix,jx,kx, i1,j1,k1
-real :: obs_ii,obs_jj,obs_kk,obs_pp,obs_tt,obs_qq,obs_nn,truth_nn
+real :: obs_ii,obs_jj,obs_kk,obs_pp,obs_tt,obs_qq,obs_nn
 real,dimension(:,:,:),allocatable :: u,v,pt,ph,phb,p,pb,zg,qv,qc,qr,qall
 real,dimension(:,:),allocatable :: landmask,mu,mub
 real,dimension(:),allocatable :: znw0,znu0, pres,qvt,ptt,zgt
@@ -139,22 +139,20 @@ do n=1,total
         dzm = real(k1+1)-obs_kk
              do m = k1,k1+1
                 work(m-k1+1) = theta_to_temp(ptt(m)+to, pres(m))
-                work(m-k1+1) = gpsref(pres(m),work(m-k1+1),1000*qvt(m))
+                if(qvt(m).eq.-888888) qvt(m)=0.0
+                work(m-k1+1) = gpsref(pres(m),work(m-k1+1),qvt(m))
              enddo
              if ( obs_kk .le. 1. ) then
-               truth_nn = work(1)
+               obs_data(6,1) = work(1)
              else
-               truth_nn = dzm*work(1)+dz*work(2)
+               obs_data(6,1) = dzm*work(1)+dz*work(2)
              endif
-        obs_pp=obs_data(1,1)
-        obs_tt=obs_data(5,1)
-        obs_qq=obs_data(7,1)
-        if(obs_qq.eq.-888888) obs_qq=0.0
-        obs_nn=gpsref(obs_pp,obs_tt,obs_qq)
 
-        obs_data(6,1)=obs_nn
         qcint(6)=0
-        obs_data(6,3)=100*(obs_nn-truth_nn)/truth_nn
+        obs_data(6,3)=obs_data(6,1)*npc_error(obs_data(1,1))/100
+        call date_and_time(rdate, rtime, rzone, rvalues)
+        obs_data(6,1) = obs_data(6,1) + obs_data(6,3)*gaussdev(sum(rvalues))
+
         write(11, fmt=each_fmt)((obs_data(i,1),qcint(i),obs_data(i,3)),i=1,7)
    enddo
 end do
@@ -165,13 +163,13 @@ end program wrf2obs3dvar
 !==============================================================================
 function npc_error(p)  !!!percentage error for refractivity
 real, intent(in) :: p
-real, dimension(10) :: npc_err_ref,p_ref 
+real, dimension(6) :: npc_err_ref,p_ref 
 real npc_error
-p_ref=(/100,150,200,250,300,400,500,700,850,1000/)*100
-npc_err_ref=(/30,35,40,55,45,32,25,30,27,27/)
+p_ref=(/100,300,500,700,850,1000/)*100
+npc_err_ref=(/0.2,0.2,0.5,0.8,1,1/)
 if(p .le. p_ref(1)) npc_error=npc_err_ref(1)
-if(p .ge. p_ref(10)) npc_error=npc_err_ref(10)
-do i=1,9
+if(p .ge. p_ref(6)) npc_error=npc_err_ref(6)
+do i=1,5
   if( p .gt. p_ref(i) .and. p .lt. p_ref(i+1) ) &
      npc_error = npc_err_ref(i) + (npc_err_ref(i+1)-npc_err_ref(i))*(p-p_ref(i))/(p_ref(i+1)-p_ref(i))
 enddo
@@ -183,10 +181,9 @@ function gpsref(p,t,q)
   real pres,qv,ew,gpsref
   real,parameter :: rd=287.05, rv=461.51, c1=77.6d-6, c2=3.73d-1, rdorv=rd/rv
   pres=0.01*p
-  qv=0.001*q
-  ew=qv*pres/(rdorv+(1.0-rdorv)*qv)
+  ew=q*pres/(rdorv+(1.0-rdorv)*q)
   gpsref=c1*pres/t+c2*ew/(t**2)
-  gpsref=gpsref*1.0d4
+  gpsref=gpsref*1.0d6
 end function
 
  function gaussdev(idum)

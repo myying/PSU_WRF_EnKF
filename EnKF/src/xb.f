@@ -277,7 +277,8 @@ end subroutine xb_to_surface
 
 !.. Calculate obs%position(iob,3)
     if ( isimulated == 0 .or. obstype(10:10) == 'T' .or. obstype(10:10) == 'D' .or.  &
-                              obstype(10:10) == 'R' .or. obstype(10:10) == 'Q' ) then
+                              obstype(10:10) == 'R' .or. obstype(10:10) == 'Q' .or.  &
+                              obstype(10:10) == 'N' ) then
    
 !..    get data from background
        i_ph = 0
@@ -477,12 +478,28 @@ end subroutine xb_to_surface
           xb = (dzm*work(k1) + dz*work(k1+1))/g
        endif 
 
+!.. GPSRO refractivity
+    else if ( obstype(10:10) == 'N' ) then
+       do k = k1, k1+1
+          work(k) = theta_to_temp(ptt(k)+to, pres(k))
+       end do
+       do k = k1, k1+1
+          work(k) = gpsref(pres(k), work(k), qvt(k))
+       end do
+       if ( obs_kk .le. 1. ) then
+          xb = work(k1)
+       else
+          xb = dzm*work(k1)+dz*work(k1+1)
+       endif
+       !if ( xb .lt. 0.0 ) xb = -99999.
+
     endif
 
-!   if( print_detail > 100 )write(*,'(a,3f8.2, f10.1)')'xb_to_sounding '//obstype//' obs position :', obs_ii, obs_jj, obs%position(iob,3:4)
+   !if( print_detail > 1 )write(*,'(a,3f8.2, f10.1)')'xb_to_sounding '//obstype//' obs position :', obs_ii, obs_jj, obs%position(iob,3:4)
     
    end subroutine xb_to_sounding
-!
+
+
 !=======================================================================================
    subroutine xb_to_idealsound(inputfile,xa,ix,jx,kx,nv,iob,xb)
    use constants
