@@ -188,6 +188,7 @@ ifsnow                              = 1,
 icloud                              = 1,
 surface_input_source                = 1,
 num_soil_layers                     = 4,
+num_land_cat = 24,
 EOF
 echo "/"
 
@@ -209,6 +210,7 @@ cat << EOF
  non_hydrostatic                     = .true., .true., .true.,
  moist_adv_opt                       = 1,      1,      1,
  scalar_adv_opt                      = 1,      1,      1,
+ use_input_w = .true.,
 EOF
 echo "/"
 
