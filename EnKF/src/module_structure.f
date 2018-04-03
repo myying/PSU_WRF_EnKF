@@ -125,6 +125,7 @@ module namelist_define
 !-- use_atovs_obs
    logical       :: use_atovs           ! .true. : assimilated WIND PROFILER REPORTS
    integer       :: datathin_atovs      ! 0=all data, 2=1/2 data, 10=1/10 data
+   integer       :: datathin_atovs_vert ! 0=all data, 2=1/2 data, 10=1/10 data
    integer       :: hroi_atovs          ! horizontal radius of influence for atovs    
    integer       :: vroi_atovs          ! vertical radius of influence for atovs    
 
@@ -185,7 +186,7 @@ module namelist_define
    namelist /metar_obs      / use_metar , datathin_metar , hroi_metar , vroi_metar 
    namelist /sfcshp_obs     / use_sfcshp, datathin_sfcshp, hroi_sfcshp, vroi_sfcshp
    namelist /spssmi_obs     / use_spssmi, datathin_spssmi, hroi_spssmi, vroi_spssmi
-   namelist /atovs_obs      / use_atovs, datathin_atovs, hroi_atovs, vroi_atovs
+   namelist /atovs_obs      / use_atovs, datathin_atovs, datathin_atovs_vert, hroi_atovs, vroi_atovs
    namelist /satwnd_obs     / use_satwnd, datathin_satwnd, hroi_satwnd, vroi_satwnd
    namelist /gpspw_obs      / use_gpspw, datathin_gpspw, hroi_gpspw, vroi_gpspw
    namelist /radar_obs      / radar_number, use_radar_rf, use_radar_rv, datathin_radar, hroi_radar, vroi_radar
@@ -299,7 +300,7 @@ module obs_define
    type radiance_data_type
         integer                                    :: num
         character(len=15),allocatable,dimension(:) :: platform
-        real, allocatable,dimension(:)             :: lat, lon,ii, jj, tb, err
+        real, allocatable,dimension(:)             :: lat, lon,ii, jj, tb, err, height
         integer, allocatable,dimension(:)          :: ch, hroi, hroi_d
    end type radiance_data_type
 

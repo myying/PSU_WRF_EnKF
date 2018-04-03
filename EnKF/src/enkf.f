@@ -128,10 +128,10 @@ character (len=80), intent(in) :: times
 ! ngx, ngz = roi in horizontall and vertical
 ! var,cov = error variance,covariance of something
 ! y_hxm = y-hxm (the innovation vector, mean), hxa is the perturbation (of ensemble members).
-real      :: fac,d,alpha,var,cov,y_hxm,corr_coef,d_ogn
+real      :: fac,d,alpha,beta,var,cov,y_hxm,corr_coef,d_ogn
 real      :: var_a,var_b,m_d2,m_var_a,m_var_b
 real,dimension(numbers_en) :: hxa
-integer   :: ngx, ngz
+integer   :: ngx, ngz, kzdamp
 integer   :: i, j, k, m, n, iob, iiob, nob, ie, iunit,ounit,ii, jj, kk, is, it, ig, iv, i1,j1, itot
 integer   :: ist,ied,jst,jed,kst,ked, istart,iend,jstart,jend, uist,uied,ujst,ujed
 integer   :: sist,sied,sjst,sjed, sistart,siend,sjstart,sjend,sis,sie,sjs,sje
@@ -151,9 +151,9 @@ real, dimension(3)      :: center_xb
 ! ya=Hxa,Hxm: the state vector translated to observation space. ya(number of obs, number of members + mean)
 ! km        : kalman gain in updating x
 real, dimension(ni,nj,nk,nv,nm), intent(inout) :: x
-real, dimension(ni,nj,nk,nv), intent(inout)    :: xm 
+real, dimension(ni,nj,nk,nv), intent(inout)    :: xm
 real, dimension(ni,nj,nk,nv,nm)                :: xf
-real, dimension(ni,nj,nk,nv)                   :: x_t, std_x,std_xf
+real, dimension(ni,nj,nk,nv)                   :: x_t, std_x,std_xf, xmf
 real, dimension(3,3,nk,nv,nm,nicpu*njcpu) :: xobsend, xob
 real, dimension(3,3,nk,nv) :: tmp, tmpsend
 real, dimension(obs%num,numbers_en+1) :: ya, yasend, yf
@@ -294,8 +294,6 @@ obs_cycle: do ig=1,int(obs%num/nob)+1
    iob=(ig-1)*nob+sid+1
    if(iob>obs%num) cycle obs_cycle
    obstype=obs%type(iob)
-   if(print_detail>4 .and. gid==0) &
-     write(*,'(a,i6,3a,f10.2,a,3f10.2)') 'No.', iob,' ',obstype,'=', obs%dat(iob), ' at (x,y,z)=', obs%position(iob,1:3)
    do n = 1, nm
      ie=(n-1)*nmcpu+gid+1
      if (ie<=numbers_en+1) then
@@ -341,10 +339,18 @@ call MPI_Allreduce(yasend,ya,obs%num*(numbers_en+1),MPI_REAL,MPI_SUM,comm,ierr)
 
 !make a copy of yf (prior)
 yf=ya
-write(format1,'(a,i4,a)') '(i5,a,',numbers_en+1,'f10.2)'
-do iob=1,obs%num
-  if(print_detail>4 .and. my_proc_id==0) write(*,format1) iob, ' '//obs%type(iob)//' ya=',ya(iob,:)!numbers_en+1)
-enddo
+
+!print out obs/prior for debugging
+if(print_detail>4 .and. my_proc_id==0) then
+   do iob=1,obs%num
+     write(*,'(a,i6,3a,f10.2,a,3f10.2)') 'No.', iob,' ',obs%type(iob),'=', obs%dat(iob), ' at (x,y,z)=', obs%position(iob,1:3)
+   enddo
+   write(format1,'(a,i4,a)') '(i5,a,',numbers_en+1,'f10.2)'
+   do iob=1,obs%num
+     if(print_detail>4 .and. my_proc_id==0) write(*,format1) iob, ' '//obs%type(iob)//' ya=',ya(iob,:)!numbers_en+1)
+   enddo
+endif
+
 if ( my_proc_id == 0 ) write(*,'(a,f7.2,a)')' Calculation of y=Hx tooks ', MPI_Wtime()-timer, ' seconds.'
 
 !----------------------------------------------------------------------------------------
@@ -354,6 +360,7 @@ do n = 1, nm
    if ( ie<=numbers_en+1 ) x(:,:,:,:,n)=inflate*(x(:,:,:,:,n)-xm)
 enddo
 xf=x
+xmf=xm
 
 !----------------------------------------------------------------------------------------
 ! III. assimilate obs
@@ -375,8 +382,8 @@ obs_assimilate_cycle : do it = 1,obs%num
       ' err=',error,' hroi=',obs%roi(iob,1),' vroi=',obs%roi(iob,2)
 
    if( abs(y_hxm)>(error*5.) .and. &
-      .not.(obstype=='min_slp   ' .or. obstype=='longtitude' .or. obstype=='latitude  ' .or. obstype=='slp       '&
-       .or. obstype=='Radiance  ') ) then
+      .not.( obstype=='min_slp   ' .or. obstype=='longtitude' .or. obstype=='latitude  ' .or. &
+             obstype=='slp       ' .or. obstype=='Radiance  ') ) then
       if ( my_proc_id==0 ) write(*,*)' ...kicked off for large error'
       kick_flag(iob)=1
       cycle obs_assimilate_cycle
@@ -389,7 +396,7 @@ obs_assimilate_cycle : do it = 1,obs%num
    endif
 
    assimilated_obs_num=assimilated_obs_num+1
-   ngx = max(obs%roi(iob,1),max(nicpu,njcpu)/2+1)
+   ngx = max(obs%roi(iob,1),max(nicpu,njcpu))
    ngz = obs%roi(iob,2)
 ! Gaussian error added if using truth/idealized as obs
    if ( use_simulated .or. use_ideal_obs ) then
@@ -430,14 +437,23 @@ t0=MPI_Wtime()
    endif
 !!---OEI & SCL end
 
-   if (obstype=='Radiance  ') then
-     if (varname=='QCLOUD    ' .or. varname=='QRAIN     ' .or. varname=='QICE      ' .or. &
-       varname=='QGRAUP    ' .or. varname=='QSNOW     ') then
-       update_flag=1
-     else
-       update_flag=0
-     end if
-   end if
+!!!cross variable covariance localization (on/off)
+    !if (obstype=='PprofilerN') then
+     !if (varname=='QVAPOR    ' .or. varname=='T         ' ) then
+       !update_flag=1
+     !else
+       !update_flag=0
+     !end if
+    !end if
+
+    !if (obstype=='Radiance  ') then
+     !if (varname=='QCLOUD    ' .or. varname=='QRAIN     ' .or. varname=='QICE      ' .or. &
+       !varname=='QGRAUP    ' .or. varname=='QSNOW     ') then
+       !update_flag=1
+     !else
+       !update_flag=0
+     !end if
+    !end if
 
    if ( update_flag==0 ) cycle update_x_var
 
@@ -465,7 +481,7 @@ t0=MPI_Wtime()
         write(*,'(a,i6,a)') '*******update zone of obs #',iob,' is too small to be decomposed.********'
         write(*,*) 'update zone', uist,uied,ujst,ujed,kst,ked
         write(*,*) 'obs location', obs%position(iob,:)
-         stop
+        stop
      endif
    endif
    allocate(x1(uied-uist+1, ujed-ujst+1, ked-kst+1, nm))
@@ -895,6 +911,21 @@ endif !!======================================================================
 
 if ( my_proc_id==0 ) write(*,*)'Number of assimilated obs =',assimilated_obs_num
 
+ !!!! removing analysis increment near model top - Yue Ying 2016
+kzdamp=10 !!!number of damping layers from model top: check zdamp 
+if ( my_proc_id==0 ) write(*,*) 'removing analysis increment near model top'
+do n = 1, nm
+   ie = (n-1)*nmcpu+gid+1
+   do k=0,kzdamp
+      beta=(cos((real(k)/real(kzdamp))*4*atan(1.0)/2))**2  !beta=1 at top
+      if( ie<=numbers_en ) then
+        x(:,:,nk-k,:,n) = (1-beta)*x(:,:,nk-k,:,n) + beta*xf(:,:,nk-k,:,n)
+      end if
+      xm(:,:,nk-k,:) = (1-beta)*xm(:,:,nk-k,:) + beta*xmf(:,:,nk-k,:)
+   end do
+enddo
+
+
 !Add the mean back to the analysis field
 if ( my_proc_id==0 ) write(*,*)'Add the mean back to the analysis field...'
 do n = 1, nm
@@ -906,38 +937,38 @@ enddo
 !!! Removing negative Q-value by Minamide 2015.5.26 
 if ( my_proc_id==0 ) write(*,*) 'updating negative values'
 if(raw%radiance%num.ne.0) then
- do m=1,nv
-   varname=enkfvar(m)
-   xq_p = 0.
-   xq_n = 0.
-   xq_psend = 0.
-   xq_nsend = 0.
-   if (varname=='QCLOUD    ' .or. varname=='QRAIN     ' .or. varname=='QICE      ' .or. &
-       varname=='QGRAUP    ' .or. varname=='QSNOW     ') then
-    do n=1,nm
-     ie=(n-1)*nmcpu+gid+1
-     if(ie==numbers_en+1) write(*,*)'original xq value',minval(x(:,:,:,m,n)),'~',maxval(x(:,:,:,m,n))
-     if(ie<=numbers_en) then
-       where(x(:,:,:,m,n) >= 0.) xq_psend(:,:,:,n) = x(:,:,:,m,n)
-       where(x(:,:,:,m,n) < 0.) xq_nsend(:,:,:,n) = x(:,:,:,m,n)
-     endif
-    enddo
-    call MPI_Allreduce(sum(xq_psend,4),xq_p,ni*nj*nk,MPI_REAL,MPI_SUM,comm,ierr)
-    call MPI_Allreduce(sum(xq_nsend,4),xq_n,ni*nj*nk,MPI_REAL,MPI_SUM,comm,ierr)
-    if ( my_proc_id==0 ) write(*,*) 'xq_p',minval(xq_p),'~',maxval(xq_p)
-    if ( my_proc_id==0 ) write(*,*) 'xq_n',minval(xq_n),'~',maxval(xq_n)
-    do n=1,nm
-     ie=(n-1)*nmcpu+gid+1
-     if(ie<=numbers_en) then
-       where(x(:,:,:,m,n) < 0.) x(:,:,:,m,n) = 0.
-       where(xq_p >= abs(xq_n).and.xq_p > 0.) x(:,:,:,m,n) = x(:,:,:,m,n)*(xq_p+xq_n)/xq_p
-       where(xq_p < abs(xq_n).or. xq_p == 0.) x(:,:,:,m,n) = 0.
-     endif
-     if(ie<=numbers_en+1) where(xm(:,:,:,m) < 0.) x(:,:,:,m,n) = 0.
-     if(ie==numbers_en+1) write(*,*)'non-negative xq value',minval(x(:,:,:,m,n)),'~',maxval(x(:,:,:,m,n))
-    enddo
-   endif
- enddo
+  do m=1,nv
+    varname=enkfvar(m)
+    xq_p = 0.
+    xq_n = 0.
+    xq_psend = 0.
+    xq_nsend = 0.
+    if (varname=='QCLOUD    ' .or. varname=='QRAIN     ' .or. varname=='QICE      ' .or. &
+        varname=='QGRAUP    ' .or. varname=='QSNOW     ') then
+      do n=1,nm
+        ie=(n-1)*nmcpu+gid+1
+        if(ie==numbers_en+1) write(*,*)'original xq value',minval(x(:,:,:,m,n)),'~',maxval(x(:,:,:,m,n))
+        if(ie<=numbers_en) then
+          where(x(:,:,:,m,n) >= 0.) xq_psend(:,:,:,n) = x(:,:,:,m,n)
+          where(x(:,:,:,m,n) < 0.) xq_nsend(:,:,:,n) = x(:,:,:,m,n)
+        endif
+      enddo
+      call MPI_Allreduce(sum(xq_psend,4),xq_p,ni*nj*nk,MPI_REAL,MPI_SUM,comm,ierr)
+      call MPI_Allreduce(sum(xq_nsend,4),xq_n,ni*nj*nk,MPI_REAL,MPI_SUM,comm,ierr)
+      if ( my_proc_id==0 ) write(*,*) 'xq_p',minval(xq_p),'~',maxval(xq_p)
+      if ( my_proc_id==0 ) write(*,*) 'xq_n',minval(xq_n),'~',maxval(xq_n)
+      do n=1,nm
+        ie=(n-1)*nmcpu+gid+1
+        if(ie<=numbers_en) then
+          where(x(:,:,:,m,n) < 0.) x(:,:,:,m,n) = 0.
+          where(xq_p >= abs(xq_n).and.xq_p > 0.) x(:,:,:,m,n) = x(:,:,:,m,n)*(xq_p+xq_n)/xq_p
+          where(xq_p < abs(xq_n).or. xq_p == 0.) x(:,:,:,m,n) = 0.
+        endif
+        if(ie<=numbers_en+1) where(xm(:,:,:,m) < 0.) x(:,:,:,m,n) = 0.
+        if(ie==numbers_en+1) write(*,*)'non-negative xq value',minval(x(:,:,:,m,n)),'~',maxval(x(:,:,:,m,n))
+      enddo
+    endif
+  enddo
 endif
 
 end subroutine enkf

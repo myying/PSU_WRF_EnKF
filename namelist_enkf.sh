@@ -3,6 +3,9 @@
 domain_id=$1
 dx=`echo ${DX[$domain_id-1]}/1000 |bc -l`
 
+##switch certain obs type off if OBSINT (obs interval) is set less frequent than CYCLE_PERIOD
+offset=`echo "(${DATE:8:2}*60+${DATE:10:2})%${OBSINT_ATOVS:-$CYCLE_PERIOD}" |bc`
+if [ $offset != 0 ]; then USE_ATOVS=false; fi
 
 ##This if statement swiths the radar rv data off for parent domains
 ##  the radar data is only assimilated for d03
@@ -18,7 +21,8 @@ EOF
 if [ $minute_off == 0 ] || [ $minute_off == 180 ]; then
   echo "updatevar    = 'U         ', 'V         ', 'W         ', 'T         ', 'QVAPOR    ', 'QCLOUD    ', 'QRAIN     ', 'QSNOW     ', 'QICE      ', 'QGRAUP    ', 'PH        ', 'MU        ', 'PSFC      ', 'P         ',"
 else
-  echo "updatevar    = 'QCLOUD    ', 'QRAIN     ', 'QSNOW     ', 'QICE      ', 'QGRAUP    ',"
+  echo "updatevar    = 'U         ', 'V         ', 'W         ', 'T         ', 'QVAPOR    ', 'QCLOUD    ', 'QRAIN     ', 'QSNOW     ', 'QICE      ', 'QGRAUP    ', 'PH        ', 'MU        ', 'PSFC      ', 'P         ',"
+	#echo "updatevar    = 'QCLOUD    ', 'QRAIN     ', 'QSNOW     ', 'QICE      ', 'QGRAUP    ',"
 fi
 
 buffer=4 #buffer=0 if update_bc, buffer=spec_bdy_width-1 if bc is fixed as in perfect model case
@@ -81,8 +85,8 @@ vroi_sounding     = ${VROI_SOUNDING:-$VROI},
 &profiler_obs
 use_profiler      = .$USE_PROFILEROBS.,
 datathin_profiler = $THIN_PROFILER,
-hroi_profiler     = $(printf %.0f `echo $HROI_UPPER/$dx |bc -l`),
-vroi_profiler     = $VROI,
+hroi_profiler     = $(printf %.0f `echo $HROI_PROFL/$dx |bc -l`),
+vroi_profiler     = $VROI_PROFL,
 /
 
 &aircft_obs
@@ -116,6 +120,7 @@ vroi_spssmi     = $VROI,
 &atovs_obs
 use_atovs      = .$USE_ATOVS.,
 datathin_atovs = $THIN_ATOVS,
+datathin_atovs_vert = $THIN_ATOVS_VERT,
 hroi_atovs     = $(printf %.0f `echo ${HROI_ATOVS:-$HROI_UPPER}/$dx |bc -l`),
 vroi_atovs     = ${VROI_ATOVS:-$VROI},
 /

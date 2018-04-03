@@ -277,7 +277,8 @@ end subroutine xb_to_surface
 
 !.. Calculate obs%position(iob,3)
     if ( isimulated == 0 .or. obstype(10:10) == 'T' .or. obstype(10:10) == 'D' .or.  &
-                              obstype(10:10) == 'R' .or. obstype(10:10) == 'Q' ) then
+                              obstype(10:10) == 'R' .or. obstype(10:10) == 'Q' .or.  &
+                              obstype(10:10) == 'N' ) then
    
 !..    get data from background
        i_ph = 0
@@ -477,12 +478,28 @@ end subroutine xb_to_surface
           xb = (dzm*work(k1) + dz*work(k1+1))/g
        endif 
 
+!.. GPSRO refractivity
+    else if ( obstype(10:10) == 'N' ) then
+       do k = k1, k1+1
+          work(k) = theta_to_temp(ptt(k)+to, pres(k))
+       end do
+       do k = k1, k1+1
+          work(k) = gpsref(pres(k), work(k), qvt(k))
+       end do
+       if ( obs_kk .le. 1. ) then
+          xb = work(k1)
+       else
+          xb = dzm*work(k1)+dz*work(k1+1)
+       endif
+       !if ( xb .lt. 0.0 ) xb = -99999.
+
     endif
 
-!   if( print_detail > 100 )write(*,'(a,3f8.2, f10.1)')'xb_to_sounding '//obstype//' obs position :', obs_ii, obs_jj, obs%position(iob,3:4)
+   !if( print_detail > 1 )write(*,'(a,3f8.2, f10.1)')'xb_to_sounding '//obstype//' obs position :', obs_ii, obs_jj, obs%position(iob,3:4)
     
    end subroutine xb_to_sounding
-!
+
+
 !=======================================================================================
    subroutine xb_to_idealsound(inputfile,xa,ix,jx,kx,nv,iob,xb)
    use constants
@@ -840,16 +857,12 @@ end subroutine xb_to_slp
 
 
 
-
-
-
 !=======================================================================================
 subroutine xb_to_radiance(inputfile,proj,ix,jx,kx,xlong,xlat,landmask,iob_radmin,iob_radmax,xb_tb)
 
 !---------------------
 ! radiance subroutine calculates brightness temperature for satellite channels
 !---------------------
-
   USE constants
   USE netcdf
   USE mpi_module
@@ -858,19 +871,15 @@ subroutine xb_to_radiance(inputfile,proj,ix,jx,kx,xlong,xlat,landmask,iob_radmin
   use obs_define
   use wrf_tools
 
-
   implicit none
-
   integer, intent(in)                      :: ix, jx, kx
   integer, intent(out)                     :: iob_radmin,iob_radmax
   character(len=10), intent(in)            :: inputfile
   type(proj_info), intent(in)              :: proj                   ! 1st guestmap info
   real, dimension(obs%num), intent(out)    :: xb_tb
-  real, dimension(ix, jx ), intent(in)     :: xlong
-  real, dimension(ix, jx ), intent(in)     :: xlat
-  real, dimension(ix, jx ), intent(in)     :: landmask
-  integer                                  :: iob,irad
-  real                                     :: obs_ii, obs_jj, dx,dxm,dy,dym
+  real, dimension(ix, jx ), intent(in)     :: xlong,xlat,landmask
+  integer                                  :: iob,irad, i1,j1
+  real                                     :: obs_ii,obs_jj, dx,dxm,dy,dym,mu1,mub1
 
   CHARACTER(*), PARAMETER :: PROGRAM_NAME   = 'ctrm'
   REAL, PARAMETER :: P1000MB=100000.D0
@@ -881,7 +890,7 @@ subroutine xb_to_radiance(inputfile,proj,ix,jx,kx,xlong,xlat,landmask,iob_radmin
   !setup for GOES-ABI
    REAL, PARAMETER :: sat_h=35780000.0
    REAL, PARAMETER :: sat_lon=57.0/180.0*3.14159
-   INTEGER, parameter :: n_ch=2        !for GOES-ABI
+   INTEGER, parameter :: n_ch=2
   !====================
 !  INTEGER, intent(in) :: ix = ix  !total number of the x-grid
 !  INTEGER, parameter, intent(in) :: jx = jx  !total number of the y-grid
@@ -913,26 +922,12 @@ subroutine xb_to_radiance(inputfile,proj,ix,jx,kx,xlong,xlat,landmask,iob_radmin
   INTEGER :: ncl,icl,k1,k2
   real :: lat_radiance(ix*jx)  ! latitude
   real :: lon_radiance(ix*jx) ! longitude
-  real :: lat(ix,jx)   ! in radian
-  real :: lon(ix,jx)   ! in radian
-  real :: p(ix,jx,kx)
-  real :: pb(ix,jx,kx)
-  real :: pres(ix,jx,kx)
-  real :: ph(ix,jx,kx+1)
-  real :: phb(ix,jx,kx+1)
-  real :: delz(kx)
-  real :: t(ix,jx,kx)
-  real :: tk(ix,jx,kx)
-  real :: qvapor(ix,jx,kx)
-  real :: qcloud(ix,jx,kx)
-  real :: qrain(ix,jx,kx)
-  real :: qice(ix,jx,kx)
-  real :: qsnow(ix,jx,kx)
-  real :: qgraup(ix,jx,kx)
-  real :: psfc(ix,jx)
-  real :: hgt(ix,jx)
-  real :: tsk(ix,jx)
-!  real :: landmask(ix,jx)
+  real, dimension(ix,jx) :: lat,lon,psfc,hgt,tsk,mu,mub
+  real, dimension(ix,jx,kx) :: p,pb,t,tk,qvapor,qcloud,qrain,qice,qsnow,qgraup
+  real, dimension(ix,jx,kx+1) :: ph,phb
+  real, dimension(kx) :: delz, pres,ptt,qvt,ht
+  real, dimension(kx+1) :: znw
+  real, dimension(2,2,kx+1) :: ph1
   real :: Tbsend(ix,jx,n_ch)
   real :: Tb(ix,jx,n_ch)
 
@@ -954,24 +949,23 @@ subroutine xb_to_radiance(inputfile,proj,ix,jx,kx,xlong,xlat,landmask,iob_radmin
   check_cycle:do iob=1,obs%num
     obstype = obs%type(iob)
     if ( obstype(1:8) == 'Radiance' ) then
-     if(num_radgrid == 0) then
-      num_radgrid = num_radgrid + 1
-      lon_radiance(num_radgrid) = obs%position(iob,1)
-      lat_radiance(num_radgrid) = obs%position(iob,2)
-      iob_radmin = iob
-      iob_radmax = iob
-     else
-      iob_radmax = iob
-      do irad = 1,num_radgrid
-      if((lon_radiance(irad).eq.obs%position(iob,1)).and.(lat_radiance(irad).eq.obs%position(iob,2)))cycle check_cycle
-      enddo
-      num_radgrid = num_radgrid + 1
-      lon_radiance(num_radgrid) = obs%position(iob,1)
-      lat_radiance(num_radgrid) = obs%position(iob,2)
-     endif
+      if(num_radgrid == 0) then
+        num_radgrid = num_radgrid + 1
+        lon_radiance(num_radgrid) = obs%position(iob,1)
+        lat_radiance(num_radgrid) = obs%position(iob,2)
+        iob_radmin = iob
+        iob_radmax = iob
+      else
+        iob_radmax = iob
+        do irad = 1,num_radgrid
+          if((lon_radiance(irad).eq.obs%position(iob,1)).and.(lat_radiance(irad).eq.obs%position(iob,2)))cycle check_cycle
+        enddo
+        num_radgrid = num_radgrid + 1
+        lon_radiance(num_radgrid) = obs%position(iob,1)
+        lat_radiance(num_radgrid) = obs%position(iob,2)
+      endif
     endif
   enddo check_cycle
-
 
   ! ============================================================================
   ! --------------
@@ -1005,15 +999,16 @@ subroutine xb_to_radiance(inputfile,proj,ix,jx,kx,xlong,xlat,landmask,iob_radmin
   ! 2b. Determine the total number of channels
   !     for which the CRTM was initialized
   ! ------------------------------------------
-  ! Specify channel 14 for GOES-R ABI
   !if (Sensor_Id == 'abi_gr' ) then
+  !endif
+  if (Sensor_Id == 'mviriNOM_m07' ) then
     Error_Status = CRTM_ChannelInfo_Subset( ChannelInfo(1), Channel_Subset =(/2,3/) )
     IF ( Error_Status /= SUCCESS ) THEN
       Message = 'Error initializing CRTM'
       CALL Display_Message( PROGRAM_NAME, Message, FAILURE )
       STOP
     END IF
-  !endif 
+  endif 
   n_Channels = SUM(CRTM_ChannelInfo_n_Channels(ChannelInfo))
   ! ============================================================================
 
@@ -1058,8 +1053,6 @@ subroutine xb_to_radiance(inputfile,proj,ix,jx,kx,xlong,xlat,landmask,iob_radmin
   !
   ! 4a1. Loading Atmosphere and Surface input
   ! --------------------------------
-!  call get_variable2d(inputfile,'XLAT',ix,jx,1,xlat)
-!  call get_variable2d(inputfile,'XLONG',ix,jx,1,xlong)
   call get_variable3d(inputfile,'P',ix,jx,kx,1,p)
   call get_variable3d(inputfile,'PB',ix,jx,kx,1,pb)
   call get_variable3d(inputfile,'PH',ix,jx,kx+1,1,ph)
@@ -1074,11 +1067,13 @@ subroutine xb_to_radiance(inputfile,proj,ix,jx,kx,xlong,xlat,landmask,iob_radmin
   call get_variable2d(inputfile,'PSFC',ix,jx,1,psfc)
   call get_variable2d(inputfile,'TSK',ix,jx,1,tsk)
   call get_variable2d(inputfile,'HGT',ix,jx,1,hgt)
-!  call get_variable2d(inputfile,'LANDMASK',ix,jx,1,landmask)
+  call get_variable2d(inputfile,'MU',ix,jx,1,mu)
+  call get_variable2d(inputfile,'MUB',ix,jx,1,mub)
+  call get_variable1d(inputfile,'ZNW',kx+1,1,znw)
   lat = xlat/180.0*3.14159
   lon = xlong/180.0*3.14159
-  pres = P + PB
-  tk = (T + 300.0) * ( (pres / P1000MB) ** (R_D/Cpd) )
+  p = p + pb
+  tk = (t + 300.0) * ( (p / P1000MB) ** (R_D/Cpd) )
   where(qvapor.lt.0.0) qvapor=1.0e-8
   where(qcloud.lt.0.0) qcloud=0.0
   where(qice.lt.0.0) qice=0.0
@@ -1100,8 +1095,8 @@ subroutine xb_to_radiance(inputfile,proj,ix,jx,kx,xlong,xlat,landmask,iob_radmin
   do iob = ystart, yend
      obs_ii=lon_radiance(iob)
      obs_jj=lat_radiance(iob)
-     x = int( obs_ii )
-     y = int( obs_jj )
+     x = nint( obs_ii )
+     y = nint( obs_jj )
 
   ! 4a3. Converting WRF data for CRTM structure
   ! --------------------------------
@@ -1130,15 +1125,15 @@ subroutine xb_to_radiance(inputfile,proj,ix,jx,kx,xlong,xlat,landmask,iob_radmin
    atm(1)%Climatology         = TROPICAL
    atm(1)%Absorber_Id(1:2)    = (/ H2O_ID, O3_ID /)
    atm(1)%Absorber_Units(1:2) = (/ MASS_MIXING_RATIO_UNITS,VOLUME_MIXING_RATIO_UNITS /)
-   atm(1)%Level_Pressure(0) = (pres(x,y,kx)*3.0/2.0 - pres(x,y,kx-1)/2.0)/100.0  ! convert from Pa to hPA
+   atm(1)%Level_Pressure(0) = (p(x,y,kx)*3.0/2.0 - p(x,y,kx-1)/2.0)/100.0  ! convert from Pa to hPA
 !   atm(1)%Level_Pressure(0) = 0.05
    do z=kx,1,-1
      if(z.eq.1) then
        atm(1)%Level_Pressure(kx-z+1) = psfc(x,y)/100.0  ! convert from Pa tohPA
      else
-       atm(1)%Level_Pressure(kx-z+1) = ((pres(x,y,z-1)+pres(x,y,z))/2.0)/100.0  ! convert from Pa to hPA
+       atm(1)%Level_Pressure(kx-z+1) = ((p(x,y,z-1)+p(x,y,z))/2.0)/100.0  ! convert from Pa to hPA
      endif
-     atm(1)%Pressure(kx-z+1)       = pres(x,y,z) / 100.0
+     atm(1)%Pressure(kx-z+1)       = p(x,y,z) / 100.0
      atm(1)%Temperature(kx-z+1)    = tk(x,y,z)
      atm(1)%Absorber(kx-z+1,1)     = qvapor(x,y,z)*1000.0
    enddo
@@ -1187,7 +1182,7 @@ subroutine xb_to_radiance(inputfile,proj,ix,jx,kx,xlong,xlat,landmask,iob_radmin
        atm(1)%Cloud(icl)%Type = WATER_CLOUD
        atm(1)%Cloud(icl)%Effective_Radius(k1:k2) = 16.8_fp
        atm(1)%Cloud(icl)%Water_Content(k1:k2)    = &
-           qcloud(x,y,z)*pres(x,y,z)/287.2/(tk(x,y,z)+0.61*(qvapor(x,y,z)/(1+qvapor(x,y,z))))*delz(z)
+           qcloud(x,y,z)*p(x,y,z)/287.2/(tk(x,y,z)+0.61*(qvapor(x,y,z)/(1+qvapor(x,y,z))))*delz(z)
      endif
    enddo
    do z=kx,1,-1
@@ -1198,7 +1193,7 @@ subroutine xb_to_radiance(inputfile,proj,ix,jx,kx,xlong,xlat,landmask,iob_radmin
        atm(1)%Cloud(icl)%Type = RAIN_CLOUD
        atm(1)%Cloud(icl)%Effective_Radius(k1:k2) = 1000.0_fp
        atm(1)%Cloud(icl)%Water_Content(k1:k2)    = &
-           qrain(x,y,z)*pres(x,y,z)/287.2/(tk(x,y,z)+0.61*(qvapor(x,y,z)/(1+qvapor(x,y,z))))*delz(z)
+           qrain(x,y,z)*p(x,y,z)/287.2/(tk(x,y,z)+0.61*(qvapor(x,y,z)/(1+qvapor(x,y,z))))*delz(z)
      endif
    enddo
    do z=kx,1,-1
@@ -1209,7 +1204,7 @@ subroutine xb_to_radiance(inputfile,proj,ix,jx,kx,xlong,xlat,landmask,iob_radmin
        atm(1)%Cloud(icl)%Type = ICE_CLOUD
        atm(1)%Cloud(icl)%Effective_Radius(k1:k2) = 25.0_fp
        atm(1)%Cloud(icl)%Water_Content(k1:k2)    = &
-           qice(x,y,z)*pres(x,y,z)/287.2/(tk(x,y,z)+0.61*(qvapor(x,y,z)/(1+qvapor(x,y,z))))*delz(z)
+           qice(x,y,z)*p(x,y,z)/287.2/(tk(x,y,z)+0.61*(qvapor(x,y,z)/(1+qvapor(x,y,z))))*delz(z)
      endif
    enddo
    do z=kx,1,-1
@@ -1220,7 +1215,7 @@ subroutine xb_to_radiance(inputfile,proj,ix,jx,kx,xlong,xlat,landmask,iob_radmin
        atm(1)%Cloud(icl)%Type = SNOW_CLOUD
        atm(1)%Cloud(icl)%Effective_Radius(k1:k2) = 750.0_fp
        atm(1)%Cloud(icl)%Water_Content(k1:k2)    = &
-           qsnow(x,y,z)*pres(x,y,z)/287.2/(tk(x,y,z)+0.61*(qvapor(x,y,z)/(1+qvapor(x,y,z))))*delz(z)
+           qsnow(x,y,z)*p(x,y,z)/287.2/(tk(x,y,z)+0.61*(qvapor(x,y,z)/(1+qvapor(x,y,z))))*delz(z)
      endif
    enddo
    do z=kx,1,-1
@@ -1231,7 +1226,7 @@ subroutine xb_to_radiance(inputfile,proj,ix,jx,kx,xlong,xlat,landmask,iob_radmin
        atm(1)%Cloud(icl)%Type = GRAUPEL_CLOUD
        atm(1)%Cloud(icl)%Effective_Radius(k1:k2) = 1500.0_fp
        atm(1)%Cloud(icl)%Water_Content(k1:k2)    = &
-           qgraup(x,y,z)*pres(x,y,z)/287.2/(tk(x,y,z)+0.61*(qvapor(x,y,z)/(1+qvapor(x,y,z))))*delz(z)
+           qgraup(x,y,z)*p(x,y,z)/287.2/(tk(x,y,z)+0.61*(qvapor(x,y,z)/(1+qvapor(x,y,z))))*delz(z)
      endif
    enddo
    ENDIF
@@ -1312,29 +1307,49 @@ subroutine xb_to_radiance(inputfile,proj,ix,jx,kx,xlong,xlat,landmask,iob_radmin
   enddo
 
   CALL MPI_Allreduce(Tbsend,Tb,ix*jx*n_ch,MPI_REAL,MPI_SUM,comm,ierr)
-!  if(x==24 .and. y==184) write(*,*) my_proc_id
 
   ! ============================================================================
+  !find observation location in z
+  qvapor = qvapor+qcloud+qrain
+  do iob = iob_radmin, iob_radmax
+      obs_ii=obs%position(iob,1)
+      obs_jj=obs%position(iob,2)
+      i1=nint(obs_ii)
+      j1=nint(obs_jj)
+      dx  = obs_ii-real(i1)
+      dxm = real(i1+1)-obs_ii
+      dy  = obs_jj-real(j1)
+      dym = real(j1+1)-obs_jj
+      mu1 = dym*(dx*mu(i1+1,j1  ) + dxm*mu(i1,j1  )) + dy*(dx*mu(i1+1,j1+1) + dxm*mu(i1,j1+1))
+      mub1 = dym*(dx*mub(i1+1,j1  ) + dxm*mub(i1,j1  )) + dy*(dx*mub(i1+1,j1+1) + dxm*mub(i1,j1+1))
+      qvt = dym*(dx*qvapor(i1+1,j1,:) + dxm*qvapor(i1,j1,:)) + dy*(dx*qvapor(i1+1,j1+1,:) + dxm*qvapor(i1,j1+1,:))
+      ptt = dym*(dx*t(i1+1,j1,:) + dxm*t(i1,j1,:)) + dy*(dx*t(i1+1,j1+1,:) + dxm*t(i1,j1+1,:))
+      ph1(1:2,1:2,:) = ph(i1:i1+1, j1:j1+1, :) + phb(i1:i1+1, j1:j1+1, :)
+      ph1(1,1,:) = dym*(dx*ph1(2,1,:) + dxm*ph1(1,1,:)) + dy*(dx*ph1(2,2,:) + dxm*ph1(1,2,:))
+      call eta_to_pres(znw, mu1+mub1, qvt, ph1(1,1,:), ptt+to, kx, pres)
+      call to_zk(obs%position(iob,4), pres, obs%position(iob,3), kx)
+      if ( obs%position(iob,3) .lt. 1. ) obs%position(iob,3) = 1.
+  enddo
 
-  ! ============================================================================
   !6.5  **** writing the output ****
-  !
   if(my_proc_id==0) then
     do iob = iob_radmin, iob_radmax
       obs_ii=obs%position(iob,1)
       obs_jj=obs%position(iob,2)
-      x = int( obs_ii )
-      y = int( obs_jj )
-      !if (Sensor_Id == 'abi_gr' ) then
-         !if (obs%ch(iob) .eq. 8) xb_tb(iob) = Tb(x,y,1) !6.19um
-         !if (obs%ch(iob) .eq. 9) xb_tb(iob) = Tb(x,y,2) !6.95um
-         !if (obs%ch(iob) .eq. 10) xb_tb(iob) = Tb(x,y,3) !7.34um
-         !if (obs%ch(iob) .eq. 14) write(*,*)'change channel setting for ch14' !xb_tb(iob) = Tb(x,y,4) !11.2um
-      !elseif (Sensor_Id == 'imgr_g13' ) then
-         !if (obs%ch(iob) .eq. 3) xb_tb(iob) = Tb(x,y,2) !6.19um
-         !if (obs%ch(iob) .eq. 4) xb_tb(iob) = Tb(x,y,3) !11.2um
-      !endif
-      xb_tb(iob) = Tb(x,y,2)   !Meteosat7 ch-3
+      x = nint( obs_ii )
+      y = nint( obs_jj )
+      if (Sensor_Id == 'abi_gr' ) then
+         if (obs%ch(iob) .eq. 8) xb_tb(iob) = Tb(x,y,1) !6.19um
+         if (obs%ch(iob) .eq. 9) xb_tb(iob) = Tb(x,y,2) !6.95um
+         if (obs%ch(iob) .eq. 10) xb_tb(iob) = Tb(x,y,3) !7.34um
+         if (obs%ch(iob) .eq. 14) write(*,*)'change channel setting for ch14' !xb_tb(iob) = Tb(x,y,4) !11.2um
+      elseif (Sensor_Id == 'imgr_g13' ) then
+         if (obs%ch(iob) .eq. 3) xb_tb(iob) = Tb(x,y,2) !6.19um
+         if (obs%ch(iob) .eq. 4) xb_tb(iob) = Tb(x,y,3) !11.2um
+      elseif (Sensor_Id == 'mviriNOM_m07' ) then
+         if (obs%ch(iob) .eq. 2) xb_tb(iob) = Tb(x,y,1)   !Meteosat7 ch-2 IR window
+         if (obs%ch(iob) .eq. 3) xb_tb(iob) = Tb(x,y,2)   !Meteosat7 ch-3 WV absorb band
+      endif
     enddo
     !--initializing the Tbsend fields for Bcast
     !Tbsend = 0.0

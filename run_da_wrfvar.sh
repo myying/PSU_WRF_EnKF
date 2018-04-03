@@ -9,7 +9,7 @@
 #BSUB -e log.%J.err
 
 source /glade/u/apps/opt/lmod/4.2.1/init/bash
-source ~/.bashrc_yy
+source ~/.bashrc
 
 for i in {073..100}; do 
 cd /glade/scratch/fzhang/yy/DYNAMO/EnKF_OSSE/AtovsAmvMet7Cygnss/run/201110120000/perturb_ic/$i

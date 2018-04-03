@@ -47,7 +47,7 @@ for n in $domlist; do
 
 #radiance obs
   ln -fs $WORK/code/CRTM/crtm_wrf/coefficients
-  ln -fs $OBS_DIR/Met7/Tb_d01_${DATE}_so radiance_${DATE}_so
+  ln -fs $OBS_DIR/Met7/ch3/Tb_d01_${DATE}_so radiance_${DATE}_so
 
 #  #link truth for OSSE
 #  ln -fs $WORK/data/DYNAMO/3km_run_9km/wrfout_d01_`wrf_time_string $DATE` fort.80010
@@ -133,6 +133,7 @@ for n in $domlist; do
 	done
 	cp fort.`expr 90011 + $NUM_ENS` $WORK_DIR/fc/$DATE/wrfinput_${dm}_mean
 	cp fort.`expr 80011 + $NUM_ENS` $WORK_DIR/fc/$PREVDATE/wrfinput_${dm}_`wrf_time_string $DATE`_mean
+  cp fort.10000 $WORK_DIR/obs/$DATE/assimilated_obs_$dm
   cd ..
 done
 

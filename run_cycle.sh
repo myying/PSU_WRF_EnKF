@@ -70,13 +70,11 @@ while [[ $NEXTDATE -le $DATE_CYCLE_END ]]; do  #CYCLE LOOP
   # ICBC
   $SCRIPT_DIR/module_icbc.sh &
   # Ensemble initialization and forecast
-  if $RUN_ENKF; then
-    if [ $DATE == $DATE_START ]; then
-      $SCRIPT_DIR/module_perturb_ic.sh &
-    fi
-    if [ $NEXTDATE -le $DATE_CYCLE_END ]; then
-      $SCRIPT_DIR/module_wrf_ens.sh &
-    fi
+  if [ $DATE == $DATE_START ]; then
+    $SCRIPT_DIR/module_perturb_ic.sh &
+  fi
+  if [ $NEXTDATE -le $DATE_CYCLE_END ]; then
+    $SCRIPT_DIR/module_wrf_ens.sh &
   fi
   # First deterministic run for 4DVar
   if $RUN_4DVAR && ! $RUN_ENKF && [ $DATE == $DATE_START ]; then

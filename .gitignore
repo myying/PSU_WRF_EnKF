@@ -1,8 +1,9 @@
-out
+out*
 *.swp
 *.o
 *.mod
 *.exe
 *.mpi
-log/*
+log
+config
 slurm*out

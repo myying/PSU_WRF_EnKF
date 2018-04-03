@@ -8,7 +8,7 @@
 #BSUB -o log/%J.out
 #BSUB -e log/%J.err
 source /glade/u/apps/opt/lmod/4.2.1/init/bash
-source ~/.bashrc_yy
+source ~/.bashrc
 
 #load configuration files, functions, parameters
 cd $WORK/PSU_WRF_EnKF

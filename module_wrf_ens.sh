@@ -9,7 +9,9 @@ if [[ `cat stat` == "complete" ]]; then exit; fi
 #Check dependency
 wait_for_module ../icbc 
 if [ $DATE == $DATE_START ]; then wait_for_module ../perturb_ic; fi
-if [ $DATE -gt $DATE_START ]; then wait_for_module ../enkf; fi
+if [ $DATE -gt $DATE_START ]; then
+  if $RUN_ENKF; then wait_for_module ../enkf; fi
+fi
 
 echo running > stat
 
@@ -81,7 +83,11 @@ for r in 1 1.5; do
   
     for n in `seq 1 $MAX_DOM`; do
       dm=d`expr $n + 100 |cut -c2-`
-      ln -fs ../../../../fc/$DATE/wrfinput_${dm}_$id wrfinput_$dm
+      if $RUN_ENKF; then
+        ln -fs ../../../../fc/$DATE/wrfinput_${dm}_$id wrfinput_$dm
+      else
+        ln -fs ../../../../fc/$PREVDATE/wrfinput_${dm}_`wrf_time_string $DATE`_$id wrfinput_$dm
+      fi
     done
     #ln -fs ../../../../fc/wrfbdy_d01_$id wrfbdy_d01
 		ln -fs ../../../../fc/wrfbdy_d01 wrfbdy_d01
@@ -139,7 +145,9 @@ done
 
 for NE in `seq 1 $NUM_ENS`; do
   id=`expr $NE + 1000 |cut -c2-`
-  mv $id/wrfout_d01_`wrf_time_string $DATE` $WORK_DIR/output/$DATE/wrfout_d01_`wrf_time_string $DATE`_$id
+  if $RUN_ENKF; then
+    mv $id/wrfout_d01_`wrf_time_string $DATE` $WORK_DIR/output/$DATE/wrfout_d01_`wrf_time_string $DATE`_$id
+  fi
   mv $id/wrfout_d01_`wrf_time_string $NEXTDATE` $WORK_DIR/output/$DATE/wrfout_d01_`wrf_time_string $NEXTDATE`_$id
 done
 
@@ -182,5 +190,5 @@ if $CLEAN; then
 fi
 
 echo complete > stat
-rm ???/rsl.*
+rm ???/rsl.* &
 

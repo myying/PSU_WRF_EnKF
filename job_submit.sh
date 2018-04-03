@@ -35,7 +35,7 @@ if [[ $HOSTTYPE == "yellowstone" ]]; then
     nodes=`echo "($n+$ppn-1)/$ppn" |bc`
     jobname=`basename $exe |awk -F. '{print $1}'`
     queue="regular"
-    wtime="0:40"
+    wtime="0:50"
       if [ $jobname == "wrf" ]; then
         queue="regular"
         wtime="0:10"
@@ -52,7 +52,7 @@ if [[ $HOSTTYPE == "yellowstone" ]]; then
 #BSUB -e log.%J.err
 
 source /glade/u/apps/opt/lmod/4.2.1/init/bash
-source ~/.bashrc_yy
+source ~/.bashrc
 cd `pwd`
 mpirun.lsf $exe >& $jobname.log
 EOF
