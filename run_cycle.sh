@@ -1,18 +1,14 @@
 #!/bin/bash
-#BSUB -P UPSU0001
-#BSUB -J run_cycle
-#BSUB -W 12:00
-#BSUB -q regular
-#BSUB -n 256
-#BSUB -R "span[ptile=16]"
-#BSUB -o log/%J.out
-#BSUB -e log/%J.err
-source /glade/u/apps/opt/lmod/4.2.1/init/bash
-source ~/.bashrc_yy
+#SBATCH -J run_cycle
+#SBATCH -n 544 -N 8
+#SBATCH -p development
+#SBATCH -t 2:00:00
+#SBATCH -o log/%j.out
+#SBATCH -e log/%j.err
 
 #load configuration files, functions, parameters
 cd $WORK/PSU_WRF_EnKF
-export CONFIG_FILE=$WORK/PSU_WRF_EnKF/config/EnKF_OSSE/control #AtovsAmvMet7Cygnss
+export CONFIG_FILE=$WORK/PSU_WRF_EnKF/config/Cloud_reanalysis/control
 . $CONFIG_FILE
 . util.sh
 
@@ -20,7 +16,7 @@ if [[ ! -d $WORK_DIR ]]; then mkdir -p $WORK_DIR; fi
 cd $WORK_DIR
 
 if [ $JOB_SUBMIT_MODE == 1 ]; then
-  if [[ $HOSTTYPE == "stampede" ]]; then
+  if [[ $HOSTTYPE == "stampede2" ]]; then
     export total_ntasks=$SLURM_NTASKS
   fi
   if [[ $HOSTTYPE == "jet" ]]; then
@@ -32,6 +28,7 @@ if [ $JOB_SUBMIT_MODE == 1 ]; then
 else
   export total_ntasks=9999999
 fi
+echo total_ntasks=$total_ntasks
 
 #start cycling
 date
@@ -92,6 +89,7 @@ while [[ $NEXTDATE -le $DATE_CYCLE_END ]]; do  #CYCLE LOOP
 #    if $RUN_ENKF || $RUN_4DVAR; then
 #      $SCRIPT_DIR/module_obsproc.sh &
 #    fi
+
     # EnKF
     if $RUN_ENKF; then
       $SCRIPT_DIR/module_enkf.sh &

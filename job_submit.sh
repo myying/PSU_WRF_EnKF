@@ -69,15 +69,15 @@ EOF
 fi
 
 ###stampede
-if [[ $HOSTTYPE == "stampede" ]]; then
+if [[ $HOSTTYPE == "stampede2" ]]; then
 
   if [ $JOB_SUBMIT_MODE == 1 ]; then
 
-    export SLURM_NTASKS=$((ppn*$SLURM_NNODES))
-    export SLURM_NPROCS=$((ppn*$SLURM_NNODES))
-    export SLURM_TACC_CORES=$((ppn*$SLURM_NNODES))
-    export SLURM_TASKS_PER_NODE="$ppn(x$SLURM_NNODES)"
-    ibrun -n $n -o $o $exe
+		export SLURM_NTASKS=$((ppn*$SLURM_NNODES))
+		export SLURM_NPROCS=$((ppn*$SLURM_NNODES))
+		export SLURM_TACC_CORES=$((ppn*$SLURM_NNODES))
+		export SLURM_TASKS_PER_NODE="$ppn(x$SLURM_NNODES)"
+		ibrun -n $n -o $o $exe
 
   fi
 fi
