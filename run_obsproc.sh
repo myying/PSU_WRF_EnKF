@@ -1,18 +1,14 @@
 #!/bin/bash
-#BSUB -P UPSU0001
-#BSUB -J run_obsproc
-#BSUB -W 2:00
-#BSUB -q small
-#BSUB -n 16
-#BSUB -R "span[ptile=16]"
-#BSUB -o log/%J.out
-#BSUB -e log/%J.err
-source /glade/u/apps/opt/lmod/4.2.1/init/bash
-source ~/.bashrc
+#SBATCH -J obsproc
+#SBATCH -n 64 -N 1
+#SBATCH -p development
+#SBATCH -t 2:00:00
+#SBATCH -o log/%j.out
+#SBATCH -e log/%j.err
 
 #load configuration files, functions, parameters
 cd $WORK/PSU_WRF_EnKF
-export CONFIG_FILE=$WORK/PSU_WRF_EnKF/config/EnKF_OSSE/obsproc
+export CONFIG_FILE=$WORK/PSU_WRF_EnKF/config/Cloud_reanalysis/obsproc
 . $CONFIG_FILE
 . util.sh
 
@@ -20,7 +16,7 @@ if [[ ! -d $WORK_DIR ]]; then mkdir -p $WORK_DIR; fi
 cd $WORK_DIR
 
 if [ $JOB_SUBMIT_MODE == 1 ]; then
-  if [[ $HOSTTYPE == "stampede" ]]; then
+  if [[ $HOSTTYPE == "stampede2" ]]; then
     export total_ntasks=$SLURM_NTASKS
   fi
   if [[ $HOSTTYPE == "jet" ]]; then
@@ -32,6 +28,9 @@ if [ $JOB_SUBMIT_MODE == 1 ]; then
 else
   export total_ntasks=9999999
 fi
+
+tid=0
+nt=$total_ntasks
 
 #start cycling
 date
@@ -70,14 +69,15 @@ while [[ $NEXTDATE -le $DATE_CYCLE_END ]]; do  #CYCLE LOOP
 
   #RUN COMPONENTS---------------------------------------
 
-  # Data assimilation for each cycle
   if [ $DATE -ge $DATE_CYCLE_START ] && [ $DATE -le $DATE_CYCLE_END ]; then
-    # Processing observations
-    if $RUN_ENKF || $RUN_4DVAR; then
-      $SCRIPT_DIR/module_obsproc.sh &
-    fi
+    $SCRIPT_DIR/module_obsproc.sh &  #process observations
   fi
-  wait
+
+  tid=$((tid+1))
+  if [[ $tid == $nt ]]; then
+    tid=0
+    wait
+  fi
 
   #CHECK ERRORS
   for d in `ls -t run/$DATE/`; do
@@ -91,5 +91,6 @@ while [[ $NEXTDATE -le $DATE_CYCLE_END ]]; do  #CYCLE LOOP
   export PREVDATE=$DATE
   export DATE=$NEXTDATE
 done
+wait
 echo CYCLING COMPLETE
 
