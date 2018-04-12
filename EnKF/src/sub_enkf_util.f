@@ -317,13 +317,13 @@ subroutine  read_namelist(ix, jx, kx)
 
       if ( use_sounding ) then
          write(6,'(a      )') ' ===== assimilate UPPER-AIR (RAOB, PIBAL, RECCO, DROPS) REPORTS ===== '
-         write(6,'(a,i4   )') '       data thinning: ',datathin_sounding
+         write(6,'(a,2i4   )') '       data thinning: ',datathin_sounding, datathin_sounding_vert
          write(6,'(a,2i4  )') '       ROI for horizonal and vertical is:', hroi_sounding, vroi_sounding
       endif
 
       if ( use_profiler ) then
          write(6,'(a      )') ' ===== assimilate PROFILER REPORTS ===== '
-         write(6,'(a,i4   )') '       data thinning: ',datathin_profiler
+         write(6,'(a,2i4   )') '       data thinning: ',datathin_profiler, datathin_profiler_vert
          write(6,'(a,2i4  )') '       ROI for horizonal and vertical is:', hroi_profiler, vroi_profiler
       endif
 
@@ -353,7 +353,7 @@ subroutine  read_namelist(ix, jx, kx)
 
       if ( use_atovs ) then
          write(6,'(a      )') ' ===== assimilate ATOVS retrievals ===== '
-         write(6,'(a,i4   )') '       data thinning: ',datathin_atovs
+         write(6,'(a,2i4   )') '       data thinning: ',datathin_atovs, datathin_atovs_vert
          write(6,'(a,2i4  )') '       ROI for horizonal and vertical is:', hroi_atovs, vroi_atovs
       endif
 

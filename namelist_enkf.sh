@@ -15,13 +15,13 @@ cat << EOF
 &enkf_parameter
 numbers_en   = $NUM_ENS, 
 expername    = '$EXP_NAME',  
-enkfvar      = 'U         ', 'V         ', 'W         ', 'T         ', 'QVAPOR    ', 'QCLOUD    ', 'QRAIN     ', 'QSNOW     ', 'QICE      ', 'QGRAUP    ', 'PH        ', 'MU        ', 'PSFC      ', 'P         ', 'PHB       ', 'PB        ', 'MUB       ',
+enkfvar      = 'U         ', 'V         ', 'W         ', 'T         ', 'QVAPOR    ', 'QCLOUD    ', 'QRAIN     ', 'QSNOW     ', 'QICE      ', 'QGRAUP    ', 'QHAIL     ', 'PH        ', 'MU        ', 'PSFC      ', 'P         ', 'PHB       ', 'PB        ', 'MUB       ',
 EOF
 
 if [ $minute_off == 0 ] || [ $minute_off == 180 ]; then
-  echo "updatevar    = 'U         ', 'V         ', 'W         ', 'T         ', 'QVAPOR    ', 'QCLOUD    ', 'QRAIN     ', 'QSNOW     ', 'QICE      ', 'QGRAUP    ', 'PH        ', 'MU        ', 'PSFC      ', 'P         ',"
+  echo "updatevar    = 'U         ', 'V         ', 'W         ', 'T         ', 'QVAPOR    ', 'QCLOUD    ', 'QRAIN     ', 'QSNOW     ', 'QICE      ', 'QGRAUP    ', 'QHAIL     ', 'PH        ', 'MU        ', 'PSFC      ', 'P         ',"
 else
-  echo "updatevar    = 'U         ', 'V         ', 'W         ', 'T         ', 'QVAPOR    ', 'QCLOUD    ', 'QRAIN     ', 'QSNOW     ', 'QICE      ', 'QGRAUP    ', 'PH        ', 'MU        ', 'PSFC      ', 'P         ',"
+  echo "updatevar    = 'U         ', 'V         ', 'W         ', 'T         ', 'QVAPOR    ', 'QCLOUD    ', 'QRAIN     ', 'QSNOW     ', 'QICE      ', 'QGRAUP    ', 'QHAIL     ', 'PH        ', 'MU        ', 'PSFC      ', 'P         ',"
 	#echo "updatevar    = 'QCLOUD    ', 'QRAIN     ', 'QSNOW     ', 'QICE      ', 'QGRAUP    ',"
 fi
 
@@ -70,78 +70,80 @@ vroi_hurricane_PI = 35,
 
 &surface_obs
 use_surface      = .$USE_SURFOBS.,
-datathin_surface = $THIN_SURFACE,
+datathin_surface = ${THIN_SURFACE:-0},
 hroi_surface     = $(printf %.0f `echo $HROI_SFC/$dx |bc -l`),
 vroi_surface     = $VROI,
 /
 
 &sounding_obs
 use_sounding      = .$USE_SOUNDOBS.,
-datathin_sounding = $THIN_SOUNDING,
+datathin_sounding = ${THIN_SOUNDING:-0},
+datathin_sounding_vert = ${THIN_SOUNDING_VERT:-0},
 hroi_sounding     = $(printf %.0f `echo ${HROI_SOUNDING:-$HROI_UPPER}/$dx |bc -l`),
 vroi_sounding     = ${VROI_SOUNDING:-$VROI},
 /
 
 &profiler_obs
 use_profiler      = .$USE_PROFILEROBS.,
-datathin_profiler = $THIN_PROFILER,
+datathin_profiler = ${THIN_PROFILER:-0},
+datathin_profiler_vert = ${THIN_PROFILER_VERT:-0},
 hroi_profiler     = $(printf %.0f `echo $HROI_PROFL/$dx |bc -l`),
 vroi_profiler     = $VROI_PROFL,
 /
 
 &aircft_obs
 use_aircft      = .$USE_AIREPOBS.,
-datathin_aircft = $THIN_AIRCFT,
+datathin_aircft = ${THIN_AIRCFT:-0},
 hroi_aircft     = $(printf %.0f `echo $HROI_UPPER/$dx |bc -l`),
 vroi_aircft     = $VROI,
 /
 
 &metar_obs
 use_metar      = .$USE_METAROBS.,
-datathin_metar = $THIN_METAR,
+datathin_metar = ${THIN_METAR:-0},
 hroi_metar     = $(printf %.0f `echo $HROI_SFC/$dx |bc -l`),
 vroi_metar     = $VROI,
 /
 
 &sfcshp_obs
 use_sfcshp      = .$USE_SHIPSOBS.,
-datathin_sfcshp = $THIN_SFCSHP,
+datathin_sfcshp = ${THIN_SFCSHP:-0},
 hroi_sfcshp     = $(printf %.0f `echo $HROI_SFC/$dx |bc -l`),
 vroi_sfcshp     = $VROI,
 /
 
 &spssmi_obs
 use_spssmi      = .$USE_SSMIOBS.,
-datathin_spssmi = $THIN_SPSSMI,
+datathin_spssmi = ${THIN_SPSSMI:-0},
 hroi_spssmi     = $(printf %.0f `echo $HROI_UPPER/$dx |bc -l`),
 vroi_spssmi     = $VROI,
 /
 
 &atovs_obs
 use_atovs      = .$USE_ATOVS.,
-datathin_atovs = $THIN_ATOVS,
-datathin_atovs_vert = $THIN_ATOVS_VERT,
+datathin_atovs = ${THIN_ATOVS:-0},
+datathin_atovs_vert = ${THIN_ATOVS_VERT:-0},
 hroi_atovs     = $(printf %.0f `echo ${HROI_ATOVS:-$HROI_UPPER}/$dx |bc -l`),
 vroi_atovs     = ${VROI_ATOVS:-$VROI},
 /
 
 &satwnd_obs
 use_satwnd      = .$USE_GEOAMVOBS.,
-datathin_satwnd = $THIN_SATWND,
+datathin_satwnd = ${THIN_SATWND:-0},
 hroi_satwnd     = $(printf %.0f `echo ${HROI_SATWND:-$HROI_UPPER}/$dx |bc -l`),
 vroi_satwnd     = ${VROI_SATWND:-$VROI},
 /
 
 &seawind_obs
 use_seawind      = .$USE_SEAWIND.,
-datathin_seawind = $THIN_SEAWIND,
+datathin_seawind = ${THIN_SEAWIND:-0},
 hroi_seawind     = $(printf %.0f `echo ${HROI_SEAWIND:-$HROI_UPPER}/$dx |bc -l`),
 vroi_seawind     = ${VROI_SEAWIND:-$VROI},
 /
 
 &gpspw_obs
 use_gpspw      = .$USE_GPSPWOBS.,
-datathin_gpspw = $THIN_GPSPW,
+datathin_gpspw = ${THIN_GPSPW:-0},
 hroi_gpspw     = $(printf %.0f `echo $HROI_SFC/$dx |bc -l`),
 vroi_gpspw     = $VROI,
 /

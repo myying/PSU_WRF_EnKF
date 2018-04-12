@@ -89,12 +89,14 @@ module namelist_define
 !-- use_sounding_obs
    logical       :: use_sounding        ! .true. : assimilated UPPER-AIR (RAOB, PIBAL, RECCO, DROPS) REPORTS
    integer       :: datathin_sounding   ! 0=all data, 2=1/2 data, 10=1/10 data
+   integer       :: datathin_sounding_vert
    integer       :: hroi_sounding       ! horizontal radius of influence for sounding 
    integer       :: vroi_sounding       ! vertical radius of influence for sounding 
 
 !-- use_profiler_obs
    logical       :: use_profiler        ! .true. : assimilated WIND PROFILER REPORTS
    integer       :: datathin_profiler   ! 0=all data, 2=1/2 data, 10=1/10 data
+   integer       :: datathin_profiler_vert
    integer       :: hroi_profiler       ! horizontal radius of influence for profiler 
    integer       :: vroi_profiler       ! vertical radius of influence for profiler 
 
@@ -180,8 +182,8 @@ module namelist_define
                               gridobs_ks, gridobs_ke, gridobs_int_x, gridobs_int_k, use_simulated
    namelist /hurricane_PI   / use_hurricane_PI, hroi_hurricane_PI, vroi_hurricane_PI
    namelist /surface_obs    / use_surface, datathin_surface, hroi_surface, vroi_surface
-   namelist /sounding_obs   / use_sounding, datathin_sounding, hroi_sounding, vroi_sounding
-   namelist /profiler_obs   / use_profiler, datathin_profiler, hroi_profiler, vroi_profiler
+   namelist /sounding_obs   / use_sounding, datathin_sounding, datathin_sounding_vert, hroi_sounding, vroi_sounding
+   namelist /profiler_obs   / use_profiler, datathin_profiler, datathin_profiler_vert, hroi_profiler, vroi_profiler
    namelist /aircft_obs     / use_aircft, datathin_aircft, hroi_aircft, vroi_aircft
    namelist /metar_obs      / use_metar , datathin_metar , hroi_metar , vroi_metar 
    namelist /sfcshp_obs     / use_sfcshp, datathin_sfcshp, hroi_sfcshp, vroi_sfcshp
