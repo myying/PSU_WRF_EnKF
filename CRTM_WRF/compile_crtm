@@ -1,5 +1,0 @@
-#!/bin/bash
-mpif90 -f90=ifort -c -convert big_endian -FR mpi_module.f
-mpif90 -f90=ifort -c -convert big_endian -I$NETCDF/include module_netcdf.f
-mpif90 -f90=ifort -c -convert big_endian -assume byterecl -traceback -FR -I$NETCDF/include -I$CRTM_DIR/include main_crtm.f90
-mpif90 -o crtm.exe mpi_module.o module_netcdf.o main_crtm.o -L$CRTM_DIR/lib -lCRTM -L$NETCDF/lib -lnetcdf 
