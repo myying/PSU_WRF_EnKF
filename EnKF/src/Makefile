@@ -72,4 +72,4 @@ replace_mean.exe: module_netcdf.o mpi_module.o
 
 wrf2obs3dvar: module_netcdf.o module_map_utils.o module_structure.o module_wrf_tools.o
 	rm -f wrf2obs3dvar.exe
-	$(FC) -o wrf2obs3dvar.exe $(FCFLAG) -FR -I$(NETCDF)/include module_netcdf.o module_map_utils.o module_structure.o module_wrf_tools.o -L$(NETCDF)/lib -lnetcdff wrf2obs3dvar.GPSROref.f time_calculation.f
+	$(FC) -o wrf2obs3dvar.exe $(FCFLAG) -FR -I$(NETCDF)/include module_netcdf.o module_map_utils.o module_structure.o module_wrf_tools.o -L$(NETCDF)/lib -lnetcdff wrf2obs3dvar.f time_calculation.f
