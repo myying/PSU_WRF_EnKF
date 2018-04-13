@@ -92,7 +92,7 @@ cat << EOF
  write_sound = .true.,
  write_amdar = .true.,
  write_satem = .false.,
- write_satob = .false.,
+ write_satob = .true.,
  write_airep = .true.,
  write_gpspw = .false.,
  write_gpsztd= .false.,

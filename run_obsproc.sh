@@ -30,7 +30,7 @@ else
 fi
 
 tid=0
-nt=$total_ntasks
+nt=1 #$total_ntasks
 
 #start cycling
 date

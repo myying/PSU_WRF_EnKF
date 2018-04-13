@@ -31,7 +31,7 @@ for n in $domlist; do
   done
   wait
 
-  ln -fs ../../../../../truth/wrfout_${dm}_`wrf_time_string $DATE` fort.70010
+  #ln -fs ../../../../../truth/wrfout_${dm}_`wrf_time_string $DATE` fort.70010
   cp -L fort.80011 fort.`expr 80011 + $NUM_ENS`
   cp -L fort.80011 fort.`expr 90011 + $NUM_ENS`
   ln -fs $ENKF_DIR/enkf.mpi .
@@ -48,9 +48,6 @@ for n in $domlist; do
 #radiance obs
   ln -fs $WORK/code/CRTM/crtm_wrf/coefficients
   ln -fs $OBS_DIR/Met7/ch3/Tb_d01_${DATE}_so radiance_${DATE}_so
-
-#  #link truth for OSSE
-#  ln -fs $WORK/data/DYNAMO/3km_run_9km/wrfout_d01_`wrf_time_string $DATE` fort.80010
 
   $SCRIPT_DIR/namelist_enkf.sh $n > namelist.enkf
   cd ..

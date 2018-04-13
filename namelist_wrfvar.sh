@@ -74,11 +74,11 @@ len_scaling2=$LEN_SCALING2,
 len_scaling3=$LEN_SCALING3,
 len_scaling4=$LEN_SCALING4,
 len_scaling5=$LEN_SCALING5,
-as1=`echo "$VAR_SCALING1*0.25" |bc`,`echo "$LEN_SCALING1*1.0" |bc`,`echo "$LEN_SCALING1*1.5" |bc`,
-as2=`echo "$VAR_SCALING2*0.25" |bc`,`echo "$LEN_SCALING2*1.0" |bc`,`echo "$LEN_SCALING2*1.5" |bc`,
-as3=`echo "$VAR_SCALING3*0.25" |bc`,`echo "$LEN_SCALING3*1.0" |bc`,`echo "$LEN_SCALING3*1.5" |bc`,
-as4=`echo "$VAR_SCALING4*0.25" |bc`,`echo "$LEN_SCALING4*1.0" |bc`,`echo "$LEN_SCALING4*1.5" |bc`,
-as5=`echo "$VAR_SCALING5*0.25" |bc`,`echo "$LEN_SCALING5*1.0" |bc`,`echo "$LEN_SCALING5*1.5" |bc`,
+as1=`echo "$VAR_SCALING1*0.1" |bc`,`echo "$LEN_SCALING1*0.5" |bc`,`echo "$LEN_SCALING1*1.0" |bc`,
+as2=`echo "$VAR_SCALING2*0.1" |bc`,`echo "$LEN_SCALING2*0.5" |bc`,`echo "$LEN_SCALING2*1.0" |bc`,
+as3=`echo "$VAR_SCALING3*0.1" |bc`,`echo "$LEN_SCALING3*0.5" |bc`,`echo "$LEN_SCALING3*1.0" |bc`,
+as4=`echo "$VAR_SCALING4*0.1" |bc`,`echo "$LEN_SCALING4*0.5" |bc`,`echo "$LEN_SCALING4*1.0" |bc`,
+as5=`echo "$VAR_SCALING5*0.1" |bc`,`echo "$LEN_SCALING5*0.5" |bc`,`echo "$LEN_SCALING5*1.0" |bc`,
 /
 &wrfvar8
 /

@@ -17,8 +17,8 @@ echo > obs.raw
 ##### include NCAR_LITTLE_R (3-hourly) #####
 if $INCLUDE_LITTLE_R; then
   rm -f datelist
-  time_lag=0
-  obs_interval=3
+  time_lag=1
+  obs_interval=1
   for offset in `seq $((OBS_WIN_MIN/60-$time_lag)) $obs_interval $((OBS_WIN_MAX/60+$time_lag))`; do
     obsdate=`advance_time $DATE $((offset*60))`
     hh=`echo $obsdate |cut -c9-10`
@@ -31,19 +31,29 @@ if $INCLUDE_LITTLE_R; then
     echo $obsdate >> datelist
   done
   for d in `cat datelist |sort |uniq`; do
-#    cat $DATA_DIR/littler/little_r:${d:0:4}-${d:4:2}-${d:6:2}_${d:8:2}:${d:10:2} >> obs.raw
 
     #NCAR_LITTLE_R
-    cp $DATA_DIR/ncar_littler/${d:0:6}/obs.${d:0:10}.gz .
-    gunzip obs.${d:0:10}.gz
-    cat obs.${d:0:10} >> obs.raw
-    rm obs.${d:0:10}
+    if [ -f $DATA_DIR/ncar_littler/${d:0:6}/obs.${d:0:10}.gz ]; then 
+      cp $DATA_DIR/ncar_littler/${d:0:6}/obs.${d:0:10}.gz .
+      gunzip obs.${d:0:10}.gz
+      cat obs.${d:0:10} |sed 's/FM-88 SATOB /FM-111 GPSPW/g' >> obs.raw   #exclude AMV in ncar_littler
+      rm obs.${d:0:10}
+    fi
 
     #UPAQF soundings - LITTLE_R
-    cat $DATA_DIR/upaqf/${d:0:6}/upaqf.${d:0:10} >> obs.raw
+    if [ -f $DATA_DIR/upaqf/${d:0:6}/upaqf.${d:0:10} ]; then
+      cat $DATA_DIR/upaqf/${d:0:6}/upaqf.${d:0:10} >> obs.raw
+    fi
 
-#     $DATA_DIR/amv/amv2littler $d
-#     cat $DATA_DIR/amv/${d:0:6}/amv.${d:0:10} >> obs.raw
+    #AMV
+    if [ -f $DATA_DIR/Met7_amv/${d:0:6}/amv.${d:0:10} ]; then
+      cat $DATA_DIR/Met7_amv/${d:0:6}/amv.${d:0:10} >> obs.raw
+    fi
+
+    #ASCAT
+    if [ -f $DATA_DIR/ascat/${d:0:6}/ascat.${d:0:10} ]; then
+      cat $DATA_DIR/ascat/${d:0:6}/ascat.${d:0:10} >> obs.raw
+    fi
   done
 fi
 
