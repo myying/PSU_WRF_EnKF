@@ -2171,8 +2171,8 @@ do_reports : do n = start_data, ista, inter_data
         obs%roi     (obs%num,2) = vroi
    endif
 
-   if ( data(n,1,2).ge.0. .and. data(n,1,2).le.200. ) then
-!......... wind speed
+   if ( data(n,1,2).ge.0. .and. data(n,1,2).le.200. .and. data(n,1,3) .eq. -888888.0) then
+!......... wind speed only
         obs%num                 = obs%num + 1
         obs%dat     (obs%num  ) = data(n,1,2)
         obs%type    (obs%num  ) = 'S'//instrument//'S'
