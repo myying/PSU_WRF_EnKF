@@ -76,6 +76,11 @@ for r in 1 1.5; do
       #watch_log update_wrf_bc.log successfully 1 $rundir
       #mv wrfbdy_d01_update $WORK_DIR/fc/wrfbdy_d01_$id
     #fi
+    if [ $DATE == $LBDATE ]; then
+      export sst_update=1
+    else
+      export sst_update=0
+    fi
 
     ####Running model
     ln -fs $WRF_DIR/run/* .
