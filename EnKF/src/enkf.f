@@ -321,21 +321,6 @@ obs_cycle: do ig=1,int(obs%num/nob)+1
    enddo
 end do obs_cycle
 
-!--ensemble loop for satellite radiance
- !---every grid is calculated in subroutine xb_to_radiance
-
-if(raw%radiance%num.ne.0) then
-  yasend_tb=0.
-  do ie = 1, numbers_en
-    yasend_tb = 0.0
-    write( filename, '(a5,i5.5)') wrf_file(1:5), iunit+ie-1
-    !if ( my_proc_id == 0 ) write(*,*) "calculating radiance prior for member",ie
-    call xb_to_radiance(filename,proj,ix,jx,kx,xlong,xlat,xland,iob_radmin,iob_radmax,yasend_tb)
-    yasend(iob_radmin:iob_radmax,ie) = yasend_tb(iob_radmin:iob_radmax)
-    yasend(iob_radmin:iob_radmax,numbers_en+1)=yasend(iob_radmin:iob_radmax,numbers_en+1)+yasend_tb(iob_radmin:iob_radmax)/real(numbers_en)  !calculate ya mean here
-  enddo
-endif
-call MPI_Allreduce(yasend,ya,obs%num*(numbers_en+1),MPI_REAL,MPI_SUM,comm,ierr)
 
 !make a copy of yf (prior)
 yf=ya
@@ -813,6 +798,33 @@ enddo update_x_var
    end do update_y_cycle
 
 end do obs_assimilate_cycle
+
+
+
+!!!Satellite observations loop here
+!Michael Ying: loop over satellite observation using different strategy
+!              decompose domain into slabs and assimilate each 1/4 of the slab
+!              withouth influencing other slabs, all slabs processed simultaneously
+
+!--calculate Hx
+!---every grid is calculated in subroutine xb_to_radiance
+if(raw%radiance%num.ne.0) then
+  yasend_tb=0.
+  do ie = 1, numbers_en
+    yasend_tb = 0.0
+    write( filename, '(a5,i5.5)') wrf_file(1:5), iunit+ie-1
+    !if ( my_proc_id == 0 ) write(*,*) "calculating radiance prior for member",ie
+    call xb_to_radiance(filename,proj,ix,jx,kx,xlong,xlat,xland,iob_radmin,iob_radmax,yasend_tb,.true.)
+    yasend(iob_radmin:iob_radmax,ie) = yasend_tb(iob_radmin:iob_radmax)
+    yasend(iob_radmin:iob_radmax,numbers_en+1)=yasend(iob_radmin:iob_radmax,numbers_en+1)+yasend_tb(iob_radmin:iob_radmax)/real(numbers_en)  !calculate ya mean here
+  enddo
+endif
+call MPI_Allreduce(yasend,ya,obs%num*(numbers_en+1),MPI_REAL,MPI_SUM,comm,ierr)
+
+sat_obs_cycle: do batch=1:4
+   
+end do sat_obs_cycle
+!!! satellite observation assimilation complete
 
 if ( my_proc_id == 0 ) write(*,'(a,f7.2,a)')' 1 tooks ', t1, ' seconds.'
 if ( my_proc_id == 0 ) write(*,'(a,f7.2,a)')' 2 tooks ', t2, ' seconds.'

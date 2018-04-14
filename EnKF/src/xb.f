@@ -858,7 +858,7 @@ end subroutine xb_to_slp
 
 
 !=======================================================================================
-subroutine xb_to_radiance(inputfile,proj,ix,jx,kx,xlong,xlat,landmask,iob_radmin,iob_radmax,xb_tb)
+subroutine xb_to_radiance(inputfile,proj,xa,ix,jx,kx,nv,iob,xlong,xlat,znw,hgt,tsk,landmask,xb,cloud_flag)
 
 !---------------------
 ! radiance subroutine calculates brightness temperature for satellite channels
@@ -872,12 +872,14 @@ subroutine xb_to_radiance(inputfile,proj,ix,jx,kx,xlong,xlat,landmask,iob_radmin
   use wrf_tools
 
   implicit none
-  integer, intent(in)                      :: ix, jx, kx
-  integer, intent(out)                     :: iob_radmin,iob_radmax
+  integer, intent(in)                      :: ix, jx, kx, nv, iob
   character(len=10), intent(in)            :: inputfile
   type(proj_info), intent(in)              :: proj                   ! 1st guestmap info
-  real, dimension(obs%num), intent(out)    :: xb_tb
-  real, dimension(ix, jx ), intent(in)     :: xlong,xlat,landmask
+  real, dimension(3,3,kx+1,nv), intent(in) :: xa                     ! 1st guest
+  real, intent(out)                        :: xb
+  real, dimension(ix, jx ), intent(in)     :: xlong, xlat, landmask, hgt, tsk
+  real, dimension(kx+1),intent(in)         :: znw
+  logical, intent(in)                      :: cloud_flag
   integer                                  :: iob,irad, i1,j1
   real                                     :: obs_ii,obs_jj, dx,dxm,dy,dym,mu1,mub1
 
@@ -920,13 +922,12 @@ subroutine xb_to_radiance(inputfile,proj,ix,jx,kx,xlong,xlat,landmask,iob_radmin
   character(LEN=3)  :: file_ens
   integer :: x,y,tt,v,z,n,reci,ens,n_ec,num_radgrid
   INTEGER :: ncl,icl,k1,k2
-  real :: lat_radiance(ix*jx)  ! latitude
-  real :: lon_radiance(ix*jx) ! longitude
+  !real :: lat_radiance(ix*jx)  ! latitude
+  !real :: lon_radiance(ix*jx) ! longitude
   real, dimension(ix,jx) :: lat,lon,psfc,hgt,tsk,mu,mub
   real, dimension(ix,jx,kx) :: p,pb,t,tk,qvapor,qcloud,qrain,qice,qsnow,qgraup
   real, dimension(ix,jx,kx+1) :: ph,phb
   real, dimension(kx) :: delz, pres,ptt,qvt,ht
-  real, dimension(kx+1) :: znw
   real, dimension(2,2,kx+1) :: ph1
   real :: Tbsend(ix,jx,n_ch)
   real :: Tb(ix,jx,n_ch)
@@ -1081,22 +1082,30 @@ subroutine xb_to_radiance(inputfile,proj,ix,jx,kx,xlong,xlat,landmask,iob_radmin
   where(qsnow.lt.0.0) qsnow=0.0
   where(qgraup.lt.0.0) qgraup=0.0
 
+  if(.not.cloud_flag) then  !!set hydrometeors to zero if calculating for clear-sky Tb
+    qcloud=0.0
+    qice=0.0
+    qrain=0.0
+    qsnow=0.0
+    qgraup=0.0
+  end if
+
   ! 4a2. Parallerization with grids
   ! --------------------------------
   !--- preparation for the x,y-loop
-  if(mod(num_radgrid,nprocs).eq.0) then
-     nyi=num_radgrid/nprocs
-  else
-     nyi=num_radgrid/nprocs+1
-  endif
-  ystart=my_proc_id*nyi+1
-  yend=min(num_radgrid,(my_proc_id+1)*nyi)
+  !if(mod(num_radgrid,nprocs).eq.0) then
+     !nyi=num_radgrid/nprocs
+  !else
+     !nyi=num_radgrid/nprocs+1
+  !endif
+  !ystart=my_proc_id*nyi+1
+  !yend=min(num_radgrid,(my_proc_id+1)*nyi)
 
-  do iob = ystart, yend
-     obs_ii=lon_radiance(iob)
-     obs_jj=lat_radiance(iob)
-     x = nint( obs_ii )
-     y = nint( obs_jj )
+  !do iob = ystart, yend
+     !obs_ii=lon_radiance(iob)
+     !obs_jj=lat_radiance(iob)
+     !x = nint( obs_ii )
+     !y = nint( obs_jj )
 
   ! 4a3. Converting WRF data for CRTM structure
   ! --------------------------------
