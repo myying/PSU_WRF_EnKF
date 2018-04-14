@@ -22,15 +22,15 @@ if [ $JOB_SUBMIT_MODE == 1 ]; then
   if [[ $HOSTTYPE == "jet" ]]; then
     export total_ntasks=$PBS_NP
   fi
-  if [[ $HOSTTYPE == "yellowstone" ]]; then
-    export total_ntasks=$LSB_MAX_NUM_PROCESSORS
+  if [[ $HOSTTYPE == "cheyenne" ]]; then
+    export total_ntasks=$NCPUS
   fi
 else
   export total_ntasks=9999999
 fi
 
 tid=0
-nt=1 #$total_ntasks
+nt=72 #$total_ntasks
 
 #start cycling
 date

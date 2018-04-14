@@ -1,10 +1,13 @@
 #!/bin/bash
-#SBATCH -J run_cycle
-#SBATCH -n 544 -N 8
-#SBATCH -p development
-#SBATCH -t 2:00:00
-#SBATCH -o log/%j.out
-#SBATCH -e log/%j.err
+source /glade/u/home/mying/.bashrc 
+
+##Header for stampede2
+##SBATCH -J run_cycle
+##SBATCH -n 544 -N 8
+##SBATCH -p development
+##SBATCH -t 2:00:00
+##SBATCH -o log/%j.out
+##SBATCH -e log/%j.err
 
 #load configuration files, functions, parameters
 cd $WORK/PSU_WRF_EnKF
@@ -22,8 +25,8 @@ if [ $JOB_SUBMIT_MODE == 1 ]; then
   if [[ $HOSTTYPE == "jet" ]]; then
     export total_ntasks=$PBS_NP
   fi
-  if [[ $HOSTTYPE == "yellowstone" ]]; then
-    export total_ntasks=$LSB_MAX_NUM_PROCESSORS
+  if [[ $HOSTTYPE == "cheyenne" ]]; then
+    export total_ntasks=$NCPUS
   fi
 else
   export total_ntasks=9999999
@@ -50,7 +53,7 @@ while [[ $NEXTDATE -le $DATE_CYCLE_END ]]; do  #CYCLE LOOP
   else
     export run_minutes_forecast=`max $run_minutes_cycle $FORECAST_MINUTES`
   fi
-  #LBDATE = Closest to DATE when FG is available
+  #LBDATE: Closest to DATE when LBC is available in wrfbdy/wrflowinp
   export minute_off=`echo "(${DATE:8:2}*60+${DATE:10:2})%$LBC_INTERVAL" |bc`
   export LBDATE=`advance_time $DATE -$minute_off` 
 

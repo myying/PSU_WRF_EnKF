@@ -14,8 +14,8 @@ o=$2  # offset location in task list, useful for several jobs to run together
 ppn=$3  # proc per node for the job
 exe=$4  # executable
 
-###yellowstone
-if [[ $HOSTTYPE == "yellowstone" ]]; then
+###yellowstone/cheyenne NCAR CISL
+if [[ $HOSTTYPE == "cheyenne" ]]; then
 
   if [ $JOB_SUBMIT_MODE == 1 ]; then
 #    hosts=($LSB_MCPU_HOSTS)
@@ -29,46 +29,44 @@ if [[ $HOSTTYPE == "yellowstone" ]]; then
 #    done
 #    cat nodefile_avail |head -n$((o+$n)) |tail -n$n > nodefile 
 #    mpirun -np $n -hostfile nodefile $exe
-    mpirun.lsf $exe
+    mpiexec $exe
 
   elif [ $JOB_SUBMIT_MODE == 2 ]; then
     nodes=`echo "($n+$ppn-1)/$ppn" |bc`
     jobname=`basename $exe |awk -F. '{print $1}'`
     queue="regular"
-    wtime="0:50"
+    wtime="00:50:00"
       if [ $jobname == "wrf" ]; then
         queue="regular"
-        wtime="0:10"
+        wtime="00:10:00"
       fi
     cat << EOF > run_$jobname.sh
 #!/bin/bash
-#BSUB -P UPSU0001
-#BSUB -J $jobname
-#BSUB -W $wtime
-#BSUB -q $queue
-#BSUB -n $n
-#BSUB -R "span[ptile=$ppn]"
-#BSUB -o log.%J.out
-#BSUB -e log.%J.err
+#PBS -A UPSU0023
+#PBS -N $jobname
+#PBS -l walltime=$wtime
+#PBS -q $queue
+#PBS -l select=$n:ncpus=$ppn
+#PBS -j oe
+#PBS -o job_run.log
 
-source /glade/u/apps/opt/lmod/4.2.1/init/bash
 source ~/.bashrc
 cd `pwd`
-mpirun.lsf $exe >& $jobname.log
+mpiexec $exe >& $jobname.log
 EOF
-    bsub < run_$jobname.sh >& job_submit.log
+    qsub run_$jobname.sh >& job_submit.log
     #wait for job to finish
-    jobid=`cat job_submit.log |awk '{print $2}' |tr '<>' ' '`
+    jobid=`cat job_submit.log`
     jobstat=1
     until [[ $jobstat == 0 ]]; do
       sleep 1
-      jobstat=`bjobs -a -o "jobid stat" |grep $jobid |awk '{if($2=="RUN" || $2=="PEND") print 1; else print 0;}'`
+      jobstat=`qstat -x |grep $jobid |awk '{if($5==R || $5==Q) print 1; else print 0;}'`
     done
   fi
 
 fi
 
-###stampede
+###stampede TACC UTEXAS
 if [[ $HOSTTYPE == "stampede2" ]]; then
 
   if [ $JOB_SUBMIT_MODE == 1 ]; then
@@ -82,7 +80,7 @@ if [[ $HOSTTYPE == "stampede2" ]]; then
   fi
 fi
 
-###jet
+###jet NOAA
 if [[ $HOSTTYPE == "jet" ]]; then
 
   if [ $JOB_SUBMIT_MODE == 1 ]; then
