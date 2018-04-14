@@ -46,7 +46,7 @@ if [[ $HOSTTYPE == "cheyenne" ]]; then
 #PBS -N $jobname
 #PBS -l walltime=$wtime
 #PBS -q $queue
-#PBS -l select=$n:ncpus=$ppn
+#PBS -l select=$nodes:ncpus=$ppn:mpiprocs=$ppn
 #PBS -j oe
 #PBS -o job_run.log
 
