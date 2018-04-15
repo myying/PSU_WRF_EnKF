@@ -224,6 +224,8 @@ obs_cycle: do ig=1,int(obs%num/nob)+1
    enddo
 end do obs_cycle
 
+call MPI_Allreduce(yasend,ya,obs%num*(numbers_en+1),MPI_REAL,MPI_SUM,comm,ierr)
+
 !print out obs/prior for debugging
 if(print_detail>4 .and. my_proc_id==0) then
    do iob=1,obs%num
@@ -271,7 +273,7 @@ obs_assimilate_cycle : do it = 1,obs%num
 
    if( abs(y_hxm)>(error*5.) .and. &
       .not.( obstype=='min_slp   ' .or. obstype=='slp       ' .or. &
-             obstype=='longtitude' .or. obstype=='latitude  ' ) then
+             obstype=='longtitude' .or. obstype=='latitude  ' ) ) then
       if ( my_proc_id==0 ) write(*,*)' ...kicked off for large error'
       kick_flag(iob)=1
       cycle obs_assimilate_cycle
@@ -653,7 +655,6 @@ if ( my_proc_id==0 ) write(*,*)'Number of assimilated obs =',assimilated_obs_num
     !yasend(iob_radmin:iob_radmax,numbers_en+1)=yasend(iob_radmin:iob_radmax,numbers_en+1)+yasend_tb(iob_radmin:iob_radmax)/real(numbers_en)  !calculate ya mean here
   !enddo
 !endif
-!call MPI_Allreduce(yasend,ya,obs%num*(numbers_en+1),MPI_REAL,MPI_SUM,comm,ierr)
 
 !sat_obs_cycle: do batch=1:4
    
