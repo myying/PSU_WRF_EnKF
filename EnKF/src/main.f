@@ -29,7 +29,7 @@
   use radar
   integer            :: i_unit=80010, o_unit=90010
   integer            :: unit
-  integer            :: ie, ic, it, ix, jx, kx, len, i, j, k, n, ntot, ni,nj,nk
+  integer            :: iob, ie, ic, it, ix, jx, kx, len, i, j, k, n, ntot, ni,nj,nk
   integer            :: ii, jj, kk, m, nv, nm, gid, sid, iid,jid, g_comm,s_comm
   real               :: member_per_cpu
   character (len=10) :: wrf_file

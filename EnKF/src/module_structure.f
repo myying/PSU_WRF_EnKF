@@ -67,12 +67,6 @@ module namelist_define
    logical       :: manual_parallel, random_order, relax_adaptive
    integer       :: nmcpu, nicpu, njcpu
 
-!-- use_osse
-   logical       :: use_ideal_obs       ! .true. : use ideal observation, no real obs. position. Just for use_sounding or use_groundbase_radar
-   integer       :: gridobs_is, gridobs_ie, gridobs_js, gridobs_je, gridobs_ks, gridobs_ke  ! domain to pick up data as gridobservation, for use_ideal_obs
-   integer       :: gridobs_int_x, gridobs_int_k     ! horizontal and vertical interval grid for picking up gridobs, for use_ideal_obs
-   logical       :: use_simulated       ! .true. : use simulated radar data
-
 !-- use_hurricane_position_intensity
    logical       :: use_hurricane_PI    ! .true. : assimilated hurricane position and intensity 
    integer       :: hroi_hurricane_PI   ! horizontal radius of influence for hurricane PI
@@ -178,8 +172,6 @@ module namelist_define
                               update_is, update_ie, update_js, update_je, update_ks, update_ke,   &
                               inflate, relax_opt, relax_adaptive, mixing, random_order, print_detail
    namelist /parallel       / manual_parallel, nmcpu, nicpu, njcpu
-   namelist /osse           / use_ideal_obs, gridobs_is, gridobs_ie, gridobs_js, gridobs_je,      &
-                              gridobs_ks, gridobs_ke, gridobs_int_x, gridobs_int_k, use_simulated
    namelist /hurricane_PI   / use_hurricane_PI, hroi_hurricane_PI, vroi_hurricane_PI
    namelist /surface_obs    / use_surface, datathin_surface, hroi_surface, vroi_surface
    namelist /sounding_obs   / use_sounding, datathin_sounding, datathin_sounding_vert, hroi_sounding, vroi_sounding

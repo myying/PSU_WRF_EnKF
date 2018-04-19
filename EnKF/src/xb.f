@@ -27,11 +27,14 @@ real, dimension(2, 2, kx+1)             :: p
 real, dimension(kx)                     :: pres, ptt, qvt, ht
 real                                    :: mu1, mub1, long, grid_u, grid_v, true_u, true_v, dir, spd
 integer                                 :: i1, j1, k1, i, j, k, m, ii, jj, kk, obs_ii,obs_jj
-integer                                 :: i_ph, i_phb, i_mu, i_mub, i_pt, i_qv, i_qc, i_qr, i_var, i_u, i_v
+integer                                 :: i_ph, i_phb, i_mu, i_mub, i_pt, i_qv, i_qc, i_qr, i_u, i_v
 integer                                 :: i_t2, i_th2, i_q2, i_u10, i_v10
 real                                    :: dx, dxm, dy, dym, dz, dzm
 real                                    :: psfc, tsfc, psfcm, u10, v10, t2, q2, th2
 real, dimension(ix, jx      )           :: rough
+
+xb=-888888.
+
 obstype=obs%type(iob)
 obs_ii=obs%position(iob,1)
 obs_jj=obs%position(iob,2)
@@ -212,358 +215,411 @@ endif
 end subroutine xb_to_surface
 
 !=======================================================================================
-   subroutine xb_to_sounding (inputfile,proj,xa,ix,jx,kx,nv,iob,xlong,znu,znw,p_top,xb,itruth,isimulated )
-   use constants
-   use namelist_define
-   use obs_define
-   use netcdf
-   use wrf_tools
-   use map_utils
-   use mpi_module
+subroutine calc_sounding_position_k (inputfile,proj,xa,ix,jx,kx,nv,iob,xlong,znu,znw,p_top,obs_kk)
+use constants
+use namelist_define
+use obs_define
+use netcdf
+use wrf_tools
+use map_utils
+use mpi_module
 
-   implicit none
+implicit none
+character(len=10), intent(in)           :: inputfile
+type(proj_info), intent(in)             :: proj                   ! 1st guest map info
+real, dimension(3,3,kx+1,nv), intent(in)  :: xa                     ! 1st guest
+integer, intent(in)                     :: ix, jx, kx, nv, iob 
+real, dimension(ix, jx ), intent(in)    :: xlong
+real, dimension(kx+1), intent(in)       :: znw
+real, dimension(kx), intent(in)         :: znu
+real,  intent(in)                       :: p_top
 
-   character(len=10), intent(in)           :: inputfile
-   type(proj_info), intent(in)             :: proj                   ! 1st guest map info
-   real, dimension(3,3,kx+1,nv), intent(in)  :: xa                     ! 1st guest
-   integer, intent(in)                     :: ix, jx, kx, nv, iob  
-   real, dimension(ix, jx ), intent(in)    :: xlong
-   real, dimension(kx+1), intent(in)       :: znw
-   real, dimension(kx), intent(in)         :: znu
-   real,  intent(in)                       :: p_top
-   integer, intent(in)                     :: itruth, isimulated
+real :: obs_ii, obs_jj
+real, intent(out)   :: obs_kk
+character(len=10)   :: obstype
 
-   real :: obs_ii, obs_jj, obs_kk, obs_pp !
-   real, intent(out)   :: xb
-   character(len=10)   :: obstype
+real, dimension(ix, jx, kx+1)           :: ph, phb
+real, dimension(ix, jx, kx  )           :: pt, pb, qv, qc, qr
+real, dimension(ix, jx      )           :: mu, mub
+real, dimension(ix+1, jx, kx)           :: u
+real, dimension(ix, jx+1, kx)           :: v
+real, dimension(kx+1)                   :: work, worku, workv, ph1
+real, dimension(kx)                     :: pres, ptt, qvt
+real                                    :: mu1, mub1, long, grid_u, grid_v, true_u, true_v
+real                                    :: dx, dxm, dy, dym, dz, dzm
+integer                                 :: i1, j1, k1, i, j, k, m, ii, jj, kk
+integer                                 :: i_ph, i_phb, i_mu, i_mub, i_pt, i_qv, i_qc, i_qr
 
-   real, dimension(ix, jx, kx+1)           :: ph, phb
-   real, dimension(ix, jx, kx  )           :: pt, pb, qv, qc, qr
-   real, dimension(ix, jx      )           :: mu, mub
-   real, dimension(ix+1, jx, kx)           :: u
-   real, dimension(ix, jx+1, kx)           :: v
-   real, dimension(kx+1)                   :: znw0
-   real, dimension(kx)                     :: znu0
+obstype=obs%type(iob)
+obs_ii=obs%position(iob,1)
+obs_jj=obs%position(iob,2)
+i1 = int( obs_ii )
+j1 = int( obs_jj ) 
+dx  = obs_ii-real(i1)
+dxm = real(i1+1)-obs_ii
+dy  = obs_jj-real(j1)
+dym = real(j1+1)-obs_jj
 
-   real, dimension(2, 2, kx+1)             :: p
-   real, dimension(kx+1)                   :: work, worku, workv
-
-   real, dimension(kx)                     :: pres, ptt, qvt
-   real                                    :: mu1, mub1, long, grid_u, grid_v, true_u, true_v
-   real                                    :: dx, dxm, dy, dym, dz, dzm
-   integer                                 :: i1, j1, k1, i, j, k, m, ii, jj, kk
-   integer                                 :: i_ph, i_phb, i_mu, i_mub, i_pt, i_qv, i_qc, i_qr, i_var, i_u, i_v
-
-   obstype=obs%type(iob)
-   obs_ii=obs%position(iob,1)
-   obs_jj=obs%position(iob,2)
-   obs_kk=obs%position(iob,3)
-   obs_pp=obs%position(iob,4)
-   i1 = int( obs_ii )
-   j1 = int( obs_jj ) 
-   dx  = obs_ii-real(i1)
-   dxm = real(i1+1)-obs_ii
-   dy  = obs_jj-real(j1)
-   dym = real(j1+1)-obs_jj
-
-!.. calculate pressure from geopotential height
-    if ( itruth == 0 )then
-         call get_variable1d(inputfile, 'ZNW       ', kx+1, 1, znw0)
-         call get_variable1d(inputfile, 'ZNU       ', kx  , 1, znu0)
-    else
-         znw0 = znw 
-         znu0 = znu
-    endif 
-
-!.. Calculate obs%position(iob,3)
-    if ( isimulated == 0 .or. obstype(10:10) == 'T' .or. obstype(10:10) == 'D' .or.  &
-                              obstype(10:10) == 'R' .or. obstype(10:10) == 'Q' .or.  &
-                              obstype(10:10) == 'N' ) then
-   
-!..    get data from background
-       i_ph = 0
-       i_phb = 0
-       i_mu = 0
-       i_mub = 0
-       i_pt = 0
-       i_qv = 0
-       do m = 1, nv
-          if ( enkfvar(m) == 'PH        ' ) i_ph=m
-          if ( enkfvar(m) == 'PHB       ' ) i_phb=m
-          if ( enkfvar(m) == 'T         ' ) i_pt=m
-          if ( enkfvar(m) == 'QVAPOR    ' ) i_qv=m
-          if ( enkfvar(m) == 'QCLOUD    ' ) i_qc=m
-          if ( enkfvar(m) == 'QRAIN     ' ) i_qr=m
-          if ( enkfvar(m) == 'MU        ' ) i_mu=m
-          if ( enkfvar(m) == 'MUB       ' ) i_mub=m
-       enddo
-       if(i_ph>0) ph(i1:i1+1,j1:j1+1,1:kx+1)=xa(1:2,1:2,1:kx+1,i_ph)
-       if(i_phb>0) phb(i1:i1+1,j1:j1+1,1:kx+1)=xa(1:2,1:2,1:kx+1,i_phb)
-       if(i_pt>0) pt(i1:i1+1,j1:j1+1,1:kx)=xa(1:2,1:2,1:kx,i_pt)
-       if(i_qv>0) qv(i1:i1+1,j1:j1+1,1:kx)=xa(1:2,1:2,1:kx,i_qv)
-       if(i_qc>0) qc(i1:i1+1,j1:j1+1,1:kx)=xa(1:2,1:2,1:kx,i_qc)
-       if(i_qr>0) qr(i1:i1+1,j1:j1+1,1:kx)=xa(1:2,1:2,1:kx,i_qr)
-       if(i_mu>0) mu(i1:i1+1,j1:j1+1)=xa(1:2,1:2,1,i_mu)
-       if(i_mub>0) mub(i1:i1+1,j1:j1+1)=xa(1:2,1:2,1,i_mub)
-
-       if ( i_ph == 0 ) call get_variable3d(inputfile, 'PH        ', ix, jx, kx+1, 1, ph )
-       if ( i_phb== 0 ) call get_variable3d(inputfile, 'PHB       ', ix, jx, kx+1, 1, phb)
-       if ( i_pt == 0 ) call get_variable3d(inputfile, 'T         ', ix, jx, kx,   1, pt )
-       if ( i_qv == 0 ) call get_variable3d(inputfile, 'QVAPOR    ', ix, jx, kx,   1, qv )
-       if ( i_qc == 0 ) call get_variable3d(inputfile, 'QCLOUD    ', ix, jx, kx,   1, qc )
-       if ( i_qr == 0 ) call get_variable3d(inputfile, 'QRAIN     ', ix, jx, kx,   1, qr )
-       if ( i_mu == 0 ) call get_variable2d(inputfile, 'MU        ', ix, jx, 1,    mu )
-       if ( i_mub== 0 ) call get_variable2d(inputfile, 'MUB       ', ix, jx, 1,    mub)
-
-       qv (i1:i1+1, j1:j1+1, 1:kx) = qv (i1:i1+1, j1:j1+1, 1:kx) + qc (i1:i1+1, j1:j1+1, 1:kx) + qr (i1:i1+1, j1:j1+1, 1:kx)
+!- calculate pressure profile on (obs_ii, obs_jj)
+ i_ph = 0
+ i_phb = 0
+ i_mu = 0
+ i_mub = 0
+ i_pt = 0
+ i_qv = 0
+ do m = 1, nv
+    if ( enkfvar(m) == 'PH        ' ) i_ph=m
+    if ( enkfvar(m) == 'PHB       ' ) i_phb=m
+    if ( enkfvar(m) == 'T         ' ) i_pt=m
+    if ( enkfvar(m) == 'QVAPOR    ' ) i_qv=m
+    if ( enkfvar(m) == 'QCLOUD    ' ) i_qc=m
+    if ( enkfvar(m) == 'QRAIN     ' ) i_qr=m
+    if ( enkfvar(m) == 'MU        ' ) i_mu=m
+    if ( enkfvar(m) == 'MUB       ' ) i_mub=m
+ enddo
+ if(i_ph>0) ph(i1:i1+1,j1:j1+1,1:kx+1)=xa(1:2,1:2,1:kx+1,i_ph)
+ if(i_phb>0) phb(i1:i1+1,j1:j1+1,1:kx+1)=xa(1:2,1:2,1:kx+1,i_phb)
+ if(i_pt>0) pt(i1:i1+1,j1:j1+1,1:kx)=xa(1:2,1:2,1:kx,i_pt)
+ if(i_qv>0) qv(i1:i1+1,j1:j1+1,1:kx)=xa(1:2,1:2,1:kx,i_qv)
+ if(i_qc>0) qc(i1:i1+1,j1:j1+1,1:kx)=xa(1:2,1:2,1:kx,i_qc)
+ if(i_qr>0) qr(i1:i1+1,j1:j1+1,1:kx)=xa(1:2,1:2,1:kx,i_qr)
+ if(i_mu>0) mu(i1:i1+1,j1:j1+1)=xa(1:2,1:2,1,i_mu)
+ if(i_mub>0) mub(i1:i1+1,j1:j1+1)=xa(1:2,1:2,1,i_mub)
+ if ( i_ph == 0 ) call get_variable3d(inputfile, 'PH        ', ix, jx, kx+1, 1, ph )
+ if ( i_phb== 0 ) call get_variable3d(inputfile, 'PHB       ', ix, jx, kx+1, 1, phb)
+ if ( i_pt == 0 ) call get_variable3d(inputfile, 'T         ', ix, jx, kx, 1, pt )
+ if ( i_qv == 0 ) call get_variable3d(inputfile, 'QVAPOR    ', ix, jx, kx, 1, qv )
+ if ( i_qc == 0 ) call get_variable3d(inputfile, 'QCLOUD    ', ix, jx, kx, 1, qc )
+ if ( i_qr == 0 ) call get_variable3d(inputfile, 'QRAIN     ', ix, jx, kx, 1, qr )
+ if ( i_mu == 0 ) call get_variable2d(inputfile, 'MU        ', ix, jx, 1, mu )
+ if ( i_mub== 0 ) call get_variable2d(inputfile, 'MUB       ', ix, jx, 1, mub)
 
 !...... get mut mu, mub at obs' position from horizontal interpolation
-       mu1 = dym*(dx*mu(i1+1,j1  ) + dxm*mu(i1,j1  )) + dy*(dx*mu(i1+1,j1+1) + dxm*mu(i1,j1+1))
-       mub1 = dym*(dx*mub(i1+1,j1  ) + dxm*mub(i1,j1  )) + dy*(dx*mub(i1+1,j1+1) + dxm*mub(i1,j1+1))
+ mu1 = dym*(dx*mu(i1+1,j1  ) + dxm*mu(i1,j1  )) + dy*(dx*mu(i1+1,j1+1) + dxm*mu(i1,j1+1))
+ mub1 = dym*(dx*mub(i1+1,j1  ) + dxm*mub(i1,j1  )) + dy*(dx*mub(i1+1,j1+1) + dxm*mub(i1,j1+1))
 
-!........ get qvt (qvapor) at obs' position from horizontal interpolation
-!........ get ptt(theta)  at obs' position from horizontal interpolation
-       qvt(1:kx) = dym*(dx*qv(i1+1,j1,1:kx) + dxm*qv(i1,j1,1:kx)) + dy*(dx*qv(i1+1,j1+1,1:kx) + dxm*qv(i1,j1+1,1:kx))
-       ptt(1:kx) = dym*(dx*pt(i1+1,j1,1:kx) + dxm*pt(i1,j1,1:kx)) + dy*(dx*pt(i1+1,j1+1,1:kx) + dxm*pt(i1,j1+1,1:kx))
+ qv (i1:i1+1, j1:j1+1, 1:kx) = qv (i1:i1+1, j1:j1+1, 1:kx) + qc (i1:i1+1, j1:j1+1, 1:kx) + qr (i1:i1+1, j1:j1+1, 1:kx)
+ qvt(1:kx) = dym*(dx*qv(i1+1,j1,1:kx) + dxm*qv(i1,j1,1:kx)) + dy*(dx*qv(i1+1,j1+1,1:kx) + dxm*qv(i1,j1+1,1:kx))
+ ptt(1:kx) = dym*(dx*pt(i1+1,j1,1:kx) + dxm*pt(i1,j1,1:kx)) + dy*(dx*pt(i1+1,j1+1,1:kx) + dxm*pt(i1,j1+1,1:kx))
 
-       p(1:2,1:2,1:kx+1) = ph(i1:i1+1, j1:j1+1, 1:kx+1) + phb(i1:i1+1, j1:j1+1, 1:kx+1)
-       p(1,1,1:kx+1) = dym*(dx*p(2,1,1:kx+1) + dxm*p(1,1,1:kx+1)) + dy*(dx*p(2,2,1:kx+1) + dxm*p(1,2,1:kx+1))
+ ph(i1:i1+1,j1:j1+1,1:kx+1) = ph(i1:i1+1, j1:j1+1, 1:kx+1) + phb(i1:i1+1, j1:j1+1, 1:kx+1)
+ ph1(1:kx+1) = dym*(dx*ph(i1+1,j1,1:kx+1) + dxm*ph(i1,j1,1:kx+1)) + dy*(dx*ph(i1+1,j1+1,1:kx+1) + dxm*ph(i1,j1+1,1:kx+1))
 
-       call eta_to_pres(znw0(1:kx+1), mu1+mub1, qvt(1:kx), p(1,1,1:kx+1), ptt(1:kx)+to, kx, pres(1:kx))
-!   if( print_detail==3 )write(*,'(3x,a,4f)')'obs location =', obs%position(iob,1:4)
-!   if( print_detail==3 )write(*,'(3x,a,f)')'          mu =', mu(1,1)
-!   if( print_detail==3 )write(*,'(3x,a,10f)')'          p  =', p(1,1,1:10)
-!       call cal_press_from_q( kx, znu0, znw0, qvt, mu1, mub1, p_top, pres )
-!       if( print_detail > 100 ) write(*,'(a,100f10.0)')'Pressure = ', pres
-!       if( print_detail > 100 ) write(*,'(a,100f10.4)')'qvt = ', qvt
+ if ( obstype(1:1) == 'H' ) then
+    call to_zk(obs%position(iob,4), ph1(1:kx)/g, obs_kk,kx) 
+ else if ( obstype(1:1) == 'P' ) then
+    call eta_to_pres(znw(1:kx+1), mu1+mub1, qvt(1:kx), ph1(1:kx+1), ptt(1:kx)+to, kx, pres(1:kx))
+    call to_zk(obs%position(iob,4), pres(1:kx), obs_kk,kx)
+ endif
 
-       if ( isimulated == 0 ) then
-          if ( obstype(1:1) == 'H' ) then
-!........... get geopotential height profile around obs%position, then horizontal interpolated to obs's position
-!  p is gz here
-             call to_zk(obs%position(iob,4), p(1,1,1:kx)/g, obs%position(iob,3), kx) 
-          else if ( obstype(1:1) == 'P' ) then
-             call to_zk(obs%position(iob,4), pres(1:kx), obs%position(iob,3), kx)
-          endif
-!          if ( obs%position(iob,3) .ge. real(kx-1) ) obs%position(iob,3) = real(kx-1)
-          if ( obs%position(iob,3) .lt. 1. ) obs%position(iob,3) = 1.
-          obs_kk = obs%position(iob,3)
-       endif
-    endif
+ !if(obs_kk>kx .or. obs_kk<1) print *, 'obs z location error: k=',obs_kk
+end subroutine calc_sounding_position_k 
 
-!.. Get xb from background
-   if ( obs_kk .gt. real(kx-1) .or. obs_kk .lt. 1. ) then
-      xb = -999999.
-      return
-   endif
+subroutine xb_to_sounding (inputfile,proj,xa,ix,jx,kx,nv,iob,xlong,znu,znw,p_top,xb)
+use constants
+use namelist_define
+use obs_define
+use netcdf
+use wrf_tools
+use map_utils
+use mpi_module
 
-   k1  = int( obs_kk )
-   dz  = obs_kk-real(k1)
-   dzm = real(k1+1)-obs_kk
+implicit none
+character(len=10), intent(in)           :: inputfile
+type(proj_info), intent(in)             :: proj                   ! 1st guest map info
+real, dimension(3,3,kx+1,nv), intent(in)  :: xa                     ! 1st guest
+integer, intent(in)                     :: ix, jx, kx, nv, iob 
+real, dimension(ix, jx ), intent(in)    :: xlong
+real, dimension(kx+1), intent(in)       :: znw
+real, dimension(kx), intent(in)         :: znu
+real,  intent(in)                       :: p_top
+
+real :: obs_ii, obs_jj, obs_kk
+real, intent(out)   :: xb
+character(len=10)   :: obstype
+
+real, dimension(ix, jx, kx+1)           :: ph, phb
+real, dimension(ix, jx, kx  )           :: pt, pb, qv, qc, qr
+real, dimension(ix, jx      )           :: mu, mub
+real, dimension(ix+1, jx, kx)           :: u
+real, dimension(ix, jx+1, kx)           :: v
+
+real, dimension(kx+1)                   :: work, worku, workv, ph1
+real, dimension(kx)                     :: pres, ptt, qvt
+real                                    :: mu1, mub1, long, grid_u, grid_v, true_u, true_v
+real                                    :: dx, dxm, dy, dym, dz, dzm
+integer                                 :: i1, j1, k1, i, j, k, m, ii, jj, kk
+integer                                 :: i_ph, i_phb, i_mu, i_mub, i_pt, i_qv, i_qc, i_qr, i_u, i_v
+
+xb=-888888.
+
+obstype=obs%type(iob)
+obs_ii=obs%position(iob,1)
+obs_jj=obs%position(iob,2)
+obs_kk=obs%position(iob,3)
+i1 = int( obs_ii )
+j1 = int( obs_jj ) 
+k1  = int( obs_kk )
+dx  = obs_ii-real(i1)
+dxm = real(i1+1)-obs_ii
+dy  = obs_jj-real(j1)
+dym = real(j1+1)-obs_jj
+dz  = obs_kk-real(k1)
+dzm = real(k1+1)-obs_kk
+
+ i_ph = 0
+ i_phb = 0
+ i_mu = 0
+ i_mub = 0
+ i_pt = 0
+ i_qv = 0
+ do m = 1, nv
+    if ( enkfvar(m) == 'PH        ' ) i_ph=m
+    if ( enkfvar(m) == 'PHB       ' ) i_phb=m
+    if ( enkfvar(m) == 'T         ' ) i_pt=m
+    if ( enkfvar(m) == 'QVAPOR    ' ) i_qv=m
+    if ( enkfvar(m) == 'QCLOUD    ' ) i_qc=m
+    if ( enkfvar(m) == 'QRAIN     ' ) i_qr=m
+    if ( enkfvar(m) == 'MU        ' ) i_mu=m
+    if ( enkfvar(m) == 'MUB       ' ) i_mub=m
+ enddo
+ if(i_ph>0) ph(i1:i1+1,j1:j1+1,1:kx+1)=xa(1:2,1:2,1:kx+1,i_ph)
+ if(i_phb>0) phb(i1:i1+1,j1:j1+1,1:kx+1)=xa(1:2,1:2,1:kx+1,i_phb)
+ if(i_pt>0) pt(i1:i1+1,j1:j1+1,1:kx)=xa(1:2,1:2,1:kx,i_pt)
+ if(i_qv>0) qv(i1:i1+1,j1:j1+1,1:kx)=xa(1:2,1:2,1:kx,i_qv)
+ if(i_qc>0) qc(i1:i1+1,j1:j1+1,1:kx)=xa(1:2,1:2,1:kx,i_qc)
+ if(i_qr>0) qr(i1:i1+1,j1:j1+1,1:kx)=xa(1:2,1:2,1:kx,i_qr)
+ if(i_mu>0) mu(i1:i1+1,j1:j1+1)=xa(1:2,1:2,1,i_mu)
+ if(i_mub>0) mub(i1:i1+1,j1:j1+1)=xa(1:2,1:2,1,i_mub)
+ if ( i_ph == 0 ) call get_variable3d(inputfile, 'PH        ', ix, jx, kx+1, 1, ph )
+ if ( i_phb== 0 ) call get_variable3d(inputfile, 'PHB       ', ix, jx, kx+1, 1, phb)
+ if ( i_pt == 0 ) call get_variable3d(inputfile, 'T         ', ix, jx, kx, 1, pt )
+ if ( i_qv == 0 ) call get_variable3d(inputfile, 'QVAPOR    ', ix, jx, kx, 1, qv )
+ if ( i_qc == 0 ) call get_variable3d(inputfile, 'QCLOUD    ', ix, jx, kx, 1, qc )
+ if ( i_qr == 0 ) call get_variable3d(inputfile, 'QRAIN     ', ix, jx, kx, 1, qr )
+ if ( i_mu == 0 ) call get_variable2d(inputfile, 'MU        ', ix, jx, 1, mu )
+ if ( i_mub== 0 ) call get_variable2d(inputfile, 'MUB       ', ix, jx, 1, mub)
+
+!...... get mut mu, mub at obs' position from horizontal interpolation
+ mu1 = dym*(dx*mu(i1+1,j1  ) + dxm*mu(i1,j1  )) + dy*(dx*mu(i1+1,j1+1) + dxm*mu(i1,j1+1))
+ mub1 = dym*(dx*mub(i1+1,j1  ) + dxm*mub(i1,j1  )) + dy*(dx*mub(i1+1,j1+1) + dxm*mub(i1,j1+1))
+
+ qv (i1:i1+1, j1:j1+1, 1:kx) = qv (i1:i1+1, j1:j1+1, 1:kx) + qc (i1:i1+1, j1:j1+1, 1:kx) + qr (i1:i1+1, j1:j1+1, 1:kx)
+ qvt(1:kx) = dym*(dx*qv(i1+1,j1,1:kx) + dxm*qv(i1,j1,1:kx)) + dy*(dx*qv(i1+1,j1+1,1:kx) + dxm*qv(i1,j1+1,1:kx))
+ ptt(1:kx) = dym*(dx*pt(i1+1,j1,1:kx) + dxm*pt(i1,j1,1:kx)) + dy*(dx*pt(i1+1,j1+1,1:kx) + dxm*pt(i1,j1+1,1:kx))
+ ph(i1:i1+1,j1:j1+1,1:kx+1) = ph(i1:i1+1, j1:j1+1, 1:kx+1) + phb(i1:i1+1, j1:j1+1, 1:kx+1)
+ ph1(1:kx+1) = dym*(dx*ph(i1+1,j1,1:kx+1) + dxm*ph(i1,j1,1:kx+1)) + dy*(dx*ph(i1+1,j1+1,1:kx+1) + dxm*ph(i1,j1+1,1:kx+1))
+ call eta_to_pres(znw(1:kx+1), mu1+mub1, qvt(1:kx), ph1(1:kx+1), ptt(1:kx)+to, kx, pres(1:kx))
 
 !.. U, V
-    if ( obstype(10:10) == 'U' .or. obstype(10:10) == 'V' .or. obstype(10:10) == 'S' ) then
-       i_u = 0
-       i_v = 0
-       do m = 1, nv
-          if ( enkfvar(m) == 'U         ' ) i_u=m
-          if ( enkfvar(m) == 'V         ' ) i_v=m
-       enddo
-       u(i1:i1+2,j1:j1+1,k1:k1+1)=xa(1:3,1:2,k1:k1+1,i_u)
-       v(i1:i1+1,j1:j1+2,k1:k1+1)=xa(1:2,1:3,k1:k1+1,i_v)
+if ( obstype(10:10) == 'U' .or. obstype(10:10) == 'V' .or. obstype(10:10) == 'S' ) then
+   i_u = 0
+   i_v = 0
+   do m = 1, nv
+      if ( enkfvar(m) == 'U         ' ) i_u=m
+      if ( enkfvar(m) == 'V         ' ) i_v=m
+   enddo
+   u(i1:i1+2,j1:j1+1,k1:k1+1)=xa(1:3,1:2,k1:k1+1,i_u)
+   v(i1:i1+1,j1:j1+2,k1:k1+1)=xa(1:2,1:3,k1:k1+1,i_v)
 
-       worku = -88888.
-       workv = -88888.
-       if ( obs_ii-i1 == 0.500 ) then
-          worku(k1:k1+1) = dym*u(i1+1,j1,k1:k1+1) + dy*u(i1+1,j1+1,k1:k1+1)
-       else if ( obs_ii-i1 > 0.500 ) then
-          worku(k1:k1+1) = dym*( u(i1+1,j1,k1:k1+1)*(dxm+0.5)+u(i1+2,j1,k1:k1+1)*(dx-0.5) ) + &
-                           dy *( u(i1+1,j1+1,k1:k1+1)*(dxm+0.5)+u(i1+2,j1+1,k1:k1+1)*(dx-0.5) )
-       else if ( obs_ii-i1 < 0.500 ) then
-          worku(k1:k1+1) = dym*( u(i1,j1,k1:k1+1)*(dxm-0.5)+u(i1+1,j1,k1:k1+1)*(dx+0.5) ) + &
-                           dy *( u(i1,j1+1,k1:k1+1)*(dxm-0.5)+u(i1+1,j1+1,k1:k1+1)*(dx+0.5) )
-       endif
-       if ( obs_jj-j1 == 0.500 ) then
-          workv(k1:k1+1) = v(i1,j1+1,k1:k1+1)*dxm + v(i1+1,j1+1,k1:k1+1)*dx
-       else if ( obs_jj-j1 > 0.500 ) then
-          workv(k1:k1+1) = dxm*( v(i1,j1+1,k1:k1+1)*(dym+0.5) + v(i1,j1+2,k1:k1+1)*(dy-0.5) ) + &
-                           dx *( v(i1+1,j1+1,k1:k1+1)*(dym+0.5) + v(i1+1,j1+2,k1:k1+1)*(dy-0.5) )
-       else if ( obs_jj-j1 < 0.500 ) then
-          workv(k1:k1+1) = dxm*( v(i1,j1,k1:k1+1)*(dym-0.5) + v(i1,j1+1,k1:k1+1)*(dy+0.5) ) + &
-                           dx *( v(i1+1,j1,k1:k1+1)*(dym-0.5) + v(i1+1,j1+1,k1:k1+1)*(dy+0.5) )
-       endif
+   worku = -88888.
+   workv = -88888.
+   if ( obs_ii-i1 == 0.500 ) then
+      worku(k1:k1+1) = dym*u(i1+1,j1,k1:k1+1) + dy*u(i1+1,j1+1,k1:k1+1)
+   else if ( obs_ii-i1 > 0.500 ) then
+      worku(k1:k1+1) = dym*( u(i1+1,j1,k1:k1+1)*(dxm+0.5)+u(i1+2,j1,k1:k1+1)*(dx-0.5) ) + &
+                       dy *( u(i1+1,j1+1,k1:k1+1)*(dxm+0.5)+u(i1+2,j1+1,k1:k1+1)*(dx-0.5) )
+   else if ( obs_ii-i1 < 0.500 ) then
+      worku(k1:k1+1) = dym*( u(i1,j1,k1:k1+1)*(dxm-0.5)+u(i1+1,j1,k1:k1+1)*(dx+0.5) ) + &
+                       dy *( u(i1,j1+1,k1:k1+1)*(dxm-0.5)+u(i1+1,j1+1,k1:k1+1)*(dx+0.5) )
+   endif
+   if ( obs_jj-j1 == 0.500 ) then
+      workv(k1:k1+1) = v(i1,j1+1,k1:k1+1)*dxm + v(i1+1,j1+1,k1:k1+1)*dx
+   else if ( obs_jj-j1 > 0.500 ) then
+      workv(k1:k1+1) = dxm*( v(i1,j1+1,k1:k1+1)*(dym+0.5) + v(i1,j1+2,k1:k1+1)*(dy-0.5) ) + &
+                       dx *( v(i1+1,j1+1,k1:k1+1)*(dym+0.5) + v(i1+1,j1+2,k1:k1+1)*(dy-0.5) )
+   else if ( obs_jj-j1 < 0.500 ) then
+      workv(k1:k1+1) = dxm*( v(i1,j1,k1:k1+1)*(dym-0.5) + v(i1,j1+1,k1:k1+1)*(dy+0.5) ) + &
+                       dx *( v(i1+1,j1,k1:k1+1)*(dym-0.5) + v(i1+1,j1+1,k1:k1+1)*(dy+0.5) )
+   endif
 
 !       if( print_detail > 100 ) write(*,*)'i1,j1,k1, v=',i1,j1,k1,v(i1,j1,k1),v(i1,j1+1,k1),v(i1,j1+2,k1),v(i1+1,j1,k1)
 !       if( print_detail > 100 ) write(*,'(a,100f10.2)')'U profile =', worku(k1:k1+1)
 !       if( print_detail > 100 ) write(*,'(a,100f10.2)')'V profile =', workv(k1:k1+1)
 
-       if ( obs_kk .le. 1. ) then
-          grid_u = worku(k1)
-          grid_v = workv(k1)
-       else
-          grid_u = dzm*worku(k1)+dz*worku(k1+1)
-          grid_v = dzm*workv(k1)+dz*workv(k1+1)
-       endif
+   grid_u = dzm*worku(k1)+dz*worku(k1+1)
+   grid_v = dzm*workv(k1)+dz*workv(k1+1)
 !       if( print_detail > 100 ) write(*,'(a,f10.2)')'grid U =', grid_u, 'grid V =', grid_v
 
 !------011108 changed obs. wind to gridwind
-       long = ( xlong(i1  ,j1)*dym + xlong(i1  ,j1+1)*dy ) * dxm +          & 
-              ( xlong(i1+1,j1)*dym + xlong(i1+1,j1+1)*dy ) * dx
-       call gridwind_to_truewind( long, proj, grid_u, grid_v, true_u, true_v )
-    
-       if ( obstype(10:10) == 'U' ) then
-           xb = grid_u
-       else if ( obstype(10:10) == 'V' ) then
-           xb = grid_v
-       else if ( obstype(10:10) == 'S' ) then   !wind speed
-           xb = sqrt(grid_u**2.+grid_v**2.)
-       endif
-
+   long = ( xlong(i1  ,j1)*dym + xlong(i1  ,j1+1)*dy ) * dxm +          & 
+          ( xlong(i1+1,j1)*dym + xlong(i1+1,j1+1)*dy ) * dx
+   call gridwind_to_truewind( long, proj, grid_u, grid_v, true_u, true_v )
+ 
+   if ( obstype(10:10) == 'U' ) then
+       xb = grid_u
+   else if ( obstype(10:10) == 'V' ) then
+       xb = grid_v
+   else if ( obstype(10:10) == 'S' ) then   !wind speed
+       xb = sqrt(grid_u**2.+grid_v**2.)
+   endif
 !       if( print_detail > 100 ) then
 !           write(*,'(12f10.3)')obs_kk, grid_u, grid_v, dz, dzm, long, worku(k1:k1+1), workv(k1:k1+1), true_u, true_v
 !       endif
 
 !.. T
-    else if ( obstype(10:10) == 'T' ) then
-       do k = k1, k1+1
-          work(k) = theta_to_temp(ptt(k)+to, pres(k))
-       enddo
-       if ( obs_kk .le. 1. ) then
-          xb = work(1)
-       else
-          xb = dzm*work(k1)+dz*work(k1+1)
-       endif
+else if ( obstype(10:10) == 'T' ) then
+   do k = k1, k1+1
+      work(k) = theta_to_temp(ptt(k)+to, pres(k))
+   enddo
+   if ( obs_kk .le. 1. ) then
+      xb = work(1)
+   else
+      xb = dzm*work(k1)+dz*work(k1+1)
+   endif
 
 !.. TD(if used TD, not RH)
-    else if ( obstype(10:10) == 'D' ) then
-       do k = k1, k1+1
-          work(k) = mixrat_to_tdew(qvt(k), pres(k))
-       enddo
-       if ( obs_kk .le. 1. ) then
-          xb = work(1)
-       else
-          xb = dzm*work(k1) + dz*work(k1+1)
-       endif
+else if ( obstype(10:10) == 'D' ) then
+   do k = k1, k1+1
+      work(k) = mixrat_to_tdew(qvt(k), pres(k))
+   enddo
+   if ( obs_kk .le. 1. ) then
+      xb = work(1)
+   else
+      xb = dzm*work(k1) + dz*work(k1+1)
+   endif
 
 !.. RH
-    else if ( obstype(10:10) == 'R' )then
-       do k = k1, k1+1
-          work(k) = theta_to_temp(ptt(k)+to, pres(k))
-       enddo
-       do k = k1, k1+1
-          work(k) = rel_humidity(qvt(k), work(k), pres(k))
-       enddo
-       if ( obs_kk .le. 1. ) then
-          xb = work(1)
-       else
-          xb = dzm*work(k1) + dz*work(k1+1)
-       endif
-       if ( xb > 100. )xb = 100.
+else if ( obstype(10:10) == 'R' )then
+   do k = k1, k1+1
+      work(k) = theta_to_temp(ptt(k)+to, pres(k))
+   enddo
+   do k = k1, k1+1
+      work(k) = rel_humidity(qvt(k), work(k), pres(k))
+   enddo
+   if ( obs_kk .le. 1. ) then
+      xb = work(1)
+   else
+      xb = dzm*work(k1) + dz*work(k1+1)
+   endif
+   if ( xb > 100. )xb = 100.
 
 !.. Q
-    else if ( obstype(10:10) == 'Q' )then
-       if ( obs_kk .le. 1. ) then
-          xb = qvt(k1)*1000.
-       else
-          xb = (dzm*qvt(k1)+dz*qvt(k1+1))*1000.
-       endif
-       if ( xb .le. 0.0 ) xb = -99999.
+else if ( obstype(10:10) == 'Q' )then
+   if ( obs_kk .le. 1. ) then
+      xb = qvt(k1)*1000.
+   else
+      xb = (dzm*qvt(k1)+dz*qvt(k1+1))*1000.
+   endif
+   if ( xb .le. 0.0 ) xb = -99999.
 
 !.. HG
-    else if ( obstype(10:10) == 'H' )then
-       call destag_zstag(znu0, znw0, kx, p(1,1,1:kx+1), work(1:kx))
-       if ( obs_kk .le. 1. ) then
-          xb = work(1)/g
-       else
-          xb = (dzm*work(k1) + dz*work(k1+1))/g
-       endif 
+else if ( obstype(10:10) == 'H' )then
+   call destag_zstag(znu, znw, kx, ph1(1:kx+1), work(1:kx))
+   if ( obs_kk .le. 1. ) then
+      xb = work(1)/g
+   else
+      xb = (dzm*work(k1) + dz*work(k1+1))/g
+   endif 
 
 !.. GPSRO refractivity
-    else if ( obstype(10:10) == 'N' ) then
-       do k = k1, k1+1
-          work(k) = theta_to_temp(ptt(k)+to, pres(k))
-       end do
-       do k = k1, k1+1
-          work(k) = gpsref(pres(k), work(k), qvt(k))
-       end do
-       if ( obs_kk .le. 1. ) then
-          xb = work(k1)
-       else
-          xb = dzm*work(k1)+dz*work(k1+1)
-       endif
-       !if ( xb .lt. 0.0 ) xb = -99999.
+else if ( obstype(10:10) == 'N' ) then
+   do k = k1, k1+1
+      work(k) = theta_to_temp(ptt(k)+to, pres(k))
+   end do
+   do k = k1, k1+1
+      work(k) = gpsref(pres(k), work(k), qvt(k))
+   end do
+   if ( obs_kk .le. 1. ) then
+      xb = work(k1)
+   else
+      xb = dzm*work(k1)+dz*work(k1+1)
+   endif
+   !if ( xb .lt. 0.0 ) xb = -99999.
 
-    endif
+endif
 
    !if( print_detail > 1 )write(*,'(a,3f8.2, f10.1)')'xb_to_sounding '//obstype//' obs position :', obs_ii, obs_jj, obs%position(iob,3:4)
     
-   end subroutine xb_to_sounding
+end subroutine xb_to_sounding
 
 
 !=======================================================================================
-   subroutine xb_to_idealsound(inputfile,xa,ix,jx,kx,nv,iob,xb)
-   use constants
-   use namelist_define
-   use obs_define 
-   use netcdf 
-   use wrf_tools
-   use map_utils 
+subroutine calc_rv_position_k(inputfile,proj,xa,ix,jx,kx,nv,iob,xlong,znw,obs_kk)
+  use constants 
+  use namelist_define
+  use mapinfo_define
+  use obs_define
+  use map_utils 
+  use netcdf
+  use wrf_tools
+  use radar
+  implicit none
+  character (len=10), intent(in) :: inputfile
+  type(proj_info), intent(in) :: proj
+  integer, intent(in)         :: ix, jx, kx, nv, iob
+  real, dimension(3,3,kx+1,nv), intent(in)  :: xa
+  real, dimension(ix, jx ), intent(in) :: xlong
+  real, dimension(kx+1), intent(in)    :: znw
+  real, intent(out)                    :: obs_kk 
+  real  :: obs_ii, obs_jj, obs_hh, radar_ii, radar_jj, radar_elv
 
-   implicit none
-
-   character(len=10), intent(in)           :: inputfile
-   real, dimension(3,3,kx+1,nv), intent(in) :: xa 
-   integer, intent(in) :: ix, jx, kx, nv, iob
-   real :: obs_ii, obs_jj, obs_kk 
-   character(len=10) :: obstype
-   real, intent(out) :: xb
-   integer :: i1, j1, k1, i, j, k, m, ii, jj, kk
-
-   obstype=obs%type(iob)
-   obs_ii=obs%position(iob,1)
-   obs_jj=obs%position(iob,2)
-   obs_kk=obs%position(iob,3)
-   i1 = int( obs_ii )
-   j1 = int( obs_jj )
-   k1 = int( obs_kk )
+  real, dimension(ix+1, jx, kx)        :: u
+  real, dimension(ix, jx+1, kx)        :: v
+  real, dimension(ix, jx, kx+1)        :: w, ph, phb
+  real, dimension(ix, jx, kx  )        :: t, qv, p, pb
+  real, dimension(ix, jx      )        :: mu, mub, terrain
     
-   if (obstype .eq. 'idealU    ' ) then
-      do m = 1, nv
-         if ( enkfvar(m) == 'U         ' ) then
-            xb = xa(i1,j1,k1,m)
-         endif
-      enddo
-   else if (obstype .eq. 'idealV    ' ) then
-      do m = 1, nv
-         if (enkfvar(m) == 'V         ' ) then
-            xb = xa(i1,j1,k1,m)
-         endif
-      enddo 
-   else if (obstype .eq. 'idealPT   ' ) then
-      do m = 1, nv
-         if (enkfvar(m) == 'T         ' ) then
-            xb = xa(i1,j1,k1,m) 
-         endif
-      enddo
-   else if (obstype .eq. 'idealQV   ' ) then
-      do m = 1, nv
-         if (enkfvar(m) == 'QVAPOR    ' ) then
-            xb = xa(i1,j1,k1,m)*1000.
-         endif
-      enddo
-   else if (obstype .eq. 'idealPH   ' ) then
-      xb = 0.
-      do m = 1, nv
-         if ( enkfvar(m) == 'PH        ' .or. enkfvar(m) == 'PHB       ' ) then
-            xb = xb + xa(i1,j1,k1,m)
-         endif
-      enddo
-   endif
+  integer :: m, ii, jj, kk, i, j, k, i1, j1
+  integer :: i_u, i_v, i_w, i_t, i_qv, i_mu, i_ph, i_phb, i_mub, i_pb
+  obs_ii=obs%position(iob,1)
+  obs_jj=obs%position(iob,2)
+  obs_hh=obs%position(iob,4)
 
-   end subroutine xb_to_idealsound
+  radar_ii=obs%sta(iob,1)
+  radar_jj=obs%sta(iob,2)
+  radar_elv=obs%sta(iob,4)
 
-!=======================================================================================
-  subroutine xb_to_rv(inputfile,proj,xa,ix,jx,kx,nv,iob,xlong,znw,xb,kkflag)
+  i1 = int( obs_ii )
+  j1 = int( obs_jj )
+
+  i_u  = 0 ; i_v   = 0 ; i_w  = 0 ; i_t = 0 ; i_qv = 0 ; i_mu = 0; i_mub = 0;
+  i_ph = 0 ; i_phb = 0 ; i_pb = 0 ;
+     do m = 1, nv
+        if ( enkfvar(m) == 'T         ' ) i_t=m
+        if ( enkfvar(m) == 'QVAPOR    ' ) i_qv=m
+        if ( enkfvar(m) == 'PH        ' ) i_ph=m
+        if ( enkfvar(m) == 'PHB       ' ) i_phb=m
+        if ( enkfvar(m) == 'PB        ' ) i_pb=m
+        if ( enkfvar(m) == 'MU        ' ) i_mu=m
+        if ( enkfvar(m) == 'MUB       ' ) i_mub=m
+     end do
+     if(i_t>0) t(i1:i1+1,j1:j1+1,1:kx)=xa(1:2,1:2,1:kx,i_t)
+     if(i_qv>0) qv(i1:i1+1,j1:j1+1,1:kx)=xa(1:2,1:2,1:kx,i_qv)
+     if(i_pb>0) pb(i1:i1+1,j1:j1+1,1:kx)=xa(1:2,1:2,1:kx,i_pb)
+     if(i_ph>0) ph(i1:i1+1,j1:j1+1,1:kx+1)=xa(1:2,1:2,1:kx+1,i_ph)
+     if(i_phb>0) phb(i1:i1+1,j1:j1+1,1:kx+1)=xa(1:2,1:2,1:kx+1,i_phb)
+     if(i_mu>0) mu(i1:i1+1,j1:j1+1)=xa(1:2,1:2,1,i_mu)
+     if(i_mub>0) mub(i1:i1+1,j1:j1+1)=xa(1:2,1:2,1,i_mub)
+     if( i_t <1  ) call get_variable3d(inputfile, 'T         ', ix, jx, kx, 1, t )
+     if( i_qv <1 ) call get_variable3d(inputfile, 'QVAPOR    ', ix, jx, kx, 1, qv )
+     if( i_pb <1 ) call get_variable3d(inputfile, 'PB        ', ix, jx, kx, 1, pb )
+     if( i_ph <1 ) call get_variable3d(inputfile, 'PH        ', ix, jx, kx+1, 1, ph )
+     if( i_phb <1) call get_variable3d(inputfile, 'PHB       ', ix, jx, kx+1, 1, phb )
+     if( i_mu <1 ) call get_variable2d(inputfile, 'MU        ', ix, jx, 1, mu )
+     if( i_mub <1) call get_variable2d(inputfile, 'MUB       ', ix, jx, 1, mub )
+     do j = j1, j1+1
+     do i = i1, i1+1
+        call cal_ph( kx, znw, t(i,j,1:kx), qv(i,j,1:kx), pb(i,j,1:kx), mu(i,j), mub(i,j), phb(i,j,1:kx+1), ph(i,j,1:kx+1) )
+     enddo
+     enddo
+
+!     if (print_detail > 1000) write(*,'(a,70f8.0)') 'phb+ph = ',(phb(i1,j1,1:kx+1)+ph(i1,j1,1:kx+1))/g
+!     if (print_detail > 1000) write(*,'(a,f8.0)') 'obs_hh =', obs_hh
+     call calc_radar_data_point_kk ( ix, jx, kx, ph, phb, obs_ii, obs_jj, obs_hh, obs_kk )
+end subroutine calc_rv_position_k
+
+subroutine xb_to_rv(inputfile,proj,xa,ix,jx,kx,nv,iob,xlong,znw,xb)
   use constants 
   use namelist_define
   use mapinfo_define
@@ -580,7 +636,6 @@ end subroutine xb_to_surface
   real, dimension(ix, jx ), intent(in) :: xlong
   real, dimension(kx+1), intent(in)    :: znw
   real, intent(out)                    :: xb
-  integer, intent(in)                  :: kkflag
   real  :: obs_ii, obs_jj, obs_kk, obs_hh, radar_ii, radar_jj, radar_elv
 
   real, dimension(ix+1, jx, kx)        :: u
@@ -619,48 +674,12 @@ end subroutine xb_to_surface
   if ( i_v == 0 ) call get_variable3d(inputfile, 'V         ', ix, jx+1, kx, 1, v )
   if ( i_w == 0 ) call get_variable3d(inputfile, 'W         ', ix, jx, kx+1, 1, w )
   
-  if ( kkflag == 0 ) then
-     do m = 1, nv
-        if ( enkfvar(m) == 'T         ' ) i_t=m
-        if ( enkfvar(m) == 'QVAPOR    ' ) i_qv=m
-        if ( enkfvar(m) == 'PH        ' ) i_ph=m
-        if ( enkfvar(m) == 'PHB       ' ) i_phb=m
-        if ( enkfvar(m) == 'PB        ' ) i_pb=m
-        if ( enkfvar(m) == 'MU        ' ) i_mu=m
-        if ( enkfvar(m) == 'MUB       ' ) i_mub=m
-     end do
-     if(i_t>0) t(i1:i1+1,j1:j1+1,1:kx)=xa(1:2,1:2,1:kx,i_t)
-     if(i_qv>0) qv(i1:i1+1,j1:j1+1,1:kx)=xa(1:2,1:2,1:kx,i_qv)
-     if(i_pb>0) pb(i1:i1+1,j1:j1+1,1:kx)=xa(1:2,1:2,1:kx,i_pb)
-     if(i_ph>0) ph(i1:i1+1,j1:j1+1,1:kx+1)=xa(1:2,1:2,1:kx+1,i_ph)
-     if(i_phb>0) phb(i1:i1+1,j1:j1+1,1:kx+1)=xa(1:2,1:2,1:kx+1,i_phb)
-     if(i_mu>0) mu(i1:i1+1,j1:j1+1)=xa(1:2,1:2,1,i_mu)
-     if(i_mub>0) mub(i1:i1+1,j1:j1+1)=xa(1:2,1:2,1,i_mub)
-     if( i_t <1  ) call get_variable3d(inputfile, 'T         ', ix, jx, kx, 1, t )
-     if( i_qv <1 ) call get_variable3d(inputfile, 'QVAPOR    ', ix, jx, kx, 1, qv )
-     if( i_pb <1 ) call get_variable3d(inputfile, 'PB        ', ix, jx, kx, 1, pb )
-     if( i_ph <1 ) call get_variable3d(inputfile, 'PH        ', ix, jx, kx+1, 1, ph )
-     if( i_phb <1) call get_variable3d(inputfile, 'PHB       ', ix, jx, kx+1, 1, phb )
-     if( i_mu <1 ) call get_variable2d(inputfile, 'MU        ', ix, jx, 1, mu )
-     if( i_mub <1) call get_variable2d(inputfile, 'MUB       ', ix, jx, 1, mub )
-     do j = j1, j1+1
-     do i = i1, i1+1
-        call cal_ph( kx, znw, t(i,j,1:kx), qv(i,j,1:kx), pb(i,j,1:kx), mu(i,j), mub(i,j), phb(i,j,1:kx+1), ph(i,j,1:kx+1) )
-     enddo
-     enddo
-
-!     if (print_detail > 1000) write(*,'(a,70f8.0)') 'phb+ph = ',(phb(i1,j1,1:kx+1)+ph(i1,j1,1:kx+1))/g
-!     if (print_detail > 1000) write(*,'(a,f8.0)') 'obs_hh =', obs_hh
-     call calc_radar_data_point_kk ( ix, jx, kx, ph, phb, obs_ii, obs_jj, obs_hh, obs%position(iob,3) )
-     obs_kk=obs%position(iob,3)
-!     if (print_detail > 1000) write(*,'(a, 4f8.2)')'obs_ijhk =', obs_ii, obs_jj, obs_hh, obs_kk
-  endif
 
   call calculate_rv ( ix, jx, kx, u, v, w, xlong, proj, obs_ii, obs_jj, obs_kk, obs_hh, radar_ii, radar_jj, radar_elv, xb )
 !  write(*,*)'i,j,k =', obs_ii, obs_jj, obs_kk
 !  write(*,*)'u,v,w =', u(int(obs_ii),int(obs_jj),int(obs_kk)), v(int(obs_ii),int(obs_jj),int(obs_kk)), w(int(obs_ii),int(obs_jj),int(obs_kk))
 
-  end subroutine xb_to_rv
+end subroutine xb_to_rv
 
 !=======================================================================================
 subroutine xb_to_pw(inputfile,xa,ix,jx,kx,nv,iob,znu,znw,xb)
@@ -858,7 +877,7 @@ end subroutine xb_to_slp
 
 
 !=======================================================================================
-subroutine xb_to_radiance(inputfile,proj,xa,ix,jx,kx,nv,iob,xlong,xlat,znw,hgt,tsk,landmask,xb,cloud_flag)
+subroutine xb_to_radiance(inputfile,xa,ix,jx,kx,nv,iob,xlong,xlat,znw,hgt,tsk,landmask,xb,cloud_flag)
   USE constants
   USE netcdf
   USE mpi_module
@@ -868,14 +887,12 @@ subroutine xb_to_radiance(inputfile,proj,xa,ix,jx,kx,nv,iob,xlong,xlat,znw,hgt,t
   use wrf_tools
 
   implicit none
-  integer, intent(in)                      :: ix, jx, kx, nv, iob
+  integer, intent(in)                      :: ix, jx, kx, nv, iob, cloud_flag
   character(len=10), intent(in)            :: inputfile
-  type(proj_info), intent(in)              :: proj                   ! 1st guestmap info
-  real, dimension(ix+1,jx+1,kx+1,nv), intent(in) :: xa                     ! 1st guest model states
+  real, dimension(3,3,kx+1,nv), intent(in) :: xa                     ! 1st guest model states
   real, intent(out)                        :: xb
   real, dimension(ix, jx ), intent(in)     :: xlong, xlat, landmask, hgt, tsk
   real, dimension(kx+1),intent(in)         :: znw
-  logical, intent(in)                      :: cloud_flag
   integer                                  :: i1,j1
   integer :: i_p,i_pb,i_ph,i_phb,i_pt,i_qv,i_qr,i_qc,i_qi,i_qs,i_qg,i_psfc,i_mu,i_mub
   real                                     :: obs_ii,obs_jj, dx,dxm,dy,dym,mu1,mub1
@@ -912,7 +929,7 @@ subroutine xb_to_radiance(inputfile,proj,xa,ix,jx,kx,nv,iob,xlong,xlat,znw,hgt,t
   CHARACTER(12)  :: sat_id
   INTEGER :: Error_Status
   INTEGER :: Allocate_Status
-  INTEGER :: n_Channels
+  INTEGER :: n_Channels 
   INTEGER :: l, m, irec, yend, ystart, nyi
   integer :: ncid,ncrcode
   character(LEN=16) :: var_name
@@ -937,36 +954,9 @@ subroutine xb_to_radiance(inputfile,proj,xa,ix,jx,kx,nv,iob,xlong,xlat,znw,hgt,t
   TYPE(CRTM_Options_type)                 :: Options(N_PROFILES)
 
   ! ============================================================================
-  ! 1.5. **** make a loop to get the number of satellite-radiance-iob ****
-  !
-  !num_radgrid = 0
-  !check_cycle:do iob=1,obs%num
-    !obstype = obs%type(iob)
-    !if ( obstype(1:8) == 'Radiance' ) then
-      !if(num_radgrid == 0) then
-        !num_radgrid = num_radgrid + 1
-        !lon_radiance(num_radgrid) = obs%position(iob,1)
-        !lat_radiance(num_radgrid) = obs%position(iob,2)
-        !iob_radmin = iob
-        !iob_radmax = iob
-      !else
-        !iob_radmax = iob
-        !do irad = 1,num_radgrid
-          !if((lon_radiance(irad).eq.obs%position(iob,1)).and.(lat_radiance(irad).eq.obs%position(iob,2)))cycle check_cycle
-        !enddo
-        !num_radgrid = num_radgrid + 1
-        !lon_radiance(num_radgrid) = obs%position(iob,1)
-        !lat_radiance(num_radgrid) = obs%position(iob,2)
-      !endif
-    !endif
-  !enddo check_cycle
-
-  ! ============================================================================
   CALL CRTM_Version( Version )
-  !if(my_proc_id==0)  write(*,*) "CRTM ver.",TRIM(Version) 
+
   ! Get sensor id from user
-  ! -----------------------
-  !It assumes that all the Radiance data is same sattelite as the first data.
   Sensor_Id = trim(adjustl(obs%sat(iob)))
   
   ! ============================================================================
@@ -977,7 +967,6 @@ subroutine xb_to_radiance(inputfile,proj,xa,ix,jx,kx,nv,iob,xlong,xlat,znw,hgt,t
   !     NOTE: The coefficient data file path is hard-
   !           wired for this example.
   ! --------------------------------------------------
-  !if(my_proc_id==0) WRITE( *,'(/5x,"Initializing the CRTM...")' )
   Error_Status = CRTM_Init( (/Sensor_Id/), &  ! Input... must be an array, hencethe (/../)
                             ChannelInfo  , &  ! Output
                             IRwaterCoeff_File='WuSmith.IRwater.EmisCoeff.bin',&
@@ -989,21 +978,13 @@ subroutine xb_to_radiance(inputfile,proj,xa,ix,jx,kx,nv,iob,xlong,xlat,znw,hgt,t
     STOP
   END IF
 
-  ! 2b. Determine the total number of channels
-  !     for which the CRTM was initialized
-  ! ------------------------------------------
-  !if (Sensor_Id == 'abi_gr' ) then
-  !endif
-  if (Sensor_Id == 'mviriNOM_m07' ) then
-    Error_Status = CRTM_ChannelInfo_Subset( ChannelInfo(1), Channel_Subset =(/2,3/) )  !!!only 1 channel needed!
-    IF ( Error_Status /= SUCCESS ) THEN
-      Message = 'Error initializing CRTM'
-      CALL Display_Message( PROGRAM_NAME, Message, FAILURE )
-      STOP
-    END IF
-  endif 
+  Error_Status = CRTM_ChannelInfo_Subset( ChannelInfo(1), Channel_Subset =(/obs%ch(iob)/) )
+  IF ( Error_Status /= SUCCESS ) THEN
+    Message = 'Error initializing CRTM'
+    CALL Display_Message( PROGRAM_NAME, Message, FAILURE )
+    STOP
+  END IF
   n_Channels = SUM(CRTM_ChannelInfo_n_Channels(ChannelInfo))
-
 
   ! ============================================================================
   ! 3. **** ALLOCATE STRUCTURE ARRAYS ****
@@ -1016,7 +997,8 @@ subroutine xb_to_radiance(inputfile,proj,xa,ix,jx,kx,nv,iob,xlong,xlat,znw,hgt,t
   !
   ! Users can make the 
   ! then the INPUT arrays (Atm, Sfc) will also have to be allocated.
-  ALLOCATE( RTSolution( n_Channels, N_PROFILES ), STAT=Allocate_Status )
+  ALLOCATE( RTSolution( ChannelInfo(1)%n_Channels, N_PROFILES ), STAT=Allocate_Status )
+
   IF ( Allocate_Status /= 0 ) THEN
     Message = 'Error allocating structure arrays'
     CALL Display_Message( PROGRAM_NAME, Message, FAILURE )
@@ -1100,7 +1082,7 @@ subroutine xb_to_radiance(inputfile,proj,xa,ix,jx,kx,nv,iob,xlong,xlat,znw,hgt,t
   if(i_mub>0) mub(i1:i1+1,j1:j1+1)=xa(1:2,1:2,1,i_mub)
 
   if ( i_p ==  0 ) call get_variable3d(inputfile, 'P         ', ix, jx, kx, 1, p )
-  if ( i_pb==  0 ) call get_variable3d(inputfile, 'PB        ', ix, jx, kx, 1, pb)
+  if ( i_pb == 0 ) call get_variable3d(inputfile, 'PB        ', ix, jx, kx, 1, pb)
   if ( i_ph == 0 ) call get_variable3d(inputfile, 'PH        ', ix, jx, kx+1, 1, ph )
   if ( i_phb== 0 ) call get_variable3d(inputfile, 'PHB       ', ix, jx, kx+1, 1, phb)
   if ( i_pt == 0 ) call get_variable3d(inputfile, 'T         ', ix, jx, kx,   1, pt )
@@ -1113,7 +1095,6 @@ subroutine xb_to_radiance(inputfile,proj,xa,ix,jx,kx,nv,iob,xlong,xlat,znw,hgt,t
   if ( i_mu == 0 ) call get_variable2d(inputfile, 'MU        ', ix, jx, 1,    mu )
   if ( i_mub== 0 ) call get_variable2d(inputfile, 'MUB       ', ix, jx, 1,    mub)
 
-  !find z location
   mu1 = dym*(dx*mu(i1+1,j1  ) + dxm*mu(i1,j1  )) + dy*(dx*mu(i1+1,j1+1) + dxm*mu(i1,j1+1))
   mub1 = dym*(dx*mub(i1+1,j1  ) + dxm*mub(i1,j1  )) + dy*(dx*mub(i1+1,j1+1) + dxm*mub(i1,j1+1))
   qv1 = dym*(dx*qv(i1+1,j1,1:kx) + dxm*qv(i1,j1,1:kx)) + dy*(dx*qv(i1+1,j1+1,1:kx) + dxm*qv(i1,j1+1,1:kx))
@@ -1125,11 +1106,9 @@ subroutine xb_to_radiance(inputfile,proj,xa,ix,jx,kx,nv,iob,xlong,xlat,znw,hgt,t
   qvt = qv1+qr1+qc1
   pt1(1:kx) = dym*(dx*pt(i1+1,j1,1:kx) + dxm*pt(i1,j1,1:kx)) + dy*(dx*pt(i1+1,j1+1,1:kx) + dxm*pt(i1,j1+1,1:kx))
   ph(i1:i1+1, j1:j1+1, 1:kx+1) = ph(i1:i1+1, j1:j1+1, 1:kx+1) + phb(i1:i1+1, j1:j1+1, 1:kx+1)
-  ph1(1:kx+1) = dym*(dx*p(i1+1,j1,1:kx+1) + dxm*p(i1,j1,1:kx+1)) + dy*(dx*p(i1+1,j1+1,1:kx+1) + dxm*p(i1,j1+1,1:kx+1))
-  call eta_to_pres(znw(1:kx+1), mu1+mub1, qvt(1:kx), ph1(1:kx+1), pt1(1:kx)+to, kx, pres(1:kx))
-  call to_zk(obs%position(iob,4), pres(1:kx), obs%position(iob,3), kx)
-  if ( obs%position(iob,3) .lt. 1. ) obs%position(iob,3) = 1.
-
+  ph1(1:kx+1) = dym*(dx*ph(i1+1,j1,1:kx+1) + dxm*ph(i1,j1,1:kx+1)) + dy*(dx*ph(i1+1,j1+1,1:kx+1) + dxm*ph(i1,j1+1,1:kx+1))
+  p(i1:i1+1, j1:j1+1, 1:kx) = p(i1:i1+1, j1:j1+1, 1:kx) + pb(i1:i1+1, j1:j1+1, 1:kx)
+  pres(1:kx) = dym*(dx*p(i1+1,j1,1:kx) + dxm*p(i1,j1,1:kx)) + dy*(dx*p(i1+1,j1+1,1:kx) + dxm*p(i1,j1+1,1:kx))
   tk = (pt1 + to) * ( (pres / P1000MB) ** (R_D/Cpd) )
   lat = dym*(dx*xlat(i1+1,j1  ) + dxm*xlat(i1,j1  )) + dy*(dx*xlat(i1+1,j1+1) + dxm*xlat(i1,j1+1))
   lon = dym*(dx*xlong(i1+1,j1  ) + dxm*xlong(i1,j1  )) + dy*(dx*xlong(i1+1,j1+1) + dxm*xlong(i1,j1+1))
@@ -1147,13 +1126,14 @@ subroutine xb_to_radiance(inputfile,proj,xa,ix,jx,kx,nv,iob,xlong,xlat,znw,hgt,t
   where(qs1.lt.0.0) qs1=0.0
   where(qg1.lt.0.0) qg1=0.0
 
-  if(.not.cloud_flag) then  !!set hydrometeors to zero if calculating for clear-sky Tb
+  if(cloud_flag==0) then  !!set hydrometeors to zero if calculating for clear-sky Tb
     qc1=0.0
     qi1=0.0
     qr1=0.0
     qs1=0.0
     qg1=0.0
   end if
+
 
   ! 4a2. Converting WRF data for CRTM structure
   ! --------------------------------
@@ -1179,34 +1159,26 @@ subroutine xb_to_radiance(inputfile,proj,xa,ix,jx,kx,nv,iob,xlong,xlat,znw,hgt,t
     endif
    enddo
   !---Atmospheric Profile
-   atm(1)%Climatology         = TROPICAL
-   atm(1)%Absorber_Id(1:2)    = (/ H2O_ID, O3_ID /)
-   atm(1)%Absorber_Units(1:2) = (/ MASS_MIXING_RATIO_UNITS,VOLUME_MIXING_RATIO_UNITS /)
-   atm(1)%Level_Pressure(0) = (pres(kx)*3.0/2.0 - pres(kx-1)/2.0)/100.0  ! convert from Pa to hPA
-   !atm(1)%Level_Pressure(0) = 0.05
+   Atm(1)%Climatology         = TROPICAL
+   Atm(1)%Absorber_Id(1:2)    = (/ H2O_ID, O3_ID /)
+   Atm(1)%Absorber_Units(1:2) = (/ MASS_MIXING_RATIO_UNITS,VOLUME_MIXING_RATIO_UNITS /)
+   Atm(1)%Level_Pressure(0) = (pres(kx)*3.0/2.0 - pres(kx-1)/2.0)/100.0  ! convert from Pa to hPA
    do z=kx,1,-1
      if(z.eq.1) then
-       atm(1)%Level_Pressure(kx-z+1) = psfc1/100.0  ! convert from Pa tohPA
+       Atm(1)%Level_Pressure(kx-z+1) = psfc1/100.0  ! convert from Pa tohPA
      else
-       atm(1)%Level_Pressure(kx-z+1) = ((pres(z-1)+pres(z))/2.0)/100.0  ! convert from Pa to hPA
+       Atm(1)%Level_Pressure(kx-z+1) = ((pres(z-1)+pres(z))/2.0)/100.0  ! convert from Pa to hPA
      endif
-     atm(1)%Pressure(kx-z+1)       = pres(z) / 100.0
-     atm(1)%Temperature(kx-z+1)    = tk(z)
-     atm(1)%Absorber(kx-z+1,1)     = qv1(z)*1000.0
+     Atm(1)%Pressure(kx-z+1)       = pres(z) / 100.0
+     Atm(1)%Temperature(kx-z+1)    = tk(z)
+     Atm(1)%Absorber(kx-z+1,1)     = qv1(z)*1000.0
    enddo
-   atm(1)%Absorber(:,2) = & !5.0E-02 
-   ! when # of vertical layer is 60
-    (/1.26E+00, 5.55E-01, 3.24E-01, 1.07E-01, 7.03E-02, 5.87E-02, 6.15E-02,6.43E-02, 6.99E-02, 7.17E-02,&
-      7.27E-02, 7.35E-02, 7.38E-02, 7.41E-02, 7.42E-02, 7.41E-02, 7.35E-02,7.31E-02, 7.27E-02, 7.27E-02,&
-      7.27E-02, 7.26E-02, 7.17E-02, 7.05E-02, 6.80E-02, 6.73E-02, 6.73E-02,6.76E-02, 6.72E-02, 6.62E-02,&
-      6.51E-02, 6.45E-02, 6.44E-02, 6.46E-02, 6.48E-02, 6.49E-02, 6.46E-02,6.42E-02, 6.38E-02, 6.38E-02,&
-      6.42E-02, 6.48E-02, 6.56E-02, 6.64E-02, 6.64E-02, 6.72E-02, 6.84E-02,6.84E-02, 6.84E-02, 6.94E-02,&
-      6.94E-02, 6.72E-02, 6.72E-02, 6.72E-02, 6.05E-02, 6.05E-02, 6.05E-02,4.12E-02, 4.12E-02, 4.12E-02/)
+   Atm(1)%Absorber(:,2) = 5.0E-2
    !---Cloud Profile
    do z=1,kx*5
-     atm(1)%Cloud(z)%Type = 0
-     atm(1)%Cloud(z)%Effective_Radius = 0.0
-     atm(1)%Cloud(z)%Water_Content = 0.0
+     Atm(1)%Cloud(z)%Type = 0
+     Atm(1)%Cloud(z)%Effective_Radius = 0.0
+     Atm(1)%Cloud(z)%Water_Content = 0.0
    enddo
    ncl = 0
    icl = 0
@@ -1229,76 +1201,77 @@ subroutine xb_to_radiance(inputfile,proj,xa,ix,jx,kx,nv,iob,xlong,xlat,znw,hgt,t
      endif
    enddo
    !--Data for cloud
-   atm(1)%n_Clouds         = ncl
-   IF ( atm(1)%n_Clouds > 0 ) THEN
-   do z=kx,1,-1
-     if(qc1(z).gt.0.0) then
-       icl = icl + 1
-       k1 = kx-z+1
-       k2 = kx-z+1
-       atm(1)%Cloud(icl)%Type = WATER_CLOUD
-       atm(1)%Cloud(icl)%Effective_Radius(k1:k2) = 16.8_fp
-       atm(1)%Cloud(icl)%Water_Content(k1:k2)    = &
-           qc1(z)*pres(z)/287.2/(tk(z)+0.61*(qv1(z)/(1+qv1(z))))*delz(z)
-     endif
-   enddo
-   do z=kx,1,-1
-     if(qr1(z).gt.0.0) then
-       icl = icl + 1
-       k1 = kx-z+1
-       k2 = kx-z+1
-       atm(1)%Cloud(icl)%Type = RAIN_CLOUD
-       atm(1)%Cloud(icl)%Effective_Radius(k1:k2) = 1000.0_fp
-       atm(1)%Cloud(icl)%Water_Content(k1:k2)    = &
-           qr1(z)*pres(z)/287.2/(tk(z)+0.61*(qv1(z)/(1+qv1(z))))*delz(z)
-     endif
-   enddo
-   do z=kx,1,-1
-     if(qi1(z).gt.0.0) then
-       icl = icl + 1
-       k1 = kx-z+1
-       k2 = kx-z+1
-       atm(1)%Cloud(icl)%Type = ICE_CLOUD
-       atm(1)%Cloud(icl)%Effective_Radius(k1:k2) = 25.0_fp
-       atm(1)%Cloud(icl)%Water_Content(k1:k2)    = &
-           qi1(z)*pres(z)/287.2/(tk(z)+0.61*(qv1(z)/(1+qv1(z))))*delz(z)
-     endif
-   enddo
-   do z=kx,1,-1
-     if(qs1(z).gt.0.0) then
-       icl = icl + 1
-       k1 = kx-z+1
-       k2 = kx-z+1
-       atm(1)%Cloud(icl)%Type = SNOW_CLOUD
-       atm(1)%Cloud(icl)%Effective_Radius(k1:k2) = 750.0_fp
-       atm(1)%Cloud(icl)%Water_Content(k1:k2)    = &
-           qs1(z)*pres(z)/287.2/(tk(z)+0.61*(qv1(z)/(1+qv1(z))))*delz(z)
-     endif
-   enddo
-   do z=kx,1,-1
-     if(qg1(z).gt.0.0) then
-       icl = icl + 1
-       k1 = kx-z+1
-       k2 = kx-z+1
-       atm(1)%Cloud(icl)%Type = GRAUPEL_CLOUD
-       atm(1)%Cloud(icl)%Effective_Radius(k1:k2) = 1500.0_fp
-       atm(1)%Cloud(icl)%Water_Content(k1:k2)    = &
-           qg1(z)*pres(z)/287.2/(tk(z)+0.61*(qv1(z)/(1+qv1(z))))*delz(z)
-     endif
-   enddo
-   ENDIF
+   Atm(1)%n_Clouds = ncl
+   if ( Atm(1)%n_Clouds > 0 ) then
+     do z=kx,1,-1
+       if(qc1(z).gt.0.0) then
+         icl = icl + 1
+         k1 = kx-z+1
+         k2 = kx-z+1
+         Atm(1)%Cloud(icl)%Type = WATER_CLOUD
+         Atm(1)%Cloud(icl)%Effective_Radius(k1:k2) = 16.8_fp
+         Atm(1)%Cloud(icl)%Water_Content(k1:k2)    = &
+             qc1(z)*pres(z)/287.2/(tk(z)+0.61*(qv1(z)/(1+qv1(z))))*delz(z)
+       endif
+     enddo
+     do z=kx,1,-1
+       if(qr1(z).gt.0.0) then
+         icl = icl + 1
+         k1 = kx-z+1
+         k2 = kx-z+1
+         Atm(1)%Cloud(icl)%Type = RAIN_CLOUD
+         Atm(1)%Cloud(icl)%Effective_Radius(k1:k2) = 1000.0_fp
+         Atm(1)%Cloud(icl)%Water_Content(k1:k2)    = &
+             qr1(z)*pres(z)/287.2/(tk(z)+0.61*(qv1(z)/(1+qv1(z))))*delz(z)
+       endif
+     enddo
+     do z=kx,1,-1
+       if(qi1(z).gt.0.0) then
+         icl = icl + 1
+         k1 = kx-z+1
+         k2 = kx-z+1
+         Atm(1)%Cloud(icl)%Type = ICE_CLOUD
+         Atm(1)%Cloud(icl)%Effective_Radius(k1:k2) = 25.0_fp
+         Atm(1)%Cloud(icl)%Water_Content(k1:k2)    = &
+             qi1(z)*pres(z)/287.2/(tk(z)+0.61*(qv1(z)/(1+qv1(z))))*delz(z)
+       endif
+     enddo
+     do z=kx,1,-1
+       if(qs1(z).gt.0.0) then
+         icl = icl + 1
+         k1 = kx-z+1
+         k2 = kx-z+1
+         Atm(1)%Cloud(icl)%Type = SNOW_CLOUD
+         Atm(1)%Cloud(icl)%Effective_Radius(k1:k2) = 750.0_fp
+         Atm(1)%Cloud(icl)%Water_Content(k1:k2)    = &
+             qs1(z)*pres(z)/287.2/(tk(z)+0.61*(qv1(z)/(1+qv1(z))))*delz(z)
+       endif
+     enddo
+     do z=kx,1,-1
+       if(qg1(z).gt.0.0) then
+         icl = icl + 1
+         k1 = kx-z+1
+         k2 = kx-z+1
+         Atm(1)%Cloud(icl)%Type = GRAUPEL_CLOUD
+         Atm(1)%Cloud(icl)%Effective_Radius(k1:k2) = 1500.0_fp
+         Atm(1)%Cloud(icl)%Water_Content(k1:k2)    = &
+             qg1(z)*pres(z)/287.2/(tk(z)+0.61*(qv1(z)/(1+qv1(z))))*delz(z)
+!!!!Virtual temperature calcualtion can be shared!!!!
+       endif
+     enddo
+   endif
 
   !---Surface data
    if(landmask1.eq.1.0) then
-    sfc(1)%Water_Coverage = 0.0_fp
-    sfc(1)%Land_Coverage = 1.0_fp
-    sfc(1)%Land_Temperature = tsk1
-    sfc(1)%Soil_Temperature = tsk1
+     Sfc(1)%Water_Coverage = 0.0_fp
+     Sfc(1)%Land_Coverage = 1.0_fp
+     Sfc(1)%Land_Temperature = tsk1
+     Sfc(1)%Soil_Temperature = tsk1
    else
-    sfc(1)%Water_Coverage = 1.0_fp
-    sfc(1)%Land_Coverage = 0.0_fp
-    sfc(1)%Water_Type = 1  ! Sea water
-    sfc(1)%Water_Temperature = tsk1
+     Sfc(1)%Water_Coverage = 1.0_fp
+     Sfc(1)%Land_Coverage = 0.0_fp
+     Sfc(1)%Water_Type = 1  ! Sea water
+     Sfc(1)%Water_Temperature = tsk1
    endif
 
   ! 4b. GeometryInfo input
@@ -1338,54 +1311,15 @@ subroutine xb_to_radiance(inputfile,proj,xa,ix,jx,kx,nv,iob,xlong,xlat,znw,hgt,t
   ! in the structure RTSolution.
   !
   !DO m = 1, N_PROFILES
-  !  WRITE( *,'(//7x,"Profile ",i0," output for ",a )') n, TRIM(Sensor_Id)
-  !  DO l = 1, n_Channels
-  !    WRITE( *, '(/5x,"Channel ",i0," results")') RTSolution(l,m)%Sensor_Channel
-  !    CALL CRTM_RTSolution_Inspect(RTSolution(l,m))
-  !  END DO
+    !WRITE( *,'(//7x,"Profile ",i0," output for ",a )') n, TRIM(Sensor_Id)
+    !DO l = 1, n_Channels
+      !WRITE( *, '(/5x,"Channel ",i0," results")') RTSolution(l,m)%Sensor_Channel
+      !CALL CRTM_RTSolution_Inspect(RTSolution(l,m))
+    !END DO
   !END DO
+
   xb=real(RTSolution(1,1)%Brightness_Temperature)
   if(xb<100 .or. xb>400) xb=-888888.
-
-  !---for file output, edited 2014.9.26
-  !do l = 1, n_Channels
-      !Tb(l) = real(RTSolution(l,1)%Brightness_Temperature)
-      !if(Tb /= Tbsend(x,y,l) .or. Tbsend(x,y,l)>HUGE(Tbsend(x,y,l)) &
-         !.or. Tbsend(x,y,l) < 100 .or. Tbsend(x,y,l) > 400 ) then
-        !Tbsend(x,y,l)=-888888.
-      !endif
-  !enddo
-  WRITE(*,'(7x,"Profile (",i0,", ",i0,") finished Tb =  ",f6.2)')obs_ii,obs_jj,xb
-
-  !6.5  **** writing the output ****
-  !if(my_proc_id==0) then
-    !do iob = iob_radmin, iob_radmax
-      !obs_ii=obs%position(iob,1)
-      !obs_jj=obs%position(iob,2)
-      !x = nint( obs_ii )
-      !y = nint( obs_jj )
-      !if (Sensor_Id == 'abi_gr' ) then
-         !if (obs%ch(iob) .eq. 8) xb(iob) = Tb(x,y,1) !6.19um
-         !if (obs%ch(iob) .eq. 9) xb(iob) = Tb(x,y,2) !6.95um
-         !if (obs%ch(iob) .eq. 10) xb(iob) = Tb(x,y,3) !7.34um
-         !if (obs%ch(iob) .eq. 14) write(*,*)'change channel setting for ch14' !xb(iob) = Tb(x,y,4) !11.2um
-      !elseif (Sensor_Id == 'imgr_g13' ) then
-         !if (obs%ch(iob) .eq. 3) xb(iob) = Tb(x,y,2) !6.19um
-         !if (obs%ch(iob) .eq. 4) xb(iob) = Tb(x,y,3) !11.2um
-      !elseif (Sensor_Id == 'mviriNOM_m07' ) then
-         !if (obs%ch(iob) .eq. 2) xb(iob) = Tb(x,y,1)   !Meteosat7 ch-2 IR window
-         !if (obs%ch(iob) .eq. 3) xb(iob) = Tb(x,y,2)   !Meteosat7 ch-3 WV absorb band
-      !endif
-    !enddo
-    !--initializing the Tbsend fields for Bcast
-    !Tbsend = 0.0
-  !endif
-
-  ! ============================================================================
-  !  **** initializing all Tb and Tbsend fields ****
-  !
-  !Tb = 0.0
-  !CALL MPI_BCAST(Tbsend,ix*jx*n_ch,MPI_REAL,0,comm,ierr)
 
   ! ============================================================================
   ! 7. **** DESTROY THE CRTM ****

@@ -56,13 +56,6 @@
                  obs%dat(iob)      = center_xb(3)
                  obs%position(iob,1)  = center_xb(1)
                  obs%position(iob,2)  = center_xb(2)
-              else
-                 if ( use_simulated ) then
-                    obs%position(iob,1) = obs%position(iob,1) + center(1)
-                    obs%position(iob,2) = obs%position(iob,2) + center(2)
-                    obs%sta(iob,1)      = obs%sta(iob,1)      + center(1)
-                    obs%sta(iob,2)      = obs%sta(iob,2)      + center(2)
-                 endif
               endif
               if( print_detail > 3)write(*,*)'truth obs position ', obs%position(iob,1),obs%position(iob,2)
            enddo

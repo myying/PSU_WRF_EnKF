@@ -20,7 +20,7 @@ character (len=80), intent(in)       :: times
 
 integer                              :: iobs, grid_id, fid,rcode
 
-integer                              :: n, nr, lev, nvar, i, j, k, lvl, unit
+integer                              :: n, nr, lev, nvar, i, j, k, lvl, iob,unit
 real,dimension(3)                    :: center
 real                                 :: center_io, center_jo
 
@@ -44,65 +44,49 @@ character (len=6)                    :: pfile         !! out_##
   rcode = nf_get_att_int(fid, nf_global, 'GRID_ID', grid_id)
 
 ! Get all raw observations into raw (type)
-  if ( .not. use_ideal_obs ) then
-!   call get_gtsobs_bufr ( times, ix, jx, kx, p, ph, proj )
-   call get_gtsobs_3dvar ( times, ix, jx, kx, p, ph, proj )
-!      filename = 'hurricane_best_track                                                                '
-!      if ( expername .eq. 'hurricane ' ) &
-!      call gtsobs_time_shift ( times, filename )
+  call get_gtsobs_3dvar ( times, ix, jx, kx, p, ph, proj )
 
-  endif
 ! Hurricane center position and minimum sea level pressure
-if ( use_hurricane_PI ) then
-   call rd_interp_besttrack ( times, 'hurricane_best_track', center )
-   call latlon_to_ij( proj, center(1), center(2), center_io, center_jo )
-   if(my_proc_id==0) write(*,'(a,5f8.2)')'Observation hurricane center =', center_io, center_jo, center(1:3)
-endif
+  if ( use_hurricane_PI ) then
+    call rd_interp_besttrack ( times, 'hurricane_best_track', center )
+    call latlon_to_ij( proj, center(1), center(2), center_io, center_jo )
+    if(my_proc_id==0) write(*,'(a,5f8.2)')'Observation hurricane center =', center_io, center_jo, center(1:3)
+  endif
+
 ! Radar data 
-if ( use_radar_rv ) then
-
-!... get radar information from radar_data.info and saved to obs type data array
-   call get_radar_info ( "radar_data.info" )
-
-!... compute the position of every radar data points in wrf domain
-   do nr = 1, raw%radar_stn_num      
-      call radar_position ( proj, nr )
-   enddo
-
-!... get WSR-88D radar SO data
-   if ( .not. use_ideal_obs  )call get_wsr88d_radar ( ix, jx, kx, proj, times )
-
-!... ideal WSR-88D radar SO data 
-   if ( use_ideal_obs ) call wsr88d_ideal_data( wrf_file, ix, jx, kx, proj )
-  
-endif 
+  if ( use_radar_rv ) then
+    !... get radar information from radar_data.info and saved to obs type data array
+    call get_radar_info ( "radar_data.info" )
+    !... compute the position of every radar data points in wrf domain
+    do nr = 1, raw%radar_stn_num      
+       call radar_position ( proj, nr )
+    enddo
+    !... get WSR-88D radar SO data
+    call get_wsr88d_radar ( ix, jx, kx, proj, times )
+  endif 
 
 ! Airborne radar data
-if ( use_airborne_rv ) then
-  if ( .not. use_ideal_obs  ) call get_airborne ( ix, jx, kx, proj, times )
-endif
+  if ( use_airborne_rv ) then
+    call get_airborne ( ix, jx, kx, proj, times )
+  endif
 
 
 !---edited by Minamide 2014.11.18
 ! Radiance data (satellite observation)
-if ( use_radiance ) then
-  if ( .not. use_ideal_obs  ) call get_radiance ( ix, jx, kx, proj, times )
-endif
+  if ( use_radiance ) then
+    call get_radiance ( ix, jx, kx, proj, times )
+  endif
 
-
-!  if ( use_radar_rv ) call output_simulated_rv ( "asimulated_rv" )
-!   if ( use_simulated ) call simulated_obser ( wrf_file, ix, jx, kx, proj )
 ! Add all obs type observations into obs%dat(num_rv)
 
 !. allocate variables
-iobs = 0               ! iobs for all observation, not only Rv
+  iobs = 0               ! iobs for all observation, not only Rv
 
 !. calculate obs_gts records
-if ( .not. use_ideal_obs ) then
-   do n = 1, raw%gts%num
-      if (raw%gts%slp(n,1).gt.80000. .and. raw%gts%slp(n,1).lt.105000.)iobs = iobs + 1
-      if (raw%gts%pres(n,1,1).gt.40000. .and. raw%gts%pres(n,1,1).lt.105000.)iobs = iobs + 1
-      do j = 1, raw%gts%levels(n)
+  do n = 1, raw%gts%num
+    if (raw%gts%slp(n,1).gt.80000. .and. raw%gts%slp(n,1).lt.105000.)iobs = iobs + 1
+    if (raw%gts%pres(n,1,1).gt.40000. .and. raw%gts%pres(n,1,1).lt.105000.)iobs = iobs + 1
+    do j = 1, raw%gts%levels(n)
          if (raw%gts%spd(n,j,1).ge.0. .and. raw%gts%spd(n,j,1).lt.200. .and.  &
              raw%gts%wd(n,j,1).ge.0. .and. raw%gts%wd(n,j,1).le.360. ) iobs = iobs + 2
 !......u,v
@@ -111,67 +95,55 @@ if ( .not. use_ideal_obs ) then
          if (raw%gts%t(n,j,1).gt.0. .and. raw%gts%t(n,j,1).lt.350. ) iobs = iobs + 1
          if (raw%gts%td(n,j,1).gt.0. .and. raw%gts%td(n,j,1).lt.350. .or.    &
              raw%gts%rh(n,j,1).gt.0. .and. raw%gts%rh(n,j,1).le.100. ) iobs = iobs + 1
-      enddo
-   enddo
-else
-
-  do k = gridobs_ks, gridobs_ke, gridobs_int_k
-  do j = gridobs_js, gridobs_je, gridobs_int_x
-  do i = gridobs_is, gridobs_ie, gridobs_int_x
-  do nvar = 1, 4   !U, V, Theta, Qv
-     iobs = iobs + 1
-  enddo
-  enddo
-  enddo
+    enddo
   enddo
 
-endif
 
 !. calculate WSR-88D radar RV records
-if ( use_radar_rv ) then
-   do nr  = 1, raw%radar_stn_num
+  if ( use_radar_rv ) then
+    do nr  = 1, raw%radar_stn_num
       iobs = iobs + raw%radar(nr)%radar_stn%numObs
-   enddo
-endif
+    enddo
+  endif
 
 !. calculate airborne radar records
-if ( use_airborne_rv) iobs = iobs + raw%airborne%num
+  if ( use_airborne_rv) iobs = iobs + raw%airborne%num
 
 !---edited by Minamide 2014.11.18
 !. calculate satellite radiance records
-if ( use_radiance) iobs = iobs + raw%radiance%num
+  if ( use_radiance) iobs = iobs + raw%radiance%num
 
 !. calculate tracker records
-if ( use_hurricane_PI ) iobs = iobs + 3            ! for hurricane center lat and lon and slp
+  if ( use_hurricane_PI ) iobs = iobs + 3            ! for hurricane center lat and lon and slp
 
-if(my_proc_id==0) write(*,*)iobs,' observation data will be loaded'
+  if(my_proc_id==0) write(*,*)iobs,' observation data will be loaded'
 
-allocate( obs%dat      ( iobs    ) )
-allocate( obs%type     ( iobs    ) )
-allocate( obs%err      ( iobs    ) )
-allocate( obs%position ( iobs, 4 ) )
-allocate( obs%sta      ( iobs, 4 ) )
-allocate( obs%roi      ( iobs, 3 ) )
-allocate( obs%sat      ( iobs    ) )
-allocate( obs%ch       ( iobs    ) )
+  allocate( obs%dat      ( iobs    ) )
+  allocate( obs%type     ( iobs    ) )
+  allocate( obs%err      ( iobs    ) )
+  allocate( obs%position ( iobs, 4 ) )
+  allocate( obs%sta      ( iobs, 4 ) )
+  allocate( obs%roi      ( iobs, 3 ) )
+  allocate( obs%sat      ( iobs    ) )
+  allocate( obs%ch       ( iobs    ) )
 
-obs%dat        = -888888.
-obs%type       = '          '
-obs%err        = -888888.
-obs%position   = -888888.
-obs%sta        = -888888.
-obs%roi        = -888888
-obs%sat        = '            '
-obs%ch         = -888888
+  obs%dat        = -888888.
+  obs%type       = '          '
+  obs%err        = -888888.
+  obs%position   = -888888.
+  obs%sta        = -888888.
+  obs%roi        = -888888
+  obs%sat        = '            '
+  obs%ch         = -888888
 
 !----------------------------------------------------------------------------
-obs%num = 0               ! obs%num for all observation, not only Rv
+  obs%num = 0               ! obs%num for all observation, not only Rv
 !. save obs data to obs varry
 !....... Surface U, V, T, RH, SLP
-   if ( use_surface ) then
-         call sort_surface_data( wrf_file, ix, jx, kx, proj, 'surface ', &
+  if ( use_surface ) then
+     call sort_surface_data( wrf_file, ix, jx, kx, proj, 'surface ', &
               datathin_surface, hroi_surface, vroi_surface, grid_id )
-   endif
+  endif
 
 !....... Metar U, V, T, RH, SLP
    if ( use_metar   ) then
@@ -193,12 +165,8 @@ obs%num = 0               ! obs%num for all observation, not only Rv
 
 !....... Sounding U, V, T, RH, SLP
    if ( use_sounding ) then
-      if ( use_ideal_obs ) then
-         call ideal_sounding_data(wrf_file,ix,jx,kx,hroi_sounding,vroi_sounding)
-      else
-         call sort_sounding_data( wrf_file, ix, jx, kx, proj, 'sounding', &
-              datathin_sounding, datathin_sounding_vert, hroi_sounding, vroi_sounding, grid_id)
-      endif
+      call sort_sounding_data( wrf_file, ix, jx, kx, proj, 'sounding', &
+           datathin_sounding, datathin_sounding_vert, hroi_sounding, vroi_sounding, grid_id)
    endif
 
 !....... Get Profiler U, V  !!GPSRO T/Q/refractivity here!!
@@ -280,9 +248,9 @@ obs%num = 0               ! obs%num for all observation, not only Rv
            write(*,*)
          endif
       endif
-   endif
+  endif
 
-   if(my_proc_id==0) write(*,*)obs%num,' observation data will be assimilated'
+  if(my_proc_id==0) write(*,*)obs%num,' observation data will be assimilated'
 
 end subroutine get_all_obs
 !=======================================================================================
@@ -1017,211 +985,6 @@ end subroutine get_airborne
 end subroutine get_radiance
 
 
-!=======================================================================================
-  subroutine output_simulated_rv ( filename )
-  use constants
-  use namelist_define
-  use mapinfo_define
-  use obs_define
-  use map_utils
-  use netcdf
-  use wrf_tools
-  implicit none
-  character (len=*), intent(in)      :: filename
-  character (len=8) :: stid
-  integer       :: i, nr, num, k, length, nlev, nflag
-  real          :: tim
-
-! output in GrADS format, x: distance, y: azimuth, z: elevation angle levels,
-!                         t: radar number;    rv: rv(x,y,z)
-  length = len_trim( filename )
-
-! each radar a file
-  do nr = 1, raw%radar_stn_num
-
-!... output grd file
-  i = len_trim(raw%radar(nr)%radar_stn%idc)
-  open(10, file = filename(1:length)//'_'//raw%radar(nr)%radar_stn%idc(1:i)//'.grd',  &
-           form='unformatted', access='direct', recl=9*4)
-  do num = 1, raw%radar(nr)%radar_stn%numObs
-     tim = 0.0
-     nlev = 1
-     nflag = 1
-     write(stid,'(i8.8)')num
-     write(10)stid,raw%radar(nr)%radar_point(num)%jj,raw%radar(nr)%radar_point(num)%ii,tim,nlev,nflag, &
-              raw%radar(nr)%rv(num),raw%radar(nr)%radar_point(num)%hgt
-  enddo
-  nlev = 0
-  write(10)stid,raw%radar(nr)%radar_point(num-1)%jj,raw%radar(nr)%radar_point(num-1)%ii,tim,nlev,nflag
-  close(10)
-
-!... output ctl file
-  open(10, file = filename(1:length)//'_'//raw%radar(nr)%radar_stn%idc(1:i)//'.ctl',  &
-           form='formatted' )
-  write(10,'(a)')'dset ^'//filename(1:length)//'_'//raw%radar(nr)%radar_stn%idc(1:i)//'.grd'
-  write(10,'(a)')'dtype  station'
-  write(10,'(a)')'stnmap '//filename(1:length)//'_'//raw%radar(nr)%radar_stn%idc(1:i)//'.map'
-  write(10,'(a)')'undef -888888.'
-  write(10,'(a)')'title '//filename(1:length)//'_'//raw%radar(nr)%radar_stn%idc(1:i)
-  write(10,'(a)')'tdef         1  linear 12z02aug2005  1hr '
-!     write(10,'(a,i5)')'vars   ', raw%radar(nr)%radar_stn%levels*2
-!     do k = 1, raw%radar(nr)%radar_stn%levels
-  write(10,'(a,i5)')'vars   ', 2
-  do k = 1, 1
-     write(10,'(a3,i2.2,5x,a,f8.3,a)')'vr_',k, '0 99 radial velocity ',raw%radar(nr)%radar_stn%elv_ang(k),' elevation'
-     write(10,'(a4,i2.2,4x,a,f8.3,a)')'hgt_',k,'0 99 height above SL ',raw%radar(nr)%radar_stn%elv_ang(k),' elevation'
-  enddo
-  write(10,'(a)')'endvars'
-  close(10)
-
-  enddo 
-
-  return
-
-end subroutine output_simulated_rv
-
-!=======================================================================================
-  subroutine output_verify_result ( filename, iobs, ob, fo3dm, obs_ii, obs_jj )
-
-  use constants
-  use namelist_define
-  use mapinfo_define
-  use obs_define
-  use map_utils
-  use netcdf
-  use wrf_tools
-
-  implicit none
-
-  character (len=*), intent(in)      :: filename
-  integer, intent(in)                :: iobs
-  real, dimension(iobs), intent(in)  :: ob, obs_ii, obs_jj
-  real, dimension(iobs,3), intent(in):: fo3dm
-
-  character (len=8) :: stid
-
-  integer       :: i, nr, num, k, length, nlev, nflag
-  real          :: tim
-
-!------------------------------------------------------------------------------
-! output in GrADS format, x: distance, y: azimuth, z: elevation angle levels,
-!                         t: radar number;    rv: rv(x,y,z)
-
-  length = len_trim( filename )
-
-! each radar a file
-  do nr = 1, raw%radar_stn_num
-
-!... output grd file
-  i = len_trim(raw%radar(nr)%radar_stn%idc)
-  open(10, file = filename(1:length)//'_'//raw%radar(nr)%radar_stn%idc(1:i)//'.grd',  &
-           form='unformatted', access='direct', recl=10*4)
-  do num = 1, iobs
-     tim = 0.0
-     nlev = 1
-     nflag = 1
-     write(stid,'(i8.8)')num
-     write(10)stid,obs_jj(num),obs_ii(num),tim,nlev,nflag, &
-              fo3dm(num,1:3)
-  enddo
-  nlev = 0
-  write(10)stid,obs_jj(num),obs_ii(num),tim,nlev,nflag
-  close(10)
-
-!... output ctl file
-  open(10, file = filename(1:length)//'_'//raw%radar(nr)%radar_stn%idc(1:i)//'.ctl',  &
-           form='formatted' )
-  write(10,'(a)')'dset ^'//filename(1:length)//'_'//raw%radar(nr)%radar_stn%idc(1:i)//'.grd'
-  write(10,'(a)')'dtype  station'
-  write(10,'(a)')'stnmap '//filename(1:length)//'_'//raw%radar(nr)%radar_stn%idc(1:i)//'.map'
-  write(10,'(a)')'undef -888888.'
-  write(10,'(a)')'title '//filename(1:length)//'_'//raw%radar(nr)%radar_stn%idc(1:i)
-  write(10,'(a)')'tdef         1  linear 12z02aug2005  1hr '
-  write(10,'(a,i5)')'vars   ', 3
-  write(10,'(a)')'vr_en 0 99 pure ensemble forecast'
-  write(10,'(a)')'vr_fc 0 99 enkf ensemble forecast'
-  write(10,'(a)')'vr_up 0 99 enkf update'
-  write(10,'(a)')'endvars'
-  close(10)
-
-  enddo
-
-  return
-
-end subroutine output_verify_result
-
-!=======================================================================================
-subroutine ideal_sounding_data( wrf_file, ix, jx, kx, hroi, vroi )
-
-use constants
-use namelist_define
-use mpi_module
-use obs_define
-use netcdf
-!----------------------------------------------------------------------------
-implicit none
-
-character (len=10), intent(in)       :: wrf_file
-integer, intent(in)                  :: ix, jx, kx, hroi, vroi
-
-integer                              :: i, j, k, nvar
-character (len=10)                   :: truthfile
-real, dimension(ix+1, jx, kx  )      :: u
-real, dimension(ix, jx+1, kx  )      :: v
-real, dimension(ix, jx, kx  )        :: t, qv
-real, dimension(ix, jx, kx+1)        :: ph, phb
-
-!----------------------------------------------------------------------------
-write(truthfile,'(a5,i5.5)')wrf_file(1:5),80010
-
-call get_variable3d( truthfile, 'U         ', ix+1, jx, kx, 1, u )
-call get_variable3d( truthfile, 'V         ', ix, jx+1, kx, 1, v )
-call get_variable3d( truthfile, 'T         ', ix, jx, kx, 1, t )
-call get_variable3d( truthfile, 'QVAPOR    ', ix, jx, kx, 1, qv )
-call get_variable3d( truthfile, 'PH        ', ix, jx, kx+1, 1, ph )
-call get_variable3d( truthfile, 'PHB       ', ix, jx, kx+1, 1, phb )
-qv = qv*1000.
-ph = ph + phb
-
-do k = gridobs_ks, gridobs_ke, gridobs_int_k
-do j = gridobs_js, gridobs_je, gridobs_int_x
-do i = gridobs_is, gridobs_ie, gridobs_int_x
-do nvar = 1, 4   !U, V, Theta, Qv
-   obs%num                 = obs%num + 1
-   obs%position(obs%num,1) = i
-   obs%position(obs%num,2) = j
-   obs%position(obs%num,3) = k
-   if ( nvar == 1 ) then
-      obs%dat( obs%num ) = u(i,j,k)
-      obs%type(obs%num) = 'idealU    '
-      obs%err(obs%num) = 2.0
-   elseif ( nvar == 2 ) then
-      obs%dat( obs%num ) = v(i,j,k)
-      obs%type(obs%num) = 'idealV    '
-      obs%err(obs%num) = 2.0
-   elseif ( nvar == 3 ) then
-      obs%dat( obs%num ) = t(i,j,k)
-      obs%type(obs%num) = 'idealPT   '
-      obs%err(obs%num) = 1.0
-   elseif ( nvar == 4 ) then
-      obs%dat( obs%num ) = qv(i,j,k)
-      obs%type(obs%num) = 'idealQV   '
-      obs%err(obs%num) = 1.0
-   elseif ( nvar == 5 ) then
-      obs%dat( obs%num ) = ph(i,j,k)
-      obs%type(obs%num) = 'idealPH   '
-      obs%err(obs%num) = 150.0
-   endif
-   obs%roi(obs%num,1) = hroi 
-   obs%roi(obs%num,2) = vroi
-enddo
-enddo
-enddo
-enddo
-
-return
-
-end subroutine ideal_sounding_data
 
 !=======================================================================================
 subroutine sort_sounding_data( wrf_file, ix, jx, kx, proj, instrument, datathin, datathin_vert, hroi, vroi, grid_id)

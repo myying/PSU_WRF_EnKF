@@ -42,7 +42,7 @@ character (len=20) :: format1
 double precision :: timer,t0,t1,t2,t3,t4,t5
 integer :: grid_id, fid, rcode, num_update_var, assimilated_obs_num, update_flag
 real                    :: p_top
-real, dimension(ix, jx) :: xlong, xlat, xland, lu_index
+real, dimension(ix, jx) :: xlong, xlat, xland, lu_index, hgt, tsk
 real, dimension(kx+1)   :: znw
 real, dimension(kx)     :: znu
 real, dimension(3)      :: center_xb
@@ -56,7 +56,8 @@ real, dimension(ni,nj,nk,nv,nm)                :: xf
 real, dimension(ni,nj,nk,nv)                   :: x_t, std_x,std_xf, xmf
 real, dimension(3,3,nk,nv,nm,nicpu*njcpu) :: xobsend, xob
 real, dimension(3,3,nk,nv) :: tmp, tmpsend
-real, dimension(obs%num,numbers_en+1) :: ya, yasend, yf
+real, dimension(obs%num,numbers_en+1) :: ya, yasend, yf,yf1
+real, dimension(obs%num) :: obs_kk, obs_kk_send
 integer, dimension(obs%num) :: kick_flag
 real, allocatable, dimension(:,:,:)   :: km, kmsend, km1, km1send
 real, allocatable, dimension(:,:,:,:) :: x1
@@ -79,6 +80,8 @@ endif
 call get_variable2d( wrf_file, 'XLONG     ', ix, jx, 1, xlong )
 call get_variable2d( wrf_file, 'XLAT      ', ix, jx, 1, xlat )
 call get_variable2d( wrf_file, 'LANDMASK  ', ix, jx, 1, xland )
+call get_variable2d( wrf_file, 'HGT       ', ix, jx, 1, hgt )
+call get_variable2d( wrf_file, 'TSK       ', ix, jx, 1, tsk )
 call get_variable2d( wrf_file, 'LU_INDEX  ', ix, jx, 1, lu_index )
 call get_variable1d( wrf_file, 'ZNW       ', kx+1, 1, znw )
 call get_variable1d( wrf_file, 'ZNU       ', kx, 1, znu )
@@ -102,14 +105,6 @@ if(iend<istart .or. jend<jstart) then
   stop
 endif
 
-! Get truth from fort.80010 if needed, this part not fully tested.
-filename="fort.80010"
-if ( use_simulated .or. use_ideal_obs ) then
-   call rd_truth_wrf(filename,ix,jx,kx,ni,nj,nk,nv,nm,gid,sid,iid,jid,x_t)
-   if ( expername .eq. 'hurricane ' ) &
-      call hurricane_center_shift(filename,ix,jx,kx,xlong,xlat,znu,znw,proj,times)
-endif
-
 !apply prior inflation to ensemble spread
 do n = 1, nm
    ie = (n-1)*nmcpu+gid+1
@@ -119,60 +114,44 @@ do n = 1, nm
    end if
 enddo
 
-
 ! I. calculate ya=Hxa,Hxm
 if(my_proc_id==0) write(*,*) 'Calculating Hx...'
 timer = MPI_Wtime()
-! 1. find obs location in z direction, return as obs%position(:,3)
-!    for simulated obs, calculate obs value.
-do iob=1,obs%num
-   obstype = obs%type(iob)
-   i1=int(obs%position(iob,1))
-   j1=int(obs%position(iob,2))
-   tmpsend=0.
-   tmp=0.
-   do j=j1,j1+2
-   do i=i1,i1+2
+
+!finding observation z location from xm
+z_cycle: do iob=1,obs%num
+  obstype=obs%type(iob)
+  i1=int(obs%position(iob,1))
+  j1=int(obs%position(iob,2))
+  tmpsend=0.
+  tmp=0.
+  do j=j1,j1+2
+  do i=i1,i1+2
      if(i>=istart.and.i<=iend.and.j>=jstart.and.j<=jend) then
-        if(use_simulated) then
-          tmpsend(i-i1+1,j-j1+1,:,:)=x_t(i-istart+1,j-jstart+1,:,:)
-        else
-          tmpsend(i-i1+1,j-j1+1,:,:)=xm(i-istart+1,j-jstart+1,:,:)
-        endif
+        tmpsend(i-i1+1,j-j1+1,:,:)=xm(i-istart+1,j-jstart+1,:,:)
      endif
+  enddo
+  enddo
+  call MPI_Allreduce(tmpsend,tmp,3*3*nk*nv,MPI_REAL,MPI_SUM,s_comm,ierr)
+  write(filename,'(a5,i5.5)') wrf_file(1:5), iunit+numbers_en+1-1
+  if ( obstype(1:5) == 'Radar' ) then
+      call calc_rv_position_k(filename,proj,tmp,ix,jx,kx,nv,iob,xlong,znw,obs%position(iob,3)) 
+  else if ( obstype(1:1) == 'P' .or. obstype(1:1) == 'H' ) then
+      call calc_sounding_position_k(filename,proj,tmp,ix,jx,kx,nv,iob,xlong,znu,znw,p_top,obs%position(iob,3))
+  else 
+      obs%position(iob,3) = 1.
+  endif
+end do z_cycle
+
+!print out obs if debugging
+if(print_detail>4 .and. my_proc_id==0) then
+   do iob=1,obs%num
+     write(*,'(a,i6,3a,f10.2,a,3f10.2)') 'No.', iob,' ',obs%type(iob),'= ', obs%dat(iob), ' at (x,y,z)=', obs%position(iob,1:3)
    enddo
-   enddo
-   call MPI_Allreduce(tmpsend,tmp,3*3*nk*nv,MPI_REAL,MPI_SUM,s_comm,ierr)
-   if ( use_simulated ) then
-      filename="fort.80010"
-      if ( obstype(1:5) == 'Radar' ) then
-         call xb_to_rv(filename,proj,tmp,ix,jx,kx,nv,iob,xlong,znw,xb,0)
-      else if ( obstype == 'longtitude' .or. obstype == 'latitude  ' .or. obstype == 'min_slp   ' ) then
-         call hurricane_center_assimilation(filename,ix,jx,kx,int(obs%position(iob,1)),int(obs%position(iob,2)), &
-                                            center_xb,znu,znw,xlong,xlat,proj)
-         if ( obstype == 'longtitude' ) obs%dat(iob) = center_xb(1)
-         if ( obstype == 'latitude  ' ) obs%dat(iob) = center_xb(2)
-         if ( obstype == 'min_slp   ' ) obs%dat(iob) = center_xb(3) - pr/100.
-      else if ( obstype(1:1) == 'P' .or. obstype(1:1) == 'H'  ) then
-         call xb_to_sounding(filename,proj,tmp,ix,jx,kx,nv,iob,xlong,znu,znw,p_top,xb, 0, 1 )  
-         obs%dat(iob) = xb
-      else if ( obstype(1:1) == 'S' ) then
-         call xb_to_surface(filename,proj,tmp,ix,jx,kx,nv,iob,xlong,xland,lu_index,znu,znw,p_top,times,xb)
-         obs%position(iob,3) = 1.
-      endif
-   else
-      write(filename,'(a5,i5.5)') wrf_file(1:5), iunit+numbers_en+1-1
-      if ( obstype(1:5) == 'Radar' ) then
-         call xb_to_rv(filename,proj,tmp,ix,jx,kx,nv,iob,xlong,znw,xb,0) 
-      else if ( obstype(1:1) == 'P' .or. obstype(1:1) == 'H' ) then
-         call xb_to_sounding(filename,proj,tmp,ix,jx,kx,nv,iob,xlong,znu,znw,p_top,xb,1,0)
-      else 
-         obs%position(iob,3) = 1.
-      endif
-   endif
-enddo
-! 2. use cpus in the s_comm simultaneously to parallelize the calculation of Hx
-!    y=Hx stored in ya(obs_num, numbers_en+1)
+endif
+
+! use cpus in the s_comm simultaneously to parallelize the calculation of Hx
+! y=Hx stored in ya(obs_num, numbers_en+1)
 ya=0.
 yasend=0.
 nob=nicpu*njcpu !number of obs in a batch, processed by cpus with different sid simotaneously (parallelized)
@@ -181,17 +160,17 @@ obs_cycle: do ig=1,int(obs%num/nob)+1
    xobsend=0.
    xob=0.
    do ii=1,nob
-   iob=(ig-1)*nob+ii
-   if(iob<=obs%num) then
-     i1=int(obs%position(iob,1))
-     j1=int(obs%position(iob,2))
-     do j=j1,j1+2
-     do i=i1,i1+2
-       if(i>=istart.and.i<=iend.and.j>=jstart.and.j<=jend) &
-          xobsend(i-i1+1,j-j1+1,:,:,:,ii)=x(i-istart+1,j-jstart+1,:,:,:)
-     enddo
-     enddo
-   endif
+     iob=(ig-1)*nob+ii
+     if(iob<=obs%num) then
+       i1=int(obs%position(iob,1))
+       j1=int(obs%position(iob,2))
+       do j=j1,j1+2
+       do i=i1,i1+2
+         if(i>=istart.and.i<=iend.and.j>=jstart.and.j<=jend) &
+            xobsend(i-i1+1,j-j1+1,:,:,:,ii)=x(i-istart+1,j-jstart+1,:,:,:)
+       enddo
+       enddo
+     endif
    enddo
    call MPI_Allreduce(xobsend,xob,3*3*nk*nv*nm*nob,MPI_REAL,MPI_SUM,s_comm,ierr)
    iob=(ig-1)*nob+sid+1
@@ -204,36 +183,32 @@ obs_cycle: do ig=1,int(obs%num/nob)+1
        if ( obstype(1:5) == 'Radar' ) then
          call xb_to_rv(filename,proj,xob(:,:,:,:,n,sid+1),ix,jx,kx,nv,iob,xlong,znw,yasend(iob,ie),obs%position(iob,3),1)
        else if ( obstype == 'longtitude' .or. obstype == 'latitude  ' .or. obstype == 'min_slp   ' ) then
-         call hurricane_center_assimilation(filename,ix,jx,kx,int(obs%position(iob,1)),int(obs%position(iob,2)), &
-                                            center_xb,znu,znw,xlong,xlat,proj)
-         if ( obstype == 'longtitude' ) ya(iob,ie) = center_xb(1)
-         if ( obstype == 'latitude  ' ) ya(iob,ie) = center_xb(2)
-         if ( obstype == 'min_slp   ' ) ya(iob,ie) = center_xb(3) - pr/100.
+         call hurricane_center_assimilation(filename,ix,jx,kx,int(obs%position(iob,1)),int(obs%position(iob,2)), center_xb,znu,znw,xlong,xlat,proj)
+         if ( obstype == 'longtitude' ) yasend(iob,ie) = center_xb(1)
+         if ( obstype == 'latitude  ' ) yasend(iob,ie) = center_xb(2)
+         if ( obstype == 'min_slp   ' ) yasend(iob,ie) = center_xb(3) - pr/100.
        else if ( obstype(1:1) == 'P' .or. obstype(1:1) == 'H'  ) then
-         call xb_to_sounding (filename,proj,xob(:,:,:,:,n,sid+1),ix,jx,kx,nv,iob,xlong,znu,znw,p_top,yasend(iob,ie),1,1)
+         call xb_to_sounding (filename,proj,xob(:,:,:,:,n,sid+1),ix,jx,kx,nv,iob,xlong,znu,znw,p_top,yasend(iob,ie))
        else if ( obstype(1:1) == 'S' ) then
          call xb_to_surface(filename,proj,xob(:,:,:,:,n,sid+1),ix,jx,kx,nv,iob,xlong,xland,lu_index,znu,znw,p_top,times,yasend(iob,ie))
        else if ( obstype(1:3) == 'slp' ) then
          call xb_to_slp(filename,xob(:,:,:,:,n,sid+1),ix,jx,kx,nv,iob,znu,znw,yasend(iob,ie))
        else if ( obstype(1:2) == 'pw' ) then
          call xb_to_pw(filename,xob(:,:,:,:,n,sid+1),ix,jx,kx,nv,iob,znu,znw,yasend(iob,ie))
-       else if ( obstype(1:5) == 'ideal' ) then
-         call xb_to_idealsound(filename,xob(:,:,:,:,n,sid+1),ix,jx,kx,nv,iob,yasend(iob,ie))
-       endif
+       elseif ( obstype(1:8) == 'Radiance' ) then
+         call xb_to_radiance(filename,xob(:,:,:,:,n,sid+1),ix,jx,kx,nv,iob,xlong,xlat,znw,hgt,tsk,xland,yasend(iob,ie),1)
+       end if
      endif
    enddo
 end do obs_cycle
 
 call MPI_Allreduce(yasend,ya,obs%num*(numbers_en+1),MPI_REAL,MPI_SUM,comm,ierr)
 
-!print out obs/prior for debugging
+!print out obs prior if debugging
 if(print_detail>4 .and. my_proc_id==0) then
-   do iob=1,obs%num
-     write(*,'(a,i6,3a,f10.2,a,3f10.2)') 'No.', iob,' ',obs%type(iob),'=', obs%dat(iob), ' at (x,y,z)=', obs%position(iob,1:3)
-   enddo
    write(format1,'(a,i4,a)') '(i5,a,',numbers_en+1,'f10.2)'
    do iob=1,obs%num
-     if(print_detail>4 .and. my_proc_id==0) write(*,format1) iob, ' '//obs%type(iob)//' ya=',ya(iob,:)!numbers_en+1)
+     write(*,format1) iob, ' '//obs%type(iob)//' ya=',ya(iob,:)!numbers_en+1)
    enddo
 endif
 
@@ -247,12 +222,16 @@ enddo
 xf=x   !save a copy of prior perturbation (for relaxation)
 yf=ya  !save a copy of observation prior (for error statistics)
 
+!prior multiplicative inflation
+! x=x*inflate
+
 ! II. assimilate obs
 if(my_proc_id==0) write(*,*) 'Assimilating obs...'
 
 timer=MPI_Wtime()
 t1=0.; t2=0.; t3=0.; t4=0.;
 
+assimilated_obs_num=0
 obs_assimilate_cycle : do it = 1,obs%num
 ! 0. get basic information of the obs being assimilated
    iob=ind(it)
@@ -262,9 +241,9 @@ obs_assimilate_cycle : do it = 1,obs%num
    y_hxm = obs%dat(iob) - ya(iob,numbers_en+1)
 
    !!!skip radiance obs to process later
-   if ( obstype=='Radiance  ' ) then
-     cycle obs_assimilate_cycle
-   end if
+!   if ( obstype=='Radiance  ' ) then
+!     cycle obs_assimilate_cycle
+!   end if
 
    !!print out obs info
    if ( my_proc_id==0 ) write(*,'(a,i6,a,f10.2,a,f10.2,a,f8.2,a,f8.2,a,i4,a,i4)') &
@@ -288,11 +267,7 @@ obs_assimilate_cycle : do it = 1,obs%num
    assimilated_obs_num=assimilated_obs_num+1
    ngx = max(obs%roi(iob,1),max(nicpu,njcpu))
    ngz = obs%roi(iob,2)
-! Gaussian error added if using truth/idealized as obs
-   if ( use_simulated .or. use_ideal_obs ) then
-      call date_and_time(date, time, zone, values) 
-      y_hxm = y_hxm + error*gaussdev(sum(values))
-   end if
+
 ! fac*var=hBh'=<hxa hxa'>=<(ya-yam)(ya-yam)'>
 ! alpha is for Square-Root filter (Whitaker and Hamill 2002, MWR130,1913-1924)
 ! d=hBh'+r, for each obs, d reduces to a scalar, r=error^2.
@@ -628,6 +603,8 @@ t0=MPI_Wtime()
 
 end do obs_assimilate_cycle
 
+yf1=ya !save another copy of ya
+
 if ( my_proc_id == 0 ) write(*,'(a,f7.2,a)')' 1 tooks ', t1, ' seconds.'
 if ( my_proc_id == 0 ) write(*,'(a,f7.2,a)')' 2 tooks ', t2, ' seconds.'
 if ( my_proc_id == 0 ) write(*,'(a,f7.2,a)')' 3 tooks ', t3, ' seconds.'
@@ -641,23 +618,10 @@ if ( my_proc_id==0 ) write(*,*)'Number of assimilated obs =',assimilated_obs_num
 !Michael Ying: loop over satellite observation using different strategy
 !              decompose domain into slabs and assimilate each 1/4 of the slab
 !              withouth influencing other slabs, all slabs processed simultaneously
-
-!--calculate Hx
-!---every grid is calculated in subroutine xb_to_radiance
-!if(raw%radiance%num.ne.0) then
-  !yasend_tb=0.
-  !do ie = 1, numbers_en
-    !yasend_tb = 0.0
-    !write( filename, '(a5,i5.5)') wrf_file(1:5), iunit+ie-1
-    !!if ( my_proc_id == 0 ) write(*,*) "calculating radiance prior for member",ie
-    !call xb_to_radiance(filename,proj,ix,jx,kx,xlong,xlat,xland,iob_radmin,iob_radmax,yasend_tb,.true.)
-    !yasend(iob_radmin:iob_radmax,ie) = yasend_tb(iob_radmin:iob_radmax)
-    !yasend(iob_radmin:iob_radmax,numbers_en+1)=yasend(iob_radmin:iob_radmax,numbers_en+1)+yasend_tb(iob_radmin:iob_radmax)/real(numbers_en)  !calculate ya mean here
-  !enddo
-!endif
-
-!sat_obs_cycle: do batch=1:4
-   
+if ( my_proc_id==0 ) write(*,*)'Assimilating Satellite Tb...'
+assimilated_obs_num=0
+!sat_obs_cycle: do i=1,4
+  
 !
 !!---Observation Error Inflation & Successive Covariance Localization (Zhang et al. 2009)
 !!      for Radiance assimilation by Minamide 2015.3.14
@@ -683,7 +647,6 @@ if ( my_proc_id==0 ) write(*,*)'Number of assimilated obs =',assimilated_obs_num
     !end if
 
 !end do sat_obs_cycle
-!!! satellite observation assimilation complete
 
 !---------------------------------------------------------------------------------
 ! IV. Diagnostics for filter performance.
