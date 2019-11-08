@@ -1,17 +1,9 @@
 #!/bin/bash
-source /glade/u/home/mying/.bashrc 
-
-##Header for stampede2
-##SBATCH -J run_cycle
-##SBATCH -n 544 -N 8
-##SBATCH -p development
-##SBATCH -t 2:00:00
-##SBATCH -o log/%j.out
-##SBATCH -e log/%j.err
+source ~/.bashrc
 
 #load configuration files, functions, parameters
 cd $WORK/PSU_WRF_EnKF
-export CONFIG_FILE=$WORK/PSU_WRF_EnKF/config/Cloud_reanalysis/control
+export CONFIG_FILE=$WORK/PSU_WRF_EnKF/config/$1
 . $CONFIG_FILE
 . util.sh
 
@@ -55,7 +47,7 @@ while [[ $NEXTDATE -le $DATE_CYCLE_END ]]; do  #CYCLE LOOP
   fi
   #LBDATE: Closest to DATE when LBC is available in wrfbdy/wrflowinp
   export minute_off=`echo "(${DATE:8:2}*60+${DATE:10:2})%$LBC_INTERVAL" |bc`
-  export LBDATE=`advance_time $DATE -$minute_off` 
+  export LBDATE=`advance_time $DATE -$minute_off`
 
   echo "----------------------------------------------------------------------"
   echo "CURRENT CYCLE: `wrf_time_string $DATE` => `wrf_time_string $NEXTDATE`"
@@ -86,10 +78,10 @@ while [[ $NEXTDATE -le $DATE_CYCLE_END ]]; do  #CYCLE LOOP
 
   # Data assimilation for each cycle
   if [ $DATE -ge $DATE_CYCLE_START ] && [ $DATE -le $DATE_CYCLE_END ]; then
-#    # Processing observations
-#    if $RUN_ENKF || $RUN_4DVAR; then
-#      $SCRIPT_DIR/module_obsproc.sh &
-#    fi
+    # Processing observations
+    if $RUN_ENKF || $RUN_4DVAR; then
+      $SCRIPT_DIR/module_obsproc.sh &
+    fi
 
     # EnKF
     if $RUN_ENKF; then
@@ -105,7 +97,6 @@ while [[ $NEXTDATE -le $DATE_CYCLE_END ]]; do  #CYCLE LOOP
     if $RUN_ENVAR; then
       $SCRIPT_DIR/module_wrf_ens_window1.sh &
     fi
-#    $SCRIPT_DIR/module_wrf.sh &
   fi
   wait
 
