@@ -98,7 +98,7 @@ echo "    running ungrib.exe"
 $WPS_DIR/link_grib.csh $FG_DIR/*
 ln -sf $WPS_DIR/ungrib/Variable_Tables/Vtable.GFS Vtable
 ln -fs $WPS_DIR/ungrib/src/ungrib.exe .
-$SCRIPT_DIR/job_submit.sh 1 0 1 ./ungrib.exe >& ungrib.log
+./ungrib.exe >& ungrib.log
 watch_log ungrib.log Successful 10 $rundir
 
 #3. metgrid.exe --------------------------------------------------------------------

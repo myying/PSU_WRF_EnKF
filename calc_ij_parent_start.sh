@@ -15,7 +15,7 @@ fgdate=`advance_time $icdate -$minute_off`
 
 for i in 0 1; do
   tcdate=`advance_time $fgdate $((i*$LBC_INTERVAL))`
-  tcvitals_data=$TCVITALS_DIR/${tcdate:0:4}/${tcdate}.${STORM_ID}-tcvitals.dat
+  tcvitals_data=$TCVITALS_DIR/${tcdate:0:4}/${STORM_ID}/${tcdate}.dat
   if [ ! -f $tcvitals_data ]; then echo "$tcvitals_data not found!"; exit; fi
   latstr=`head -n1 $tcvitals_data |awk '{print $6}'`
   lonstr=`head -n1 $tcvitals_data |awk '{print $7}'`
