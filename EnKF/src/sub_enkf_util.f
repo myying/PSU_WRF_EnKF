@@ -49,6 +49,10 @@ subroutine  read_namelist(ix, jx, kx)
    njcpu       = 1
    random_order = .true.
 
+!-- multiscale
+   num_scales = 1
+   krange(1) = 1
+
 !-- use_hurricane_position_intensity
    use_hurricane_PI = .false.      ! hurricane position(center lat and lon) and inteneity(min SLP)
    hroi_hurricane_PI = 999
@@ -63,12 +67,14 @@ subroutine  read_namelist(ix, jx, kx)
 !-- use_sounding_obs
    use_sounding      = .false. 
    datathin_sounding = 999
+   datathin_sounding_vert = 999
    hroi_sounding     = 999
    vroi_sounding     = 999
 
 !-- use_profiler_obs
    use_profiler      = .false. 
    datathin_profiler = 999
+   datathin_profiler_vert = 999
    hroi_profiler     = 999
    vroi_profiler     = 999
 
@@ -166,6 +172,11 @@ subroutine  read_namelist(ix, jx, kx)
    read ( unit = namelist_unit, nml = parallel, iostat = iost )
    if( iost .ne. 0 ) then
        write(*,*)'parallel, please check it.'
+       stop 'read_namelist enkf_parameter'
+   endif
+   read ( unit = namelist_unit, nml = multiscale, iostat = iost )
+   if( iost .ne. 0 ) then
+       write(*,*)'multiscale, please check it.'
        stop 'read_namelist enkf_parameter'
    endif
    read ( unit = namelist_unit, nml = hurricane_PI, iostat = iost )

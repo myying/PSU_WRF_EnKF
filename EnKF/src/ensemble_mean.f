@@ -99,16 +99,7 @@ if(gid==0) &
   call output(i_unit+numbers_en+1,ix,jx,kx,ni,nj,nk,nv,nm,s_comm,sid,iid,jid,xm,times)
 
 ! Give a finish flag
-if ( my_proc_id == 0 ) write(*,'(a)')' Successful completion of EnKF.'
-finish_file_flg = times(1:4)//times(6:7)//times(9:10)//times(12:13)//times(15:16)//'.finish_flag'
-do k = 1, 12
-  if ( finish_file_flg(k:k) .eq. " " ) finish_file_flg(k:k) ='0'
-enddo
-if ( my_proc_id == 0 ) then
-  open(10,file=finish_file_flg)
-  write(10,*)times
-  close(10)
-endif
+if ( my_proc_id == 0 ) write(*,'(a)')' Successful completion of ensemble_mean.exe'
 
 ! Clean up
 deallocate(x)

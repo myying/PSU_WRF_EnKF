@@ -49,6 +49,11 @@ nicpu  = $NICPU,
 njcpu  = $NJCPU,
 /
 
+&multiscale
+num_scales = 3,
+krange = 5, 15, 30,
+/
+
 &osse
 use_ideal_obs    = .false.,
 gridobs_is   = 20,
