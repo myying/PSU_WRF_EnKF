@@ -56,7 +56,7 @@ mpiexec $exe >& $jobname.log
 EOF
     qsub run_$jobname.sh >& job_submit.log
     #wait for job to finish
-    jobid=`cat job_submit.log`
+    jobid=`cat job_submit.log |cut -c1-15`
     jobstat=1
     until [[ $jobstat == 0 ]]; do
       sleep 1
