@@ -35,14 +35,14 @@ if [[ $HOSTTYPE == "cheyenne" ]]; then
     nodes=`echo "($n+$ppn-1)/$ppn" |bc`
     jobname=`basename $exe |awk -F. '{print $1}'`
     queue="regular"
-    wtime="00:50:00"
-      if [ $jobname == "wrf" ]; then
-        queue="regular"
-        wtime="00:10:00"
-      fi
+    wtime="03:00:00"
+      #if [ $jobname == "wrf" ]; then
+      #  queue="regular"
+      #  wtime="00:10:00"
+      #fi
     cat << EOF > run_$jobname.sh
 #!/bin/bash
-#PBS -A UPSU0023
+#PBS -A $HOSTACCOUNT
 #PBS -N $jobname
 #PBS -l walltime=$wtime
 #PBS -q $queue

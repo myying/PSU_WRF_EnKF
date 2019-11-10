@@ -7,7 +7,7 @@ use netcdf
 use scale_utils
 integer            :: i_unit=80010
 integer            :: unit
-integer            :: ie,ix,jx,kx,len,i,j,k,n,ni,nj,nk,nkx,nky
+integer            :: ie,ix,jx,kx,len,i,j,k,n,ni,nj,nk
 integer            :: ii,jj,kk,nn,m,nv,nm,fid
 real               :: member_per_cpu
 character (len=10) :: wrf_file
