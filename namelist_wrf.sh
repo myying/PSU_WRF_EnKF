@@ -71,7 +71,7 @@ if [[ $use_for == "ndown" ]]; then
   echo io_form_auxinput2=2,
 fi
 
-if [[ $sst_update == 1 ]]; then
+if [[ $SST_UPDATE == 1 ]]; then
   echo auxinput4_inname="wrflowinp_d<domain>",
   echo auxinput4_interval=$(for i in $domlist; do printf $CYCLE_PERIOD, ; done)
   echo io_form_auxinput4=2,
@@ -167,7 +167,7 @@ EOF
 
 cat << EOF
 mp_zero_out        = 2,
-sst_update         = $sst_update,
+sst_update         = $SST_UPDATE,
 sst_skin           = ${SST_SKIN:-0},
 
 EOF
