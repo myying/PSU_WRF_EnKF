@@ -1,4 +1,4 @@
-subroutine enkf (wrf_file,ix,jx,kx,ni,nj,nk,nv,nm,g_comm,s_comm,gid,sid,iid,jid,xm,x,ind,proj,times)
+subroutine enkf (wrf_file,ix,jx,kx,ni,nj,nk,nv,nm,g_comm,s_comm,gid,sid,iid,jid,xom,xo,xm,x,ind,proj,times)
 use constants
 use namelist_define
 use obs_define
@@ -19,7 +19,7 @@ implicit none
 integer, intent(in) :: sid,gid,iid,jid
 integer, intent(in) :: ix,jx,kx,ni,nj,nk,nv,nm, g_comm,s_comm
 integer, dimension(obs%num), intent(in) :: ind
-character (len=10), intent(in) :: wrf_file 
+character (len=10), intent(in) :: wrf_file
 type (proj_info)    :: proj
 character (len=10)  :: obstype
 character (len=80), intent(in) :: times
@@ -50,8 +50,8 @@ real, dimension(3)      :: center_xb
 ! _f=first guess; _t=truth
 ! ya=Hxa,Hxm: the state vector translated to observation space. ya(number of obs, number of members + mean)
 ! km        : kalman gain in updating x
-real, dimension(ni,nj,nk,nv,nm), intent(inout) :: x
-real, dimension(ni,nj,nk,nv), intent(inout)    :: xm
+real, dimension(ni,nj,nk,nv,nm), intent(inout) :: x,xo
+real, dimension(ni,nj,nk,nv), intent(inout)    :: xm,xom
 real, dimension(ni,nj,nk,nv,nm)                :: xf
 real, dimension(ni,nj,nk,nv)                   :: x_t, std_x,std_xf, xmf
 real, dimension(3,3,nk,nv,nm,nicpu*njcpu) :: xobsend, xob
@@ -104,15 +104,6 @@ if(iend<istart .or. jend<jstart) then
   if(m==1.and.gid==0) write(*,'(a,i6,a)') '*******domain is too small to be decomposed! set nicpu,njcpu smaller.********'
   stop
 endif
-
-!apply prior inflation to ensemble spread
-do n = 1, nm
-   ie = (n-1)*nmcpu+gid+1
-   if ( ie<=numbers_en+1 ) then
-     x(:,:,:,:,n)=inflate*(x(:,:,:,:,n)-xm)
-     x(:,:,:,:,n)=x(:,:,:,:,n)+xm  !add mean back
-   end if
-enddo
 
 ! I. calculate ya=Hxa,Hxm
 if(my_proc_id==0) write(*,*) 'Calculating Hx...'
@@ -167,7 +158,7 @@ obs_cycle: do ig=1,int(obs%num/nob)+1
        do j=j1,j1+2
        do i=i1,i1+2
          if(i>=istart.and.i<=iend.and.j>=jstart.and.j<=jend) &
-            xobsend(i-i1+1,j-j1+1,:,:,:,ii)=x(i-istart+1,j-jstart+1,:,:,:)
+            xobsend(i-i1+1,j-j1+1,:,:,:,ii)=xo(i-istart+1,j-jstart+1,:,:,:)
        enddo
        enddo
      endif
@@ -215,11 +206,13 @@ endif
 if ( my_proc_id == 0 ) write(*,'(a,f7.2,a)')' Calculation of y=Hx tooks ', MPI_Wtime()-timer, ' seconds.'
 
 !calculate ensemble perturbations
+!apply prior inflation to ensemble spread
 do n = 1, nm
    ie = (n-1)*nmcpu+gid+1
-   if ( ie<=numbers_en+1 ) x(:,:,:,:,n)=x(:,:,:,:,n)-xm
+   if ( ie<=numbers_en+1 ) x(:,:,:,:,n)=inflate*(x(:,:,:,:,n)-xm)
 enddo
 xf=x   !save a copy of prior perturbation (for relaxation)
+xmf=xm
 yf=ya  !save a copy of observation prior (for error statistics)
 
 !prior multiplicative inflation

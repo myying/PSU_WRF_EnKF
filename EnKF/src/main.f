@@ -27,15 +27,15 @@
   use map_utils
   use wrf_tools
   use radar
-  integer            :: i_unit=80010, o_unit=90010
+  integer            :: u_unit=70010, i_unit=80010, o_unit=90010
   integer            :: unit
   integer            :: iob, ie, ic, it, ix, jx, kx, len, i, j, k, n, ntot, ni,nj,nk
   integer            :: ii, jj, kk, m, nv, nm, gid, sid, iid,jid, g_comm,s_comm
   real               :: member_per_cpu
   character (len=10) :: wrf_file
   double precision   :: time1, time2
-  real, allocatable, dimension(:,:,:,:)   :: xm, x2m
-  real, allocatable, dimension(:,:,:,:,:) :: x, x2
+  real, allocatable, dimension(:,:,:,:)   :: xm, xom
+  real, allocatable, dimension(:,:,:,:,:) :: x, xo
   real, allocatable, dimension(:) :: randnum
   integer,allocatable,dimension(:) :: ind
   type(proj_info)    :: proj
@@ -47,14 +47,14 @@
 ! Get WRF model information from the 1th member
 ! ( reference to MM5_to_GrADS: module_wrf_to_grads_util.f)
   write(wrf_file,'(a5,i5.5)')'fort.',i_unit+1
-  call get_wrf_info(wrf_file, ix, jx, kx, times, proj) ! saved wrf info to proj 
+  call get_wrf_info(wrf_file, ix, jx, kx, times, proj) ! saved wrf info to proj
 ! Initilize and Read in namelist information
-  call read_namelist(ix, jx, kx) 
+  call read_namelist(ix, jx, kx)
   write(wrf_file,'(a5,i5.5)')'fort.',i_unit+numbers_en+1
   call get_all_obs(wrf_file, ix, jx, kx, times, proj)
   if ( print_detail > 1 .and. my_proc_id == 0 ) write(*,*)'All observations are loaded'
 
-! Decompose domain based on n_cpus (nprocs) and n_members (numbers_en) 
+! Decompose domain based on n_cpus (nprocs) and n_members (numbers_en)
 ! figure out parallel strategy:
 if(.not.manual_parallel) then
   nmcpu=1
@@ -96,7 +96,7 @@ call MPI_Comm_split(comm, sid, gid, g_comm, ierr)
 
 !-- allocate wrf variables, 2d->x2, 3d->x
 nv = 0
-do m=1,30 
+do m=1,30
   if(len_trim(enkfvar(m))>=1) nv=nv+1
 enddo
 ni=int((ix+1)/nicpu)+1
@@ -111,21 +111,33 @@ if(my_proc_id==0) then
 endif
 allocate(x(ni,nj,nk,nv,nm))
 allocate(xm(ni,nj,nk,nv))
+allocate(xo(ni,nj,nk,nv,nm))
+allocate(xom(ni,nj,nk,nv))
 x=0.
 xm=0.
+xo=0.
+xom=0.
 
 ! Read in initial Ensemble in x
-call read_ensemble(i_unit,ix,jx,kx,ni,nj,nk,nv,nm,gid,sid,iid,jid,x)
+call read_ensemble(i_unit,ix,jx,kx,ni,nj,nk,nv,nm,gid,sid,iid,jid,xo)
+call read_ensemble(u_unit,ix,jx,kx,ni,nj,nk,nv,nm,gid,sid,iid,jid,x)
 
 ! Calculate the ensemble mean and output
 call MPI_Allreduce(sum(x,5),xm,ntot,MPI_REAL,MPI_SUM,g_comm,ierr)
+call MPI_Allreduce(sum(xo,5),xom,ntot,MPI_REAL,MPI_SUM,g_comm,ierr)
 xm=xm/real(numbers_en)
+xom=xom/real(numbers_en)
 do n=1,nm
   ie=(n-1)*nmcpu+gid+1
-  if(ie==numbers_en+1) x(:,:,:,:,n)=xm
+  if(ie==numbers_en+1) then
+    x(:,:,:,:,n)=xm
+    xo(:,:,:,:,n)=xom
+  endif
 enddo
-if(gid==0) &
-  call output(i_unit+numbers_en+1,ix,jx,kx,ni,nj,nk,nv,nm,s_comm,sid,iid,jid,xm,times)
+if(gid==0) then
+  call output(i_unit+numbers_en+1,ix,jx,kx,ni,nj,nk,nv,nm,s_comm,sid,iid,jid,xom,times)
+  call output(u_unit+numbers_en+1,ix,jx,kx,ni,nj,nk,nv,nm,s_comm,sid,iid,jid,xm,times)
+endif
 
 time1 = MPI_Wtime()
 if ( my_proc_id == 0 ) write(*,'(a,f7.2,a)')' Data Processing tooks ', time1-time_start, ' seconds.'
@@ -146,10 +158,10 @@ endif
 call MPI_Bcast(ind,obs%num,MPI_INTEGER,0,comm,ierr)
 
 write(wrf_file,'(a5,i5.5)')'fort.',i_unit+1
-call enkf(wrf_file,ix,jx,kx,ni,nj,nk,nv,nm,g_comm,s_comm,gid,sid,iid,jid,xm,x,ind,proj,times)
+call enkf(wrf_file,ix,jx,kx,ni,nj,nk,nv,nm,g_comm,s_comm,gid,sid,iid,jid,xom,xo,xm,x,ind,proj,times)
 time2 = MPI_Wtime()
 if ( my_proc_id == 0 ) write(*,'(a,f7.2,a)')' EnKF tooks ', time2-time1, ' seconds.'
-     
+
 ! Save the Analyses
 if ( my_proc_id == 0 ) write(*,*)'Output members and mean now...'
 do n =1, nm
@@ -171,9 +183,7 @@ if ( my_proc_id == 0 ) then
 endif
 
 ! Clean up
-deallocate(ind)
-deallocate(x)
-deallocate(xm)
+deallocate(ind,x,xm,xo,xom)
 call MPI_Comm_free(g_comm,ierr)
 call MPI_Comm_free(s_comm,ierr)
 call parallel_finish()

@@ -50,7 +50,10 @@ ensemble_mean.exe: module_structure.o mpi_module.o module_netcdf.o module_map_ut
 	$(FC) -o ensemble_mean.exe $(FCFLAG) -FR -I$(NETCDF)/include module_structure.o mpi_module.o module_netcdf.o module_map_utils.o module_wrf_tools.o sub_enkf_util.o -L$(CRTM_DIR)/lib -lCRTM -L$(NETCDF)/lib -lnetcdff ensemble_mean.f
 
 scale_decompose.exe: module_structure.o mpi_module.o module_netcdf.o module_wrf_tools.o module_map_utils.o sub_enkf_util.o fft_pack.o scale_utils.o
-	$(FC) -o scale_decompose.exe $(FCFLAG) -FR -I$(NETCDF)/include  module_structure.o mpi_module.o module_netcdf.o module_wrf_tools.o module_map_utils.o sub_enkf_util.o fft_pack.o scale_utils.o -L$(CRTM_DIR)/lib -L$(NETCDF)/lib -lnetcdff scale_decompose.f
+	$(FC) -o scale_decompose.exe $(FCFLAG) -FR -I$(NETCDF)/include module_structure.o mpi_module.o module_netcdf.o module_wrf_tools.o module_map_utils.o sub_enkf_util.o fft_pack.o scale_utils.o -L$(NETCDF)/lib -lnetcdff scale_decompose.f
+
+alignment.exe: module_structure.o mpi_module.o module_netcdf.o module_wrf_tools.o module_map_utils.o sub_enkf_util.o
+	$(FC) -o alignment.exe $(FCFLAG) -FR -I$(NETCDF)/include module_structure.o mpi_module.o module_netcdf.o module_wrf_tools.o module_map_utils.o sub_enkf_util.o -L$(NETCDF)lib -lnetcdff alignment.f
 
 replace_mean.exe: module_netcdf.o mpi_module.o
 	$(FC) -o replace_mean.exe $(FCFLAG) -FR -I$(NETCDF)/include module_netcdf.o mpi_module.o -L$(NETCDF)/lib -lnetcdff replace_mean.f

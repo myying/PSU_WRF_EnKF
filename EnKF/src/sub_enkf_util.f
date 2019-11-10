@@ -52,6 +52,7 @@ subroutine  read_namelist(ix, jx, kx)
 !-- multiscale
    num_scales = 1
    krange(1) = 1
+   current_scale = 1
 
 !-- use_hurricane_position_intensity
    use_hurricane_PI = .false.      ! hurricane position(center lat and lon) and inteneity(min SLP)

@@ -1,6 +1,8 @@
 #!/bin/bash
 . $CONFIG_FILE
 domain_id=$1
+current_scale=$2
+
 dx=`echo ${DX[$domain_id-1]}/1000 |bc -l`
 
 ##switch certain obs type off if OBSINT (obs interval) is set less frequent than CYCLE_PERIOD
@@ -13,17 +15,16 @@ if [[ $domain_id != 3 ]]; then USE_RADAR_RV=false; fi
 
 cat << EOF
 &enkf_parameter
-numbers_en   = $NUM_ENS, 
-expername    = '$EXP_NAME',  
-enkfvar      = 'U         ', 'V         ', 'W         ', 'T         ', 'QVAPOR    ', 'QCLOUD    ', 'QRAIN     ', 'QSNOW     ', 'QICE      ', 'QGRAUP    ', 'QHAIL     ', 'PH        ', 'MU        ', 'PSFC      ', 'P         ', 'PHB       ', 'PB        ', 'MUB       ',
+numbers_en   = $NUM_ENS,
+expername    = '$EXP_NAME',
+enkfvar      = `for i in ${UPDATE_VAR[*]}; do printf "\'%-10s\', " $i; done`
+updatevar    = `for i in ${UPDATE_VAR[*]}; do printf "\'%-10s\', " $i; done`
 EOF
 
-if [ $minute_off == 0 ] || [ $minute_off == 180 ]; then
-  echo "updatevar    = 'U         ', 'V         ', 'W         ', 'T         ', 'QVAPOR    ', 'QCLOUD    ', 'QRAIN     ', 'QSNOW     ', 'QICE      ', 'QGRAUP    ', 'QHAIL     ', 'PH        ', 'MU        ', 'PSFC      ', 'P         ',"
-else
-  echo "updatevar    = 'U         ', 'V         ', 'W         ', 'T         ', 'QVAPOR    ', 'QCLOUD    ', 'QRAIN     ', 'QSNOW     ', 'QICE      ', 'QGRAUP    ', 'QHAIL     ', 'PH        ', 'MU        ', 'PSFC      ', 'P         ',"
-	#echo "updatevar    = 'QCLOUD    ', 'QRAIN     ', 'QSNOW     ', 'QICE      ', 'QGRAUP    ',"
-fi
+#if [ $minute_off == 0 ] || [ $minute_off == 180 ]; then
+#  echo "updatevar    = 'U         ', 'V         ', 'W         ', 'T         ', 'QVAPOR    ', 'QCLOUD    ', 'QRAIN     ', 'QSNOW     ', 'QICE      ', 'QGRAUP    ', 'PH        ', 'MU        ', 'PSFC      ', 'P         ',"
+#else
+#fi
 
 buffer=4 #buffer=0 if update_bc, buffer=spec_bdy_width-1 if bc is fixed as in perfect model case
 
@@ -34,10 +35,10 @@ update_js    = `echo 1+$buffer |bc`,
 update_je    = `echo ${E_SN[$domain_id-1]}-$buffer |bc`,
 update_ks    = 1,
 update_ke    = `echo ${E_VERT[$domain_id-1]}-1 |bc`,
-inflate      = $INFLATION_COEF,
-relax_opt    = $RELAX_OPT,
-relax_adaptive = .$RELAX_ADAPTIVE.,
-mixing       = $RELAXATION_COEF,
+inflate      = ${INFLATION_COEF:-1.0},
+relax_opt    = ${RELAX_OPT:-0},
+relax_adaptive = .${RELAX_ADAPTIVE:-false}.,
+mixing       = ${RELAXATION_COEF:-0.0},
 random_order = .false.,
 print_detail = 0,
 /
@@ -50,8 +51,9 @@ njcpu  = $NJCPU,
 /
 
 &multiscale
-num_scales = 3,
-krange = 5, 15, 30,
+num_scales = ${NUM_SCALES:-1},
+krange = `for i in ${K_RANGE[*]}; do echo "$i, "`
+current_scale = ${current_scale:-1},
 /
 
 &osse
@@ -67,7 +69,7 @@ gridobs_int_k= 1,
 use_simulated= .false.,
 /
 
-&hurricane_PI 
+&hurricane_PI
 use_hurricane_PI  = .false.,
 hroi_hurricane_PI = 60,
 vroi_hurricane_PI = 35,
@@ -156,13 +158,13 @@ vroi_gpspw     = $VROI,
 &radar_obs
 radar_number   = 1,
 use_radar_rf   = .$USE_RADAR_RF.,
-use_radar_rv   = .$USE_RADAR_RV., 
+use_radar_rv   = .$USE_RADAR_RV.,
 datathin_radar = $THIN_RADAR,
 hroi_radar     = $(printf %.0f `echo $HROI_RADAR/$dx |bc -l`),
 vroi_radar     = $VROI_RADAR,
 /
 
-&airborne_radar   
+&airborne_radar
 use_airborne_rf   = .$USE_AIRBORNE_RF.,
 use_airborne_rv   = .$USE_AIRBORNE_RV.,
 datathin_airborne = $THIN_RADAR,

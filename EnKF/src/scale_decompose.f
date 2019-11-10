@@ -76,7 +76,8 @@ do n=1,nm
       call wrf_var_dimension(wrf_file,enkfvar(m),ix,jx,kx,ii,jj,kk)
       nn=min(ii,jj)
       do k=1,kk
-        call scale_bandpass(x(1:nn,1:nn,k,m,n),krange(1:num_scales+1),1,xout(1:nn,1:nn,k,m,n))
+        call scale_bandpass(x(1:nn,1:nn,k,m,n),krange(1:num_scales+1), &
+                            current_scale,xout(1:nn,1:nn,k,m,n))
       enddo
     enddo
   endif
@@ -86,7 +87,7 @@ enddo
 do n=1,nm
   ie=(n-1)*my_proc_id+1
   if(ie<=numbers_en) then
-    write(wrf_file,'(a4,i5.5)') 'out.',10010+ie
+    write(wrf_file,'(a5,i5.5)') 'fort.',70010+ie
     call open_file(wrf_file,nf_write,fid)
     do m=1,nv
       call wrf_var_dimension(wrf_file,enkfvar(m),ix,jx,kx,ii,jj,kk)
