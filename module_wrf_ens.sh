@@ -32,7 +32,7 @@ echo "  Running WRF ensemble forecast..."
 
 tid=0
 nt=$((total_ntasks/$wrf_ntasks))
-for r in 1 1.5; do
+for r in 1; do
   export time_step_ratio=$r
   for NE in `seq 1 $NUM_ENS`; do
     id=`expr $NE + 1000 |cut -c2-`
@@ -104,7 +104,7 @@ for r in 1 1.5; do
     fi
 
     if [[ $SST_UPDATE == 1 ]]; then
-      ln -fs ../../../../fc/wrflowinp_d?? .
+      ln -fs ../../../../rc/$DATE_START/wrflowinp_d?? .
     fi
 
     if $FOLLOW_STORM; then
@@ -184,13 +184,6 @@ if $RUN_4DVAR; then
     else
       ln -sf $WORK_DIR/fc/$DATE/wrfinput_d01_mean $WORK_DIR/fc/$DATE/wrfinput_d01_`wrf_time_string $outdate`_mean
     fi
-  done
-fi
-
-if $CLEAN; then 
-  for NE in `seq 1 $NUM_ENS`; do
-    id=`expr $NE + 1000 |cut -c2-`
-    rm -f $rundir/$id/wrfout*
   done
 fi
 
