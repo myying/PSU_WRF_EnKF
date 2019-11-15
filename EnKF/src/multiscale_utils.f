@@ -91,24 +91,74 @@ subroutine grid2d(xind,yind,x,y)
 end subroutine grid2d
 
 
-function warp_state(x,u,v) result(xw)
+subroutine warp_state(x,xw,u,v)
   real,dimension(:,:) :: x,u,v
-  real,dimension(size(x,1),size(x,2)) :: xw
+  real,dimension(:,:),intent(inout) :: xw
   integer :: i,j,buffer
   xw=x
   buffer=4
-  do i=1+buffer,nx-buffer
-  do j=1+buffer,ny-buffer
-    xw(i,j) = u(i,j)
+  do i=1+buffer,size(x,1)-buffer
+  do j=1+buffer,size(x,2)-buffer
+    xw(i,j) = interp2d(x,real(i)-u(i,j),real(j)-v(i,j))
   enddo
   enddo
-end function warp_state
+end subroutine warp_state
 
 function interp2d(x,i,j) result(xout)
-  real,dimension(:,:) :: x
+  real,dimension(:,:),intent(in) :: x
   real :: i,j,xout,di,dj
   integer :: i1,i2,j1,j2
-  xout = 0.0
+  i1=floor(i); i2=i1+1; di=i-real(i1)
+  j1=floor(j); j2=j1+1; dj=j-real(j1)
+  xout=(1-di)*(1-dj)*x(i1,j1)+di*(1-dj)*x(i2,j1)+(1-di)*dj*x(i1,j2)+di*dj*x(i2,j2)
 end function interp2d
+
+subroutine optical_flow_HS(xb,xa,wt,u,v)
+  real,intent(in) :: wt
+  real,dimension(:,:),intent(in) :: xb,xa
+  real,dimension(:,:),intent(inout) :: u,v
+  real,dimension(size(xb,1),size(xb,2)) :: Ix,Iy,It,ubar,vbar
+  integer :: niter,nx,ny
+  nx=size(xb,1); ny=size(xb,2)
+  niter=100
+  Ix=0.5*(deriv_x(xb)+deriv_x(xa))
+  Iy=0.5*(deriv_y(xb)+deriv_y(xa))
+  It=xa-xb
+  u=0.; v=0.
+  do i=1,niter
+    u(1,:)=0.; u(nx,:)=0.; u(:,1)=0.; u(:,ny)=0. !!boundary condition
+    v(1,:)=0.; v(nx,:)=0.; v(:,1)=0.; v(:,ny)=0.
+    ubar=laplacian(u)+u
+    vbar=laplacian(v)+v
+    u=ubar-Ix*(Ix*ubar+Iy*vbar+It)/(wt+Ix**2+Iy**2)
+    v=vbar-Iy*(Ix*ubar+Iy*vbar+It)/(wt+Ix**2+Iy**2)
+  enddo
+end subroutine optical_flow_HS
+
+function deriv_x(u) result(dudx)
+  real,dimension(:,:) :: u
+  real,dimension(size(u,1),size(u,2)) :: dudx
+  integer :: nx
+  nx=size(u,1)
+  dudx(2:nx-1,:)=0.5*(u(3:nx,:)-u(1:nx-2,:))
+  dudx(1,:)=u(2,:)-u(1,:)
+  dudx(nx,:)=u(nx,:)-u(nx-1,:)
+end function deriv_x
+
+function deriv_y(u) result(dudy)
+  real,dimension(:,:) :: u
+  real,dimension(size(u,1),size(u,2)) :: dudy
+  integer :: ny
+  ny=size(u,2)
+  dudy(:,2:ny-1)=0.5*(u(:,3:ny)-u(:,1:ny-2))
+  dudy(:,1)=u(:,2)-u(:,1)
+  dudy(:,ny)=u(:,ny)-u(:,ny-1)
+end function deriv_y
+
+function laplacian(u) result(lapl_u)
+  real,dimension(:,:) :: u
+  real,dimension(size(u,1),size(u,2)) :: lapl_u
+  lapl_u=deriv_x(deriv_x(u))+deriv_y(deriv_y(u))
+end function laplacian
 
 end module multiscale_utils

@@ -79,15 +79,11 @@ do n=1,nm
         call get_variable2d(wrf_file,enkfvar(m),ii,jj,1,xs)
       endif
 
-      xsw=xs
       do k=1,kk
         !!! Compute displacement vectors using Horn Schunck
-        !call optical_flow_HS(xb(:,:,k),xa(:,:,k),100.,u,v)
-        u=0.; v=0.
-        u(150:300,120:240)=50.
-        v(150:300,120:240)=50.
+        call optical_flow_HS(xb(:,:,k),xa(:,:,k),100.,u,v)
         !!! Warp smaller-scale field xs -> xsw
-        xsw(:,:,k)=warp_state(xs(:,:,k),u,v)
+        call warp_state(xs(:,:,k),xsw(:,:,k),u,v)
       enddo
 
       !!!!read current intermediate state
@@ -99,8 +95,7 @@ do n=1,nm
       endif
 
       !!!!add increment and write back
-      !xout=xout+xsw-xs!+xa-xb
-      xout=xsw
+      xout=xout+xsw-xs!+xa-xb
 
       call open_file(wrf_file,nf_write,fid)
       if(kk>1) then
