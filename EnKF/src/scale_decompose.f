@@ -4,7 +4,7 @@ use namelist_define
 use mpi_module
 use mapinfo_define
 use netcdf
-use scale_utils
+use multiscale_utils
 !!!read intermediate updated state 900??, decompose into
 !!!current scale copmonent 500?? and smaller scale component 600??
 integer            :: i_unit=90010, s_unit=50010, s1_unit=60010

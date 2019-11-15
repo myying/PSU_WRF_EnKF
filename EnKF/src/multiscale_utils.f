@@ -1,4 +1,4 @@
-module scale_utils
+module multiscale_utils
 
 contains
 
@@ -90,4 +90,25 @@ subroutine grid2d(xind,yind,x,y)
   x=spread(xind,2,ny)
 end subroutine grid2d
 
-end module scale_utils
+
+function warp_state(x,u,v) result(xw)
+  real,dimension(:,:) :: x,u,v
+  real,dimension(size(x,1),size(x,2)) :: xw
+  integer :: i,j,buffer
+  xw=x
+  buffer=4
+  do i=1+buffer,nx-buffer
+  do j=1+buffer,ny-buffer
+    xw(i,j) = u(i,j)
+  enddo
+  enddo
+end function warp_state
+
+function interp2d(x,i,j) result(xout)
+  real,dimension(:,:) :: x
+  real :: i,j,xout,di,dj
+  integer :: i1,i2,j1,j2
+  xout = 0.0
+end function interp2d
+
+end module multiscale_utils
