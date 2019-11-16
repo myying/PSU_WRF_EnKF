@@ -43,7 +43,7 @@ for n in $domlist; do
 #  #airborne radar superobs
 #  ln -fs $DATA_DIR/so/${DATE}_all.so_ass airborne_${DATE}_so
 
-  ln -fs $OBS_DIR/obs_gts_`wrf_time_string $DATE`.3DVAR obs_3dvar_${DATE}00
+  ln -fs $WORK_DIR/obs/$DATE/obs_gts_`wrf_time_string $DATE`.3DVAR obs_3dvar_${DATE}00
 
 #radiance obs
 #  ln -fs $WORK/code/CRTM/crtm_wrf/coefficients

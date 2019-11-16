@@ -33,7 +33,8 @@ if $INCLUDE_LITTLE_R; then
   for d in `cat datelist |sort |uniq`; do
 
     #NCAR_LITTLE_R
-    if [ -f $DATA_DIR/ncar_littler/${d:0:6}/obs.${d:0:10}.gz ]; then 
+    if [ -f $DATA_DIR/ncar_littler/${d:0:6}/obs.${d:0:10}.gz ]; then
+      echo "ncar_littler"
       cp $DATA_DIR/ncar_littler/${d:0:6}/obs.${d:0:10}.gz .
       gunzip obs.${d:0:10}.gz
       cat obs.${d:0:10} |sed 's/FM-88 SATOB /FM-111 GPSPW/g' >> obs.raw   #exclude AMV in ncar_littler
@@ -41,18 +42,23 @@ if $INCLUDE_LITTLE_R; then
     fi
 
     #UPAQF soundings - LITTLE_R
-    if [ -f $DATA_DIR/upaqf/${d:0:6}/upaqf.${d:0:10} ]; then
-      cat $DATA_DIR/upaqf/${d:0:6}/upaqf.${d:0:10} >> obs.raw
-    fi
+    #if [ -f $DATA_DIR/upaqf/${d:0:6}/upaqf.${d:0:10} ]; then
+    #  cat $DATA_DIR/upaqf/${d:0:6}/upaqf.${d:0:10} >> obs.raw
+    #fi
 
     #AMV
-    if [ -f $DATA_DIR/Met7_amv/${d:0:6}/amv.${d:0:10} ]; then
-      cat $DATA_DIR/Met7_amv/${d:0:6}/amv.${d:0:10} >> obs.raw
-    fi
+    #if [ -f $DATA_DIR/Met7_amv/${d:0:6}/amv.${d:0:10} ]; then
+    #  cat $DATA_DIR/Met7_amv/${d:0:6}/amv.${d:0:10} >> obs.raw
+    #fi
 
     #ASCAT
-    if [ -f $DATA_DIR/ascat/${d:0:6}/ascat.${d:0:10} ]; then
-      cat $DATA_DIR/ascat/${d:0:6}/ascat.${d:0:10} >> obs.raw
+    #if [ -f $DATA_DIR/ascat/${d:0:6}/ascat.${d:0:10} ]; then
+    #  cat $DATA_DIR/ascat/${d:0:6}/ascat.${d:0:10} >> obs.raw
+    #fi
+
+    if [ -f $DATA_DIR/dropsonde/littler/${d:0:10} ]; then
+      echo "dropsonde"
+      cat $DATA_DIR/dropsonde/littler/${d:0:10} >> obs.raw
     fi
   done
 fi
@@ -119,7 +125,7 @@ fi
 
 #####  START OBSPROC #####
 for var_type in 3DVAR 4DVAR; do
-  case $var_type in 
+  case $var_type in
     3DVAR)
       if ! $RUN_ENKF; then continue; fi
     ;;
@@ -136,7 +142,7 @@ for var_type in 3DVAR 4DVAR; do
   mv obs_gts_*.$var_type $WORK_DIR/obs/$DATE/.
 done
 
-if $CLEAN; then rm obs.raw; fi
+#if $CLEAN; then rm obs.raw; fi
 
 echo complete > stat
 

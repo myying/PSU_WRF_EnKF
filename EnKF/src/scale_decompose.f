@@ -38,8 +38,10 @@ enddo
 !!!krange should have ns-1 entries, each is the wavenumber separating scales.
 if ( my_proc_id == 0 ) then
   write(*,*) '---------------------------------------------------'
-  print*, num_scales
-  print*, krange(1:num_scales-1)
+  print*, 'num_scales=',num_scales
+  print*, 'krange=',krange(1:num_scales-1)
+  print*, 'nm=',nm, 'nv=',nv
+  print*, 'member_per_cpu=',member_per_cpu
 endif
 
 do n=1,nm

@@ -35,7 +35,7 @@ if [[ $HOSTTYPE == "cheyenne" ]]; then
     nodes=`echo "($n+$ppn-1)/$ppn" |bc`
     jobname=`basename $exe |awk -F. '{print $1}'`
     queue="regular"
-    wtime="03:00:00"
+    wtime="06:00:00"
       #if [ $jobname == "wrf" ]; then
       #  queue="regular"
       #  wtime="00:10:00"
@@ -59,8 +59,10 @@ EOF
     jobid=`cat job_submit.log |cut -c1-15`
     jobstat=1
     until [[ $jobstat == 0 ]]; do
-      sleep 1
+      sleep 10
       jobstat=`qstat -x |grep $jobid |awk '{if($5==R || $5==Q) print 1; else print 0;}'`
+      #########BUGGY
+      #########DOESNT WAIT BEFORE FINISH
     done
   fi
 
