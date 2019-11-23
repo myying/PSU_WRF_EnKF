@@ -2,7 +2,7 @@ module multiscale_utils
 
 contains
 
-function scale_response(k,krange,s) result(r)
+subroutine scale_response(k,krange,s,r)  !!!!response func for scale s
   integer :: s
   real,dimension(:,:) :: k
   integer,dimension(:) :: krange
@@ -14,15 +14,15 @@ function scale_response(k,krange,s) result(r)
   end if
   r=0.0
   if(s==1) then
-    where(k<krange(s)) r=1.0
+    where(k<krange(1)) r=1.0
   else if(s==ns) then
-    where(k>=krange(s-1)) r=1.0
+    where(k>=krange(ns-1)) r=1.0
   else
     where(k>=krange(s-1) .and. k<krange(s)) r=1.0
   end if
-end function scale_response
+end subroutine scale_response
 
-function scale_response1(k,krange,s) result(r)
+subroutine scale_response1(k,krange,s,r)  !!!scales smaller than s
   integer :: s
   real,dimension(:,:) :: k
   integer,dimension(:) :: krange
@@ -33,12 +33,10 @@ function scale_response1(k,krange,s) result(r)
     stop
   end if
   r=0.0
-  if(s==ns) then
-    where(k>=krange(s-1)) r=1.0
-  else
+  if(s<ns) then
     where(k>=krange(s)) r=1.0
   end if
-end function scale_response1
+end subroutine scale_response1
 
 subroutine scale_bandpass(u,krange,s,us,us1)
   use,intrinsic :: iso_c_binding
@@ -54,7 +52,7 @@ subroutine scale_bandpass(u,krange,s,us,us1)
   complex(C_DOUBLE_COMPLEX),dimension(size(u,1),size(u,2)) :: uspec
   nx=size(u,1)
   ny=size(u,2)
-  ns=size(krange)
+  ns=size(krange)+1
   call init_fft(nx,ny)
   if(ns.eq.1) then
     us=u
@@ -73,9 +71,9 @@ subroutine scale_bandpass(u,krange,s,us,us1)
     n=max(nx,ny)
     keff=sqrt((kx*(n/nx))**2+(ky*(n/ny))**2)
     uspec=fft2(dcmplx(u,0.0))/(nx*ny)
-    flt=scale_response(keff,krange,s)
+    call scale_response(keff,krange,s,flt)
     us=real(ifft2(uspec*flt))
-    flt=scale_response1(keff,krange,s)
+    call scale_response1(keff,krange,s,flt)
     us1=real(ifft2(uspec*flt))
   end if
 end subroutine scale_bandpass

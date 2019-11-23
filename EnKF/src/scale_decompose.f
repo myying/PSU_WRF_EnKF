@@ -39,6 +39,7 @@ enddo
 if ( my_proc_id == 0 ) then
   write(*,*) '---------------------------------------------------'
   print*, 'num_scales=',num_scales
+  print*, 'current_scale=',current_scale
   print*, 'krange=',krange(1:num_scales-1)
   print*, 'nm=',nm, 'nv=',nv
   print*, 'member_per_cpu=',member_per_cpu
