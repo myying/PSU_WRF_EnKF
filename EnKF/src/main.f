@@ -162,6 +162,8 @@ call enkf(wrf_file,ix,jx,kx,ni,nj,nk,nv,nm,g_comm,s_comm,gid,sid,iid,jid,xom,xo,
 time2 = MPI_Wtime()
 if ( my_proc_id == 0 ) write(*,'(a,f7.2,a)')' EnKF tooks ', time2-time1, ' seconds.'
 
+deallocate(ind,xo,xom)
+
 ! Save the Analyses
 if ( my_proc_id == 0 ) write(*,*)'Output members and mean now...'
 do n =1, nm
@@ -183,7 +185,7 @@ if ( my_proc_id == 0 ) then
 endif
 
 ! Clean up
-deallocate(ind,x,xm,xo,xom)
+deallocate(x,xm)
 call MPI_Comm_free(g_comm,ierr)
 call MPI_Comm_free(s_comm,ierr)
 call parallel_finish()
