@@ -13,7 +13,6 @@ integer            :: b_unit=50010,a_unit=70010,s_unit=60010
 integer            :: i_unit=80010,o_unit=90010
 integer            :: ie,ix,jx,kx,len,i,j,k,n
 integer            :: ii,jj,kk,nn,m,nv,nm,fid
-real               :: member_per_cpu
 character (len=10) :: wrf_file
 real, allocatable, dimension(:,:) :: u,v
 real, allocatable, dimension(:,:,:) :: xb,xa,xs,xsw,xin,xout,delx
@@ -29,9 +28,12 @@ call get_wrf_info(wrf_file, ix, jx, kx, times, proj) ! saved wrf info to proj
 ! Initilize and Read in namelist information
 call read_namelist(ix, jx, kx)
 
-!!only using nmcpu here, no domain decomposition (because requires whole domain)
-member_per_cpu=real(numbers_en+1)/nmcpu
-nm=ceiling(member_per_cpu)
+!!only using nmcpu=nens here, no domain decomposition (because requires whole domain)
+!!ignore namelist parallel options
+nm=1
+if(nprocs .ne. numbers_en) then
+  if(my_proc_id==0) print*,'ERROR: nprocs/=numbers_en'
+endif
 
 !-- allocate wrf variables
 nv = 0
@@ -44,7 +46,6 @@ if ( my_proc_id == 0 ) then
   print*, 'current_scale=',current_scale
   print*, 'krange=',krange(1:num_scales-1)
   print*, 'nm=',nm, 'nv=',nv
-  print*, 'member_per_cpu=',member_per_cpu
 endif
 
 do n=1,nm
@@ -114,7 +115,7 @@ do n=1,nm
       endif
       call close_file(fid)
 
-      deallocate(u,v,xa,xb,xs,xsw,xin,xout)
+      deallocate(u,v,xa,xb,xs,xsw,xin,xout,delx)
     enddo
   endif
 enddo
