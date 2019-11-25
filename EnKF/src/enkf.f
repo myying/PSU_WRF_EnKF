@@ -209,9 +209,6 @@ if(raw%radiance%num.ne.0) then
 endif
 call MPI_Allreduce(yasend,ya,obs%num*(numbers_en+1),MPI_REAL,MPI_SUM,comm,ierr)
 
-!make a copy of yf (prior)
-yf=ya
-
 !print out obs/prior for debugging
 if(print_detail>4 .and. my_proc_id==0) then
    do iob=1,obs%num
@@ -258,8 +255,9 @@ obs_assimilate_cycle : do it = 1,obs%num
       ' err=',error,' hroi=',obs%roi(iob,1),' vroi=',obs%roi(iob,2)
 
    if( abs(y_hxm)>(error*5.) .and. &
-      .not.(obstype=='min_slp   ' .or. obstype=='longtitude' .or. obstype=='latitude  ' .or. obstype=='slp       '&
-       .or. obstype=='Radiance  ') ) then
+      .not.(obstype=='min_slp   ' .or. obstype=='longtitude' .or. obstype=='latitude  ' &
+      .or. obstype=='slp       '&
+      .or. obstype=='Radiance  ') ) then
       if ( my_proc_id==0 ) write(*,*)' ...kicked off for large error'
       kick_flag(iob)=1
       cycle obs_assimilate_cycle
@@ -282,9 +280,9 @@ obs_assimilate_cycle : do it = 1,obs%num
    do ie = 1, numbers_en
       hxa(ie) = ya(iob,ie)-ya(iob,numbers_en+1)
       var     = var + hxa(ie)*hxa(ie)
-   enddo 
-   fac  = 1./real(numbers_en-1) 
-   d    = fac * var + error * error 
+   enddo
+   fac  = 1./real(numbers_en-1)
+   d    = fac * var + error * error
    alpha = 1.0/(1.0+sqrt(error*error/d))
 
 ! cycle through variables to process, in x, 2D variables are stored in 3D form (with values only on
@@ -309,24 +307,24 @@ t0=MPI_Wtime()
    endif
 !!---OEI & SCL end
 
-   if (obstype=='Radiance  ') then
-     if (varname=='QCLOUD    ' .or. varname=='QRAIN     ' .or. varname=='QICE      ' .or. &
-       varname=='QGRAUP    ' .or. varname=='QSNOW     ') then
-       update_flag=1
-     else
-       update_flag=0
-     end if
-   end if
+   !if (obstype=='Radiance  ') then
+   !  if (varname=='QCLOUD    ' .or. varname=='QRAIN     ' .or. varname=='QICE      ' .or. &
+   !    varname=='QGRAUP    ' .or. varname=='QSNOW     ') then
+   !    update_flag=1
+   !  else
+   !    update_flag=0
+   !  end if
+   !end if
 
    if ( update_flag==0 ) cycle update_x_var
 
 ! start and end indices of the update zone of the obs
-     ist = max( update_is, int(obs%position(iob,1))-ngx ) 
-     ied = min( update_ie, int(obs%position(iob,1))+ngx ) 
-     jst = max( update_js, int(obs%position(iob,2))-ngx ) 
-     jed = min( update_je, int(obs%position(iob,2))+ngx ) 
-     kst = max( update_ks, int(obs%position(iob,3))-ngz ) 
-     ked = min( update_ke, int(obs%position(iob,3))+ngz ) 
+     ist = max( update_is, int(obs%position(iob,1))-ngx )
+     ied = min( update_ie, int(obs%position(iob,1))+ngx )
+     jst = max( update_js, int(obs%position(iob,2))-ngx )
+     jed = min( update_je, int(obs%position(iob,2))+ngx )
+     kst = max( update_ks, int(obs%position(iob,3))-ngz )
+     ked = min( update_ke, int(obs%position(iob,3))+ngz )
      call wrf_var_dimension ( wrf_file, varname, ix, jx, kx, ii, jj, kk )
      if ( kk == 1 ) then
        kst  = 1
@@ -340,7 +338,7 @@ t0=MPI_Wtime()
      if(iid==nicpu-1) uied=ied
      if(jid==njcpu-1) ujed=jed
      if(uied<uist .or. ujed<ujst) then
-       if(m==1.and.gid==0) then 
+       if(m==1.and.gid==0) then
           write(*,'(a,i6,a)') '*******update zone of obs #',iob,' is too small to be decomposed.********'
           write(*,*) 'update zone', uist,uied,ujst,ujed,kst,ked
           write(*,*) 'obs location', obs%position(iob,:)
@@ -351,7 +349,7 @@ t0=MPI_Wtime()
      x1=0.
 
 ! 1. send and recv x from all sid to the slab a cpu need for later use.
-!    if data needed from/to sid, we determine the indices of data sent/received by the 
+!    if data needed from/to sid, we determine the indices of data sent/received by the
 !    sid of dest/source cpus, and perform the send/recv
 !
      do is=0,nicpu*njcpu-1
@@ -418,7 +416,7 @@ t1=t1+MPI_Wtime()-t0
 t0=MPI_Wtime()
 
 ! 2. calculate Bh' part of kalman gain, Bh'=<xa xa'>h'=SUM(xa*hxa)*fac
-!    the summation among ensemble members is done by allreduce within the g_comm group (members are 
+!    the summation among ensemble members is done by allreduce within the g_comm group (members are
 !    distributed among cpus with different gid.
      allocate ( km     (uied-uist+1, ujed-ujst+1, ked-kst+1) )
      allocate ( kmsend (uied-uist+1, ujed-ujst+1, ked-kst+1) )
@@ -567,7 +565,7 @@ t0=MPI_Wtime()
          enddo
          where( xm(ist-istart+1:ied-istart+1,jst-jstart+1:jed-jstart+1,kst:ked,m)<0.) &
                 xm(ist-istart+1:ied-istart+1,jst-jstart+1:jed-jstart+1,kst:ked,m)=0.
-       endif 
+       endif
        deallocate(km1)
      endif
      deallocate(km)
@@ -595,7 +593,7 @@ t0=MPI_Wtime()
    update_y_cycle : do iiob=1,obs%num
 ! skip those ya outside update zone
       if ( obs%position(iiob,1)<ist .or. obs%position(iiob,1)>ied .or. &
-           obs%position(iiob,2)<jst .or. obs%position(iiob,2)>jed .or. & 
+           obs%position(iiob,2)<jst .or. obs%position(iiob,2)>jed .or. &
            obs%position(iiob,3)<kst .or. obs%position(iiob,3)>ked ) cycle update_y_cycle
 
       call corr(real(obs%position(iiob,1)-obs%position(iob,1)), real(obs%position(iiob,2)-obs%position(iob,2)), &
@@ -621,7 +619,7 @@ t0=MPI_Wtime()
 !!error = y_hxm
 !     d    = fac * var + abs(y_hxm) * abs(y_hxm)
 !     alpha = 1.0/(1.0+sqrt(abs(y_hxm)*abs(y_hxm)/d))
-!! 
+!!
 
 !!!---- OEI
    if (obstype=='Radiance  ') then
