@@ -188,20 +188,38 @@ obs_cycle: do ig=1,int(obs%num/nob)+1
          call xb_to_slp(filename,xob(:,:,:,:,n,sid+1),ix,jx,kx,nv,iob,znu,znw,yasend(iob,ie))
        else if ( obstype(1:2) == 'pw' ) then
          call xb_to_pw(filename,xob(:,:,:,:,n,sid+1),ix,jx,kx,nv,iob,znu,znw,yasend(iob,ie))
-       elseif ( obstype(1:8) == 'Radiance' ) then
-         call xb_to_radiance(filename,xob(:,:,:,:,n,sid+1),ix,jx,kx,nv,iob,xlong,xlat,znw,hgt,tsk,xland,yasend(iob,ie),1)
        end if
      endif
    enddo
 end do obs_cycle
 
+!--ensemble loop for satellite radiance
+ !---every grid is calculated in subroutine xb_to_radiance
+
+if(raw%radiance%num.ne.0) then
+  yasend_tb=0.
+  do ie = 1, numbers_en
+    yasend_tb = 0.0
+    write( filename, '(a5,i5.5)') wrf_file(1:5), iunit+ie-1
+    !if ( my_proc_id == 0 ) write(*,*) "calculating radiance prior for member",ie
+    call xb_to_radiance(filename,proj,ix,jx,kx,xlong,xlat,xland,iob_radmin,iob_radmax,yasend_tb,1)
+    yasend(iob_radmin:iob_radmax,ie) = yasend_tb(iob_radmin:iob_radmax)
+    yasend(iob_radmin:iob_radmax,numbers_en+1)=yasend(iob_radmin:iob_radmax,numbers_en+1)+yasend_tb(iob_radmin:iob_radmax)/real(numbers_en)  !calculate ya mean here
+  enddo
+endif
 call MPI_Allreduce(yasend,ya,obs%num*(numbers_en+1),MPI_REAL,MPI_SUM,comm,ierr)
 
-!print out obs prior if debugging
+!make a copy of yf (prior)
+yf=ya
+
+!print out obs/prior for debugging
 if(print_detail>4 .and. my_proc_id==0) then
+   do iob=1,obs%num
+     write(*,'(a,i6,3a,f10.2,a,3f10.2)') 'No.', iob,' ',obs%type(iob),'=', obs%dat(iob), ' at (x,y,z)=', obs%position(iob,1:3)
+   enddo
    write(format1,'(a,i4,a)') '(i5,a,',numbers_en+1,'f10.2)'
    do iob=1,obs%num
-     write(*,format1) iob, ' '//obs%type(iob)//' ya=',ya(iob,:)!numbers_en+1)
+     if(print_detail>4 .and. my_proc_id==0) write(*,format1) iob, ' '//obs%type(iob)//' ya=',ya(iob,:)!numbers_en+1)
    enddo
 endif
 
@@ -235,19 +253,13 @@ obs_assimilate_cycle : do it = 1,obs%num
    error = obs%err(iob)
    y_hxm = obs%dat(iob) - ya(iob,numbers_en+1)
 
-   !!!skip radiance obs to process later
-!   if ( obstype=='Radiance  ' ) then
-!     cycle obs_assimilate_cycle
-!   end if
-
-   !!print out obs info
    if ( my_proc_id==0 ) write(*,'(a,i6,a,f10.2,a,f10.2,a,f8.2,a,f8.2,a,i4,a,i4)') &
       'No.',iob,' '//obstype//' =',obs%dat(iob), ' ya=', ya(iob,numbers_en+1), ' y-ya=', y_hxm, &
       ' err=',error,' hroi=',obs%roi(iob,1),' vroi=',obs%roi(iob,2)
 
    if( abs(y_hxm)>(error*5.) .and. &
-      .not.( obstype=='min_slp   ' .or. obstype=='slp       ' .or. &
-             obstype=='longtitude' .or. obstype=='latitude  ' ) ) then
+      .not.(obstype=='min_slp   ' .or. obstype=='longtitude' .or. obstype=='latitude  ' .or. obstype=='slp       '&
+       .or. obstype=='Radiance  ') ) then
       if ( my_proc_id==0 ) write(*,*)' ...kicked off for large error'
       kick_flag(iob)=1
       cycle obs_assimilate_cycle
@@ -260,7 +272,7 @@ obs_assimilate_cycle : do it = 1,obs%num
    endif
 
    assimilated_obs_num=assimilated_obs_num+1
-   ngx = max(obs%roi(iob,1),max(nicpu,njcpu))
+   ngx = max(obs%roi(iob,1),max(nicpu,njcpu)/2+1)
    ngz = obs%roi(iob,2)
 
 ! fac*var=hBh'=<hxa hxa'>=<(ya-yam)(ya-yam)'>
@@ -278,22 +290,35 @@ obs_assimilate_cycle : do it = 1,obs%num
 ! cycle through variables to process, in x, 2D variables are stored in 3D form (with values only on
 ! k=1), when sending them among cpus, only the lowest layer (:,:,1) are sent and received.
 update_x_var : do m=1,nv
-  t0=MPI_Wtime()
-     varname=enkfvar(m)
-     update_flag = 0
-     do iv = 1, num_update_var
-       if ( varname .eq. updatevar(iv) ) update_flag = 1
-     enddo
+t0=MPI_Wtime()
+   varname=enkfvar(m)
+   update_flag = 0
+   do iv = 1, num_update_var
+     if ( varname .eq. updatevar(iv) ) update_flag = 1
+   enddo
+!
+!!---Observation Error Inflation & Successive Covariance Localization (Zhang et al. 2009)
+!!      for Radiance assimilation by Minamide 2015.3.14
+   d    = fac * var + error * error
+   alpha = 1.0/(1.0+sqrt(error*error/d))
+   if (obstype=='Radiance  ') then
+     d = max(fac * var + error * error, y_hxm * y_hxm)
+     alpha = 1.0/(1.0+sqrt((d-fac * var)/d))
+     if ( my_proc_id == 0 .and. sqrt(d-fac * var) > error .and. varname=='T         ')&
+          write(*,*) 'observation-error inflated to ',sqrt(d-fac * var)
+   endif
+!!---OEI & SCL end
 
-    !!!cross variable covariance localization (on/off)
-    !if (obstype=='PprofilerN') then
-     !if (varname=='QVAPOR    ' .or. varname=='T         ' ) then
-       !update_flag=1
-     !else
-       !update_flag=0
-     !end if
-    !end if
-     if ( update_flag==0 ) cycle update_x_var
+   if (obstype=='Radiance  ') then
+     if (varname=='QCLOUD    ' .or. varname=='QRAIN     ' .or. varname=='QICE      ' .or. &
+       varname=='QGRAUP    ' .or. varname=='QSNOW     ') then
+       update_flag=1
+     else
+       update_flag=0
+     end if
+   end if
+
+   if ( update_flag==0 ) cycle update_x_var
 
 ! start and end indices of the update zone of the obs
      ist = max( update_is, int(obs%position(iob,1))-ngx ) 
@@ -587,6 +612,24 @@ t0=MPI_Wtime()
       fac  = 1./real(numbers_en-1)
       d    = fac * var + error * error
       alpha= 1.0/(1.0+sqrt(error*error/d))
+!!! relaxation by quality contoling
+!   if ((obstype=='Radiance  ') .and. (abs(y_hxm)>max(error*3.,sqrt(fac *var))))then
+!! error = oma_omb method
+!    d_ogn = d
+!     d    = fac * var + max(abs(y_hxm-fac*var*y_hxm/d)*abs(y_hxm),error**2)
+!     alpha =1.0/(1.0+sqrt(max(abs(y_hxm-fac*var*y_hxm/d_ogn)*abs(y_hxm),error**2)/d))
+!!error = y_hxm
+!     d    = fac * var + abs(y_hxm) * abs(y_hxm)
+!     alpha = 1.0/(1.0+sqrt(abs(y_hxm)*abs(y_hxm)/d))
+!! 
+
+!!!---- OEI
+   if (obstype=='Radiance  ') then
+      d = max(fac * var + error * error, y_hxm * y_hxm)
+      alpha = 1.0/(1.0+sqrt((d-fac * var)/d))
+   endif
+!!! relaxation end
+
 
       do ie=1,numbers_en+1
          if(ie<=numbers_en) &
@@ -606,42 +649,6 @@ if ( my_proc_id == 0 ) write(*,'(a,f7.2,a)')' 3 tooks ', t3, ' seconds.'
 if ( my_proc_id == 0 ) write(*,'(a,f7.2,a)')' 4 tooks ', t4, ' seconds.'
 if ( my_proc_id == 0 ) write(*,'(a,f7.2,a)')' 5 tooks ', t5, ' seconds.'
 if ( my_proc_id == 0 ) write(*,'(a,f7.2,a)')' Assimilation tooks ', MPI_Wtime()-timer, ' seconds.'
-if ( my_proc_id==0 ) write(*,*)'Number of assimilated obs =',assimilated_obs_num
-
-
-!!! III Satellite observations loop here
-!Michael Ying: loop over satellite observation using different strategy
-!              decompose domain into slabs and assimilate each 1/4 of the slab
-!              withouth influencing other slabs, all slabs processed simultaneously
-if ( my_proc_id==0 ) write(*,*)'Assimilating Satellite Tb...'
-assimilated_obs_num=0
-!sat_obs_cycle: do i=1,4
-  
-!
-!!---Observation Error Inflation & Successive Covariance Localization (Zhang et al. 2009)
-!!      for Radiance assimilation by Minamide 2015.3.14
-   !d    = fac * var + error * error
-   !alpha = 1.0/(1.0+sqrt(error*error/d))
-   !if (obstype=='Radiance  ') then
-     !d = max(fac * var + error * error, y_hxm * y_hxm)
-     !alpha = 1.0/(1.0+sqrt((d-fac * var)/d))
-     !if ( my_proc_id == 0 .and. sqrt(d-fac * var) > error .and. varname=='T         ')&
-          !write(*,*) 'observation-error inflated to ',sqrt(d-fac * var)
-   !endif
-!!---OEI & SCL end
-
-
-!!!cross variable covariance localization (on/off)
-    !if (obstype=='Radiance  ') then
-     !if (varname=='QCLOUD    ' .or. varname=='QRAIN     ' .or. varname=='QICE      ' .or. &
-       !varname=='QGRAUP    ' .or. varname=='QSNOW     ') then
-       !update_flag=1
-     !else
-       !update_flag=0
-     !end if
-    !end if
-
-!end do sat_obs_cycle
 
 !---------------------------------------------------------------------------------
 ! IV. Diagnostics for filter performance.
