@@ -27,7 +27,7 @@
   use map_utils
   use wrf_tools
   use radar
-  integer            :: u_unit=50010, i_unit=80010, o_unit=70010
+  integer            :: u_unit=50010, i_unit=90010, o_unit=70010
   integer            :: unit
   integer            :: iob, ie, ic, it, ix, jx, kx, len, i, j, k, n, ntot, ni,nj,nk
   integer            :: ii, jj, kk, m, nv, nm, gid, sid, iid,jid, g_comm,s_comm
