@@ -894,7 +894,7 @@ subroutine xb_to_radiance(inputfile,xa,ix,jx,kx,nv,iob,xlong,xlat,znw,hgt,tsk,la
   real, dimension(ix, jx ), intent(in)     :: xlong, xlat, landmask, hgt, tsk
   real, dimension(kx+1),intent(in)         :: znw
   integer                                  :: i1,j1
-  integer :: i_p,i_pb,i_ph,i_phb,i_pt,i_qv,i_qr,i_qc,i_qi,i_qs,i_qg,i_psfc,i_mu,i_mub
+  integer :: i_p,i_pb,i_ph,i_phb,i_pt,i_qv,i_qr,i_qc,i_qi,i_qs,i_qg,i_mu,i_mub
   real                                     :: obs_ii,obs_jj, dx,dxm,dy,dym,mu1,mub1
 
   CHARACTER(*), PARAMETER :: PROGRAM_NAME   = 'ctrm'
@@ -903,9 +903,9 @@ subroutine xb_to_radiance(inputfile,xa,ix,jx,kx,nv,iob,xlong,xlat,znw,hgt,tsk,la
   REAL, PARAMETER :: Cpd=7.D0*R_D/2.D0
   REAL, PARAMETER :: Re=6378000.0
   !====================
-  !setup for GOES-ABI
+  !setup for satellite
    REAL, PARAMETER :: sat_h=35780000.0
-   REAL, PARAMETER :: sat_lon=57.0/180.0*3.14159
+   REAL, PARAMETER :: sat_lon=-75.0/180.0*3.14159
    INTEGER, parameter :: n_ch=2
   !====================
   !INTEGER, intent(in) :: ix = ix  !total number of the x-grid
@@ -1047,7 +1047,6 @@ subroutine xb_to_radiance(inputfile,xa,ix,jx,kx,nv,iob,xlong,xlat,znw,hgt,tsk,la
   i_qi = 0
   i_qs = 0
   i_qg = 0
-  i_psfc = 0
   i_mu = 0
   i_mub = 0
   do m = 1, nv
@@ -1062,7 +1061,6 @@ subroutine xb_to_radiance(inputfile,xa,ix,jx,kx,nv,iob,xlong,xlat,znw,hgt,tsk,la
     if ( enkfvar(m) == 'QICE      ' ) i_qi=m
     if ( enkfvar(m) == 'QSNOW     ' ) i_qs=m
     if ( enkfvar(m) == 'QGRAUP    ' ) i_qg=m
-    if ( enkfvar(m) == 'PSFC      ' ) i_psfc=m
     if ( enkfvar(m) == 'MU        ' ) i_mu=m
     if ( enkfvar(m) == 'MUB       ' ) i_mub=m
   enddo
@@ -1077,7 +1075,6 @@ subroutine xb_to_radiance(inputfile,xa,ix,jx,kx,nv,iob,xlong,xlat,znw,hgt,tsk,la
   if(i_qi>0) qi(i1:i1+1,j1:j1+1,1:kx)=xa(1:2,1:2,1:kx,i_qi)
   if(i_qs>0) qs(i1:i1+1,j1:j1+1,1:kx)=xa(1:2,1:2,1:kx,i_qs)
   if(i_qg>0) qg(i1:i1+1,j1:j1+1,1:kx)=xa(1:2,1:2,1:kx,i_qg)
-  if(i_psfc>0) psfc(i1:i1+1,j1:j1+1)=xa(1:2,1:2,1,i_psfc)
   if(i_mu>0) mu(i1:i1+1,j1:j1+1)=xa(1:2,1:2,1,i_mu)
   if(i_mub>0) mub(i1:i1+1,j1:j1+1)=xa(1:2,1:2,1,i_mub)
 
@@ -1094,6 +1091,7 @@ subroutine xb_to_radiance(inputfile,xa,ix,jx,kx,nv,iob,xlong,xlat,znw,hgt,tsk,la
   if ( i_qg == 0 ) call get_variable3d(inputfile, 'QGRAUP    ', ix, jx, kx,   1, qg )
   if ( i_mu == 0 ) call get_variable2d(inputfile, 'MU        ', ix, jx, 1,    mu )
   if ( i_mub== 0 ) call get_variable2d(inputfile, 'MUB       ', ix, jx, 1,    mub)
+  call get_variable2d(inputfile, 'PSFC      ', ix, jx, 1, psfc )
 
   mu1 = dym*(dx*mu(i1+1,j1  ) + dxm*mu(i1,j1  )) + dy*(dx*mu(i1+1,j1+1) + dxm*mu(i1,j1+1))
   mub1 = dym*(dx*mub(i1+1,j1  ) + dxm*mub(i1,j1  )) + dy*(dx*mub(i1+1,j1+1) + dxm*mub(i1,j1+1))

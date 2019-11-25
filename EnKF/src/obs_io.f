@@ -903,8 +903,8 @@ end subroutine get_airborne
   character (len=12)                  :: so_time
   character (len=15)                  :: sat_id
   integer                             :: i, n, iost, num
-  integer                             :: ch_info,hroi_rad,hroi_drad,height
-  real                                :: lat, lon, tb, err
+  integer                             :: ch_info,hroi_rad,hroi_drad
+  real                                :: lat, lon, tb, err, height
   real                                :: s, h, rx, ry, ir1, jr1, is, js
 
   if ( my_proc_id == 0 ) then
@@ -931,7 +931,7 @@ end subroutine get_airborne
 !...... get the data number
      num = 0
      do_get_raw_data_loop_read : do
-        read(10, '(a12,a15,i12,3f12.3)', iostat = iost ) so_time, sat_id, ch_info, lat, lon, tb
+        read(10, '(a12)', iostat = iost ) so_time
         if( iost .ne. 0 ) exit
         num = num + 1
      end do do_get_raw_data_loop_read
@@ -955,7 +955,7 @@ end subroutine get_airborne
      do_get_raw_data_loop : do
 
 !......... Enkf with odd data, and verify with even data
-        read(10, '(a12,a15,i12,3f12.3,2i12,f12.3,i12)', iostat = iost ) so_time, sat_id, ch_info, &
+        read(10, '(a12,a12,i12,3f12.3,2i12,2f12.3)', iostat = iost ) so_time, sat_id, ch_info, &
             lat, lon, tb, hroi_rad,hroi_drad,err,height
         if( iost .ne. 0 ) exit
 !......... calculate radar center's position according to wrf domain grid
@@ -973,7 +973,7 @@ end subroutine get_airborne
               raw%radiance%hroi(num) = (hroi_rad*1000)/proj%dx
               raw%radiance%hroi_d(num) = (hroi_drad*1000)/proj%dx
               raw%radiance%err(num) = err
-              raw%radiance%height(num) = real(height)
+              raw%radiance%height(num) = height
            else
            endif
 
