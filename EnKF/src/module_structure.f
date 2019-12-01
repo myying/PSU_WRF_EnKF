@@ -68,6 +68,7 @@ module namelist_define
    integer       :: nmcpu, nicpu, njcpu
 !-- multiscale
    integer       :: num_scales, current_scale
+   logical       :: run_alignment
    integer,dimension(50) :: krange
 
 !-- use_hurricane_position_intensity
@@ -175,7 +176,7 @@ module namelist_define
                               update_is, update_ie, update_js, update_je, update_ks, update_ke,   &
                               inflate, relax_opt, relax_adaptive, mixing, random_order, print_detail
    namelist /parallel       / manual_parallel, nmcpu, nicpu, njcpu
-   namelist /multiscale     / num_scales, krange, current_scale
+   namelist /multiscale     / num_scales, krange, current_scale, run_alignment
    namelist /hurricane_PI   / use_hurricane_PI, hroi_hurricane_PI, vroi_hurricane_PI
    namelist /surface_obs    / use_surface, datathin_surface, hroi_surface, vroi_surface
    namelist /sounding_obs   / use_sounding, datathin_sounding, datathin_sounding_vert, hroi_sounding, vroi_sounding

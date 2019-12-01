@@ -100,7 +100,7 @@ if(ie<=numbers_en) then
 
     !!!!add increment and write back
     delx=xa-xb
-    if(current_scale<num_scales) delx=delx+xsw-xs
+    if(run_alignment .and. current_scale<num_scales) delx=delx+xsw-xs
     xout=xin+delx
 
     write(wrf_file,'(a5,i5.5)') 'fort.',o_unit+ie
