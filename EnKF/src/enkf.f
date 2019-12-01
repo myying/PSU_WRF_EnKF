@@ -109,7 +109,7 @@ endif
 if(my_proc_id==0) write(*,*) 'Calculating Hx...'
 timer = MPI_Wtime()
 
-!finding observation z location from xm
+!finding observation z location from xom
 z_cycle: do iob=1,obs%num
   obstype=obs%type(iob)
   i1=int(obs%position(iob,1))
@@ -119,7 +119,7 @@ z_cycle: do iob=1,obs%num
   do j=j1,j1+2
   do i=i1,i1+2
      if(i>=istart.and.i<=iend.and.j>=jstart.and.j<=jend) then
-        tmpsend(i-i1+1,j-j1+1,:,:)=xm(i-istart+1,j-jstart+1,:,:)
+        tmpsend(i-i1+1,j-j1+1,:,:)=xom(i-istart+1,j-jstart+1,:,:)
      endif
   enddo
   enddo
