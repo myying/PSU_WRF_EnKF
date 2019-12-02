@@ -1,9 +1,14 @@
 #!/bin/bash
+#SBATCH -J run_cycle
+#SBATCH -n 640 -N 20
+#SBATCH -p normal
+#SBATCH -t 8:00:00
+#SBATCH -o out
 source ~/.bashrc
 
 #load configuration files, functions, parameters
 cd $WORK/PSU_WRF_EnKF
-export CONFIG_FILE=$WORK/PSU_WRF_EnKF/config/$1
+export CONFIG_FILE=$WORK/PSU_WRF_EnKF/config/Patricia
 . $CONFIG_FILE
 . util.sh
 

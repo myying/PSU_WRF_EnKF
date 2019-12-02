@@ -15,10 +15,10 @@ echo "  Perturbing IC using WRF 3DVar..."
 
 #Run randomcv wrfvar to generate 100 random perturbations
 tid=0
-nt=$((total_ntasks*32/$HOSTPPN/$var3d_ntasks))
+nt=$((total_ntasks/$var3d_ntasks))
 nm=$NUM_ENS #`max $NUM_ENS 100`
 
-for i in `seq 1 $nm`; do 
+for i in `seq 1 $nm`; do
   id=`expr $i + 1000 |cut -c2-`
 
   if [[ ! -d $id ]]; then mkdir $id; fi
@@ -44,7 +44,7 @@ for i in `seq 1 $nm`; do
   export run_minutes=0
   $SCRIPT_DIR/namelist_wrf.sh wrfvar 1 >> namelist.input
 
-	$SCRIPT_DIR/job_submit.sh $var3d_ntasks $((tid*$var3d_ntasks)) 32 ./da_wrfvar.exe >& da_wrfvar.log &
+	$SCRIPT_DIR/job_submit.sh $var3d_ntasks $((tid*$var3d_ntasks)) $HOSTPPN ./da_wrfvar.exe >& da_wrfvar.log &
 	#$SCRIPT_DIR/job_submit.sh 64 0 4 ./da_wrfvar.exe >& da_wrfvar.log &
 
   tid=$((tid+1))

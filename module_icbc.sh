@@ -86,7 +86,8 @@ $SCRIPT_DIR/namelist_wps.sh > namelist.wps
 if [[ $DATE == $DATE_START ]] || $FOLLOW_STORM; then
   echo "    running geogrid.exe"
   ln -sf $WPS_DIR/geogrid/src/geogrid.exe .
-  $SCRIPT_DIR/job_submit.sh $wps_ntasks 0 $HOSTPPN ./geogrid.exe >& geogrid.log
+  #$SCRIPT_DIR/job_submit.sh $wps_ntasks 0 $HOSTPPN ./geogrid.exe >& geogrid.log
+  ./geogrid.exe >& geogrid.log
   watch_log geogrid.log Successful 10 $rundir
   mv geo_em.d??.nc $WORK_DIR/rc/$DATE/.
   if $FOLLOW_STORM; then
@@ -109,7 +110,8 @@ watch_log ungrib.log Successful 10 $rundir
 echo "    running metgrid.exe"
 ln -fs $WPS_DIR/metgrid/METGRID.TBL.ARW METGRID.TBL
 ln -fs $WPS_DIR/metgrid/src/metgrid.exe .
-$SCRIPT_DIR/job_submit.sh $wps_ntasks 0 $HOSTPPN ./metgrid.exe >& metgrid.log
+#$SCRIPT_DIR/job_submit.sh $wps_ntasks 0 $HOSTPPN ./metgrid.exe >& metgrid.log
+./metgrid.exe >& metgrid.log
 watch_log metgrid.log Successful 10 $rundir
 
 #4. real.exe ----------------------------------------------------------------------
