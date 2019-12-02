@@ -36,7 +36,7 @@ echo "off3->$off3"
 for i in `seq 0 $n`; do
   tcdate=`advance_time $fgdate1 $((i*$TCV_INTERVAL))`
   echo $tcdate
-  tcvitals_data=$TCVITALS_DIR/${tcdate:0:4}/${STORM_ID}/${tcdate}.dat
+  tcvitals_data=$TCVITALS_DIR/${tcdate:0:4}/${tcdate}.${STORM_ID}-tcvitals.dat
   echo $tcvitals_data
   if [ ! -f $tcvitals_data ]; then echo "$tcvitals_data not found!"; exit; fi
   latstr=`head -n1 $tcvitals_data |awk '{print $6}'`
