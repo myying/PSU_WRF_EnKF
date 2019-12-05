@@ -83,35 +83,31 @@ fi
 
 $SCRIPT_DIR/namelist_wps.sh > namelist.wps
 #1. geogrid.exe --------------------------------------------------------------------
-if [[ $DATE == $DATE_START ]] || $FOLLOW_STORM; then
-  echo "    running geogrid.exe"
-  ln -sf $WPS_DIR/geogrid/src/geogrid.exe .
-  #$SCRIPT_DIR/job_submit.sh $wps_ntasks 0 $HOSTPPN ./geogrid.exe >& geogrid.log
-  ./geogrid.exe >& geogrid.log
-  watch_log geogrid.log Successful 10 $rundir
-  mv geo_em.d??.nc $WORK_DIR/rc/$DATE/.
-  if $FOLLOW_STORM; then
-    ln -fs $WORK_DIR/rc/$DATE/geo_em.d??.nc .
-  else
-    ln -fs $WORK_DIR/rc/$DATE_START/geo_em.d??.nc .
-  fi
-fi
+echo "    running geogrid.exe"
+ln -sf $WPS_DIR/geogrid/src/geogrid.exe .
+$SCRIPT_DIR/job_submit.sh $wps_ntasks 0 $HOSTPPN ./geogrid.exe >& geogrid.log
+watch_log geogrid.log Successful 10 $rundir
+mv geo_em.d??.nc $WORK_DIR/rc/$DATE/.
+ln -fs $WORK_DIR/rc/$DATE/geo_em.d??.nc .
 
 #2. ungrib.exe --------------------------------------------------------------------
 echo "    running ungrib.exe"
-#Link first guess files (FNL, GFS or ECWMF-interim)
-$WPS_DIR/link_grib.csh $FG_DIR/*
-ln -sf $WPS_DIR/ungrib/Variable_Tables/Vtable.GFS Vtable
-ln -fs $WPS_DIR/ungrib/src/ungrib.exe .
-./ungrib.exe >& ungrib.log
-watch_log ungrib.log Successful 10 $rundir
+if [[ $DATE == $DATE_START ]]; then
+  #Link first guess files (FNL, GFS or ECWMF-interim)
+  $WPS_DIR/link_grib.csh $FG_DIR/*
+  ln -sf $WPS_DIR/ungrib/Variable_Tables/Vtable.GFS Vtable
+  ln -fs $WPS_DIR/ungrib/src/ungrib.exe .
+  $SCRIPT_DIR/job_submit.sh $wps_ntasks 0 $HOSTPPN ./ungrib.exe >& ungrib.log
+  watch_log ungrib.log Successful 10 $rundir
+else
+  ln -fs $WORK_DIR/run/$DATE_START/icbc/FILE* .
+fi
 
 #3. metgrid.exe --------------------------------------------------------------------
 echo "    running metgrid.exe"
 ln -fs $WPS_DIR/metgrid/METGRID.TBL.ARW METGRID.TBL
 ln -fs $WPS_DIR/metgrid/src/metgrid.exe .
-#$SCRIPT_DIR/job_submit.sh $wps_ntasks 0 $HOSTPPN ./metgrid.exe >& metgrid.log
-./metgrid.exe >& metgrid.log
+$SCRIPT_DIR/job_submit.sh $wps_ntasks 0 $HOSTPPN ./metgrid.exe >& metgrid.log
 watch_log metgrid.log Successful 10 $rundir
 
 #4. real.exe ----------------------------------------------------------------------

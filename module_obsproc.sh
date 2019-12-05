@@ -37,24 +37,9 @@ if $INCLUDE_LITTLE_R; then
       echo "ncar_littler"
       cp $DATA_DIR/ncar_littler/${d:0:6}/obs.${d:0:10}.gz .
       gunzip obs.${d:0:10}.gz
-      cat obs.${d:0:10} |sed 's/FM-88 SATOB /FM-111 GPSPW/g' >> obs.raw   #exclude AMV in ncar_littler
+      cat obs.${d:0:10} >> obs.raw
       rm obs.${d:0:10}
     fi
-
-    #UPAQF soundings - LITTLE_R
-    #if [ -f $DATA_DIR/upaqf/${d:0:6}/upaqf.${d:0:10} ]; then
-    #  cat $DATA_DIR/upaqf/${d:0:6}/upaqf.${d:0:10} >> obs.raw
-    #fi
-
-    #AMV
-    #if [ -f $DATA_DIR/Met7_amv/${d:0:6}/amv.${d:0:10} ]; then
-    #  cat $DATA_DIR/Met7_amv/${d:0:6}/amv.${d:0:10} >> obs.raw
-    #fi
-
-    #ASCAT
-    #if [ -f $DATA_DIR/ascat/${d:0:6}/ascat.${d:0:10} ]; then
-    #  cat $DATA_DIR/ascat/${d:0:6}/ascat.${d:0:10} >> obs.raw
-    #fi
 
     if [ -f $DATA_DIR/dropsonde/littler/${d:0:10} ]; then
       echo "dropsonde"

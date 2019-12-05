@@ -1,7 +1,6 @@
 #!/bin/bash
-#SBATCH -A TG-ATM190001
 #SBATCH -J run_cycle
-#SBATCH -n 256 -N 8
+#SBATCH -n 32 -N 1
 #SBATCH -p development
 #SBATCH -t 2:00:00
 #SBATCH -o out
@@ -9,7 +8,7 @@ source ~/.bashrc
 
 #load configuration files, functions, parameters
 cd $WORK/PSU_WRF_EnKF
-export CONFIG_FILE=$WORK/PSU_WRF_EnKF/config/Patricia_multiscale
+export CONFIG_FILE=$WORK/PSU_WRF_EnKF/config/Patricia_test
 . $CONFIG_FILE
 . util.sh
 
@@ -69,42 +68,7 @@ while [[ $NEXTDATE -le $DATE_CYCLE_END ]]; do  #CYCLE LOOP
   #RUN COMPONENTS---------------------------------------
 
   # ICBC
-  $SCRIPT_DIR/module_icbc.sh &
-  # Ensemble initialization and forecast
-  if [ $DATE == $DATE_START ]; then
-    $SCRIPT_DIR/module_perturb_ic.sh &
-  fi
-  if [ $NEXTDATE -le $DATE_CYCLE_END ]; then
-    $SCRIPT_DIR/module_wrf_ens.sh &
-  fi
-  # First deterministic run for 4DVar
-  if $RUN_4DVAR && ! $RUN_ENKF && [ $DATE == $DATE_START ]; then
-    $SCRIPT_DIR/module_wrf_window.sh &
-  fi
-
-  # Data assimilation for each cycle
-  if [ $DATE -ge $DATE_CYCLE_START ] && [ $DATE -le $DATE_CYCLE_END ]; then
-    # Processing observations
-    if $RUN_ENKF || $RUN_4DVAR; then
-      $SCRIPT_DIR/module_obsproc.sh &
-    fi
-
-    # EnKF
-    if $RUN_ENKF; then
-      $SCRIPT_DIR/module_enkf.sh &
-    fi
-    # 4DVar
-    if $RUN_4DVAR; then
-      $SCRIPT_DIR/module_wrf_window1.sh &
-      $SCRIPT_DIR/module_4dvar.sh &
-      $SCRIPT_DIR/module_wrf_window.sh &
-    fi
-    # EnVar need an extra ensemble run through the obs window to get perturbations
-    if $RUN_ENVAR; then
-      $SCRIPT_DIR/module_wrf_ens_window1.sh &
-    fi
-  fi
-  wait
+  $SCRIPT_DIR/module_icbc.sh
 
   #CHECK ERRORS
   for d in `ls -t run/$DATE/`; do

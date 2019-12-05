@@ -394,37 +394,37 @@ subroutine get_wrf_info(wrf_file, ix, jx, kx, times, proj)
    implicit none
 
    type(proj_info)              :: proj
-   character (len=10), intent(in)  :: wrf_file
+   character (len=20), intent(in)  :: wrf_file
    character (len=80), intent(out) :: times
    integer, intent(out)            :: ix, jx, kx
 
-   if ( my_proc_id == 0 ) then
-      write(6, *)'   '
-      write(6, *)'---------------------------------------------------'
-      write(6, *)'.... Model Domain Information ....'
-   endif
+   !if ( my_proc_id == 0 ) then
+   !   write(6, *)'   '
+   !   write(6, *)'---------------------------------------------------'
+   !   write(6, *)'.... Model Domain Information ....'
+   !endif
 !-----------------------------------------------------------------------------
 !  get domain dimension
 !-----------------------------------------------------------------------------
    !call get_var_ij ( wrf_file, 'T', ix, jx, kx )
    call get_ij ( wrf_file, ix, jx, kx )
-   if ( my_proc_id == 0 ) write(6,'(3(a7,i3))')"   ix :",ix,"   jx :",jx,"   kx:",kx
+   !if ( my_proc_id == 0 ) write(6,'(3(a7,i3))')"   ix :",ix,"   jx :",jx,"   kx:",kx
 
 !-----------------------------------------------------------------------------
 !  get times
    call get_times ( wrf_file, 'T', times )
-   if ( my_proc_id == 0 ) write(6,'(a,a19)')" 1st guest field time : ",times(1:19)
+   !if ( my_proc_id == 0 ) write(6,'(a,a19)')" 1st guest field time : ",times(1:19)
 
 !-----------------------------------------------------------------------------
 !  get map info
    call set_domain_proj( wrf_file, proj )
-   if ( my_proc_id == 0 ) then
-      write(6,'(a,i1)')" Domain projection type : ", proj%code
-      write(6,'(a,f7.3,a,f8.3,a)')" left_bottom(1,1) : (", proj%lat1, ",",proj%lon1,")"
-      write(6,'(a,f7.0)')" Grid spacing in meters : ", proj%dx
-      write(6,'(a,f8.3)')" Standard Longitude : ", proj%stdlon
-      write(6,'(a,2f8.3)')" True Latitude      : ", proj%truelat1, proj%truelat2
-   endif
+   !if ( my_proc_id == 0 ) then
+   !   write(6,'(a,i1)')" Domain projection type : ", proj%code
+   !   write(6,'(a,f7.3,a,f8.3,a)')" left_bottom(1,1) : (", proj%lat1, ",",proj%lon1,")"
+   !   write(6,'(a,f7.0)')" Grid spacing in meters : ", proj%dx
+   !   write(6,'(a,f8.3)')" Standard Longitude : ", proj%stdlon
+   !   write(6,'(a,2f8.3)')" True Latitude      : ", proj%truelat1, proj%truelat2
+   !endif
 
 end subroutine get_wrf_info
 

@@ -8,7 +8,7 @@
 
 #load configuration files, functions, parameters
 cd $WORK/PSU_WRF_EnKF
-export CONFIG_FILE=$WORK/PSU_WRF_EnKF/config/Cloud_reanalysis/obsproc
+export CONFIG_FILE=$WORK/PSU_WRF_EnKF/config/Patricia_test
 . $CONFIG_FILE
 . util.sh
 
@@ -30,7 +30,7 @@ else
 fi
 
 tid=0
-nt=72 #$total_ntasks
+nt=$total_ntasks
 
 #start cycling
 date

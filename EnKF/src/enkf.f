@@ -4,7 +4,7 @@ use namelist_define
 use obs_define
 use mpi_module
 use netcdf
-use radar 
+use radar
 implicit none
 ! variable description:
 ! numbers_en = number of ensemble members (n)
@@ -126,7 +126,7 @@ z_cycle: do iob=1,obs%num
   call MPI_Allreduce(tmpsend,tmp,3*3*nk*nv,MPI_REAL,MPI_SUM,s_comm,ierr)
   write(filename,'(a5,i5.5)') wrf_file(1:5), iunit+numbers_en+1-1
   if ( obstype(1:5) == 'Radar' ) then
-      call calc_rv_position_k(filename,proj,tmp,ix,jx,kx,nv,iob,xlong,znw,obs%position(iob,3)) 
+      call calc_rv_position_k(filename,proj,tmp,ix,jx,kx,nv,iob,xlong,znw,obs%position(iob,3))
   else if ( obstype(1:1) == 'P' .or. obstype(1:1) == 'H' ) then
       call calc_sounding_position_k(filename,proj,tmp,ix,jx,kx,nv,iob,xlong,znu,znw,p_top,obs%position(iob,3))
   else if ( obstype(1:8) == 'Radiance' ) then
@@ -700,31 +700,44 @@ m_var_a=m_var_a/real(n)
 !---------------------------------------------------------------------------------
 ! V. Relaxation
 if ( my_proc_id==0 ) write(*,*)'Performing covariance relaxation...'
+!------inflation factor from innovation statistics
+if(my_proc_id==0) write(*,*) 'lambda=',sqrt((m_d2-1)/m_var_b), ' kappa=',(sqrt(m_var_b)-sqrt(m_var_a))/sqrt(m_var_a)
+!!!adaptively determine mixing coef
+  !if(relax_adaptive) then
+    !la=max(sqrt((m_d2-1.0)/m_var_b),1.0)
+    !ka=(sqrt(m_var_b)-sqrt(m_var_a))/sqrt(m_var_a)
+    !mixing=(la-1.0)/ka
+    !if(my_proc_id==0) write(*,*) 'd2=',m_d2
+    !if(my_proc_id==0) write(*,*) 'lambda=',la,' kappa=',ka,' mixing=',mixing
+  !end if
 
 !---option1. relax to prior perturbation (Zhang et al. 2004)
-!x=(1.0-mixing)*x + mixing*xf
+if(relax_opt==0) then
+  do n = 1, nm
+    ie = (n-1)*nmcpu+gid+1
+    if( ie<=numbers_en ) &
+      x(:,:,:,:,n)=(1.0-mixing)*x(:,:,:,:,n) + mixing*xf(:,:,:,:,n)
+  enddo
+end if
 
 !---option2. relax to prior spread (Whitaker and Hamill 2012), adaptive version (ACR; Ying and Zhang 2015)
-!------inflation factor from innovation statistics
-!if(my_proc_id==0) write(*,*) 'lambda=',sqrt((m_d2-1)/m_var_b), ' kappa=',(sqrt(m_var_b)-sqrt(m_var_a))/sqrt(m_var_a)
-!------ensemble spread in state space
-!std_x =0.0
-!std_xf=0.0
-!call MPI_Allreduce(sum( x**2,5), std_x,ni*nj*nk*nv,MPI_REAL,MPI_SUM,g_comm,ierr)
-!call MPI_Allreduce(sum(xf**2,5),std_xf,ni*nj*nk*nv,MPI_REAL,MPI_SUM,g_comm,ierr)
-!std_x =sqrt( std_x/real(numbers_en-1))
-!std_xf=sqrt(std_xf/real(numbers_en-1))
-!do n=1,nm
-!  ie=(n-1)*nmcpu+gid+1
-!  if(ie==numbers_en+1) &
-!    x(:,:,:,:,n)=x(:,:,:,:,n)*(mixing*(std_xf-std_x)/std_x+1)
-!enddo
-
-
-
+if(relax_opt==1) then
+  !------ensemble spread in state space
+  std_x =0.0
+  std_xf=0.0
+  call MPI_Allreduce(sum( x**2,5), std_x,ni*nj*nk*nv,MPI_REAL,MPI_SUM,g_comm,ierr)
+  call MPI_Allreduce(sum(xf**2,5),std_xf,ni*nj*nk*nv,MPI_REAL,MPI_SUM,g_comm,ierr)
+  std_x =sqrt( std_x/real(numbers_en-1))
+  std_xf=sqrt(std_xf/real(numbers_en-1))
+  do n=1,nm
+    ie=(n-1)*nmcpu+gid+1
+    if(ie==numbers_en+1) &
+      x(:,:,:,:,n)=x(:,:,:,:,n)*(mixing*(std_xf-std_x)/std_x+1)
+  enddo
+end if
 
  !!!! removing analysis increment near model top - Yue Ying 2016
-kzdamp=10 !!!number of damping layers from model top: check zdamp 
+kzdamp=10 !!!number of damping layers from model top: check zdamp
 if ( my_proc_id==0 ) write(*,*) 'removing analysis increment near model top'
 do n = 1, nm
    ie = (n-1)*nmcpu+gid+1
@@ -743,10 +756,10 @@ if ( my_proc_id==0 ) write(*,*)'Add the mean back to the analysis field...'
 do n = 1, nm
    ie = (n-1)*nmcpu+gid+1
    if( ie<=numbers_en+1 )  &
-      x(:,:,:,:,n) = (1.0-mixing)*x(:,:,:,:,n) + mixing*xf(:,:,:,:,n) + xm
+      x(:,:,:,:,n) = x(:,:,:,:,n) + xm
 enddo
 
-!!! Removing negative Q-value by Minamide 2015.5.26 
+!!! Removing negative Q-value by Minamide 2015.5.26
 if ( my_proc_id==0 ) write(*,*) 'updating negative values'
 if(raw%radiance%num.ne.0) then
   do m=1,nv

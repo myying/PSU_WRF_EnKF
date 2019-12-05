@@ -1121,6 +1121,19 @@
       iy = iy - 1
       iz = iz - 1
       end subroutine get_ij
+
+      subroutine get_parent_ij (file,istart,jstart)
+      character (len=*), intent(in) :: file
+      integer :: fid, rcode, mapp, ix, iy, iz
+
+      call open_file(file, nf_nowrite, fid)
+      rcode = nf_get_att_int(fid, nf_global,'',istart)
+      call close_file(fid)
+      ix = ix -1
+      iy = iy - 1
+      iz = iz - 1
+      end subroutine get_parent_ij
+
 !!!!!!
 !--------get soil variable levels
 !!!!!!

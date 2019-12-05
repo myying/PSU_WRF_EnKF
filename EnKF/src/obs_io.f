@@ -782,7 +782,7 @@ end subroutine get_wsr88d_radar
   character (len=80)                  :: times
   character (len=12)                  :: so_time
   integer                             :: i, n, iost, num
-  real                                :: lat, lon, height, az, el, ra, rw
+  real                                :: lat, lon, height, az, el, ra, rw, rf
   real                                :: s, h, rx, ry, ir1, jr1, is, js
 
   if ( my_proc_id == 0 ) then
@@ -809,7 +809,7 @@ end subroutine get_wsr88d_radar
 !...... get the data number
      num = 0
      do_get_raw_data_loop_read : do
-        read(10, '(a12,7f10.3)', iostat = iost ) so_time, lat, lon, height, az, el, ra, rw
+        read(10, '(a12,9f12.3)', iostat = iost ) so_time, lat, lon, height, az, el, ra, rw, rf
         if( iost .ne. 0 ) exit
         num = num + 1
      end do do_get_raw_data_loop_read
@@ -835,7 +835,7 @@ end subroutine get_wsr88d_radar
      do_get_raw_data_loop : do
 
 !......... Enkf with odd data, and verify with even data
-        read(10, '(a12,7f10.3)', iostat = iost ) so_time, lat, lon, height, az, el, ra, rw
+        read(10, '(a12,9f12.3)', iostat = iost ) so_time, lat, lon, height, az, el, ra, rw, rf
         if( iost .ne. 0 ) exit
         az = az * rad_per_deg
         el = el * rad_per_deg

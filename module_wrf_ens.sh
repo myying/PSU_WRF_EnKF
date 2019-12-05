@@ -104,7 +104,7 @@ for r in 1; do
     fi
 
     if [[ $SST_UPDATE == 1 ]]; then
-      ln -fs ../../../../rc/$DATE_START/wrflowinp_d?? .
+      ln -fs ../../../../rc/$LBDATE/wrflowinp_d?? .
     fi
 
     if $FOLLOW_STORM; then

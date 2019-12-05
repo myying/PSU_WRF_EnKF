@@ -7,11 +7,13 @@ dx=`echo ${DX[$domain_id-1]}/1000 |bc -l`
 
 ##switch certain obs type off if OBSINT (obs interval) is set less frequent than CYCLE_PERIOD
 offset=`echo "(${DATE:8:2}*60+${DATE:10:2})%${OBSINT_ATOVS:-$CYCLE_PERIOD}" |bc`
-if [ $offset != 0 ]; then USE_ATOVS=false; fi
+if [[ $offset != 0 ]]; then USE_ATOVS=false; fi
 
 ##This if statement swiths the radar rv data off for parent domains
 ##  the radar data is only assimilated for d03
 if [[ $domain_id != 3 ]]; then USE_RADAR_RV=false; fi
+
+buffer=4 #buffer=0 if update_bc, buffer=spec_bdy_width-1 if bc is fixed as in perfect model case
 
 cat << EOF
 &enkf_parameter
@@ -19,16 +21,6 @@ numbers_en   = $NUM_ENS,
 expername    = '$EXP_NAME',
 enkfvar      = `for i in ${UPDATE_VAR[*]}; do printf "\'%-10s\', " $i; done`
 updatevar    = `for i in ${UPDATE_VAR[*]}; do printf "\'%-10s\', " $i; done`
-EOF
-
-#if [ $minute_off == 0 ] || [ $minute_off == 180 ]; then
-#  echo "updatevar    = 'U         ', 'V         ', 'W         ', 'T         ', 'QVAPOR    ', 'QCLOUD    ', 'QRAIN     ', 'QSNOW     ', 'QICE      ', 'QGRAUP    ', 'PH        ', 'MU        ', 'PSFC      ', 'P         ',"
-#else
-#fi
-
-buffer=4 #buffer=0 if update_bc, buffer=spec_bdy_width-1 if bc is fixed as in perfect model case
-
-cat << EOF
 update_is    = `echo 1+$buffer |bc`,
 update_ie    = `echo ${E_WE[$domain_id-1]}-$buffer |bc`,
 update_js    = `echo 1+$buffer |bc`,
@@ -52,8 +44,9 @@ njcpu  = $NJCPU,
 
 &multiscale
 num_scales = ${NUM_SCALES:-1},
-krange = `for i in ${K_RANGE[*]}; do echo "$i, "`
+krange = `for i in ${KRANGE[*]}; do echo $i', '; done`
 current_scale = ${current_scale:-1},
+run_alignment = .false.,
 /
 
 &osse
@@ -94,8 +87,8 @@ vroi_sounding     = ${VROI_SOUNDING:-$VROI},
 use_profiler      = .$USE_PROFILEROBS.,
 datathin_profiler = ${THIN_PROFILER:-0},
 datathin_profiler_vert = ${THIN_PROFILER_VERT:-0},
-hroi_profiler     = $(printf %.0f `echo $HROI_PROFL/$dx |bc -l`),
-vroi_profiler     = $VROI_PROFL,
+hroi_profiler     = $(printf %.0f `echo ${HROI_PROFILER:-$HROI_UPPER}/$dx |bc -l`),
+vroi_profiler     = ${VROI_PROFILER:-$VROI},
 /
 
 &aircft_obs
@@ -166,7 +159,7 @@ vroi_radar     = $VROI_RADAR,
 
 &airborne_radar
 use_airborne_rf   = .$USE_AIRBORNE_RF.,
-use_airborne_rv   = .$USE_AIRBORNE_RV.,
+use_airborne_rv   = .${USE_AIRBORNE_RV[$domain_id-1]}.,
 datathin_airborne = $THIN_RADAR,
 hroi_airborne     = $(printf %.0f `echo $HROI_RADAR/$dx |bc -l`),
 vroi_airborne     = $VROI_RADAR,
@@ -174,10 +167,9 @@ vroi_airborne     = $VROI_RADAR,
 
 &radiance
 use_radiance      = .${USE_RADIANCE:-false}.,
-datathin_radiance = ${THIN_RADIANCE:-0},
+datathin_radiance = ${THIN_RADIANCE[$domain_id-1]},
 hroi_radiance     = $(printf %.0f `echo ${HROI_RADIANCE:-$HROI_UPPER}/$dx |bc -l`),
-vroi_radiance     = ${VROI_RADIANCE:-$VROI},
+vroi_radiance     = ${VROI_RADIANCE:-99},
 /
 EOF
-
 

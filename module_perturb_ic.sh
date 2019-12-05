@@ -15,7 +15,7 @@ echo "  Perturbing IC using WRF 3DVar..."
 
 #Run randomcv wrfvar to generate 100 random perturbations
 tid=0
-nt=$((total_ntasks/$var3d_ntasks))
+nt=$((total_ntasks/$HOSTPPN*$var3d_ppn/$var3d_ntasks))
 nm=$NUM_ENS #`max $NUM_ENS 100`
 
 for i in `seq 1 $nm`; do
@@ -44,7 +44,7 @@ for i in `seq 1 $nm`; do
   export run_minutes=0
   $SCRIPT_DIR/namelist_wrf.sh wrfvar 1 >> namelist.input
 
-	$SCRIPT_DIR/job_submit.sh $var3d_ntasks $((tid*$var3d_ntasks)) $HOSTPPN ./da_wrfvar.exe >& da_wrfvar.log &
+	$SCRIPT_DIR/job_submit.sh $var3d_ntasks $((tid*$var3d_ntasks/$var3d_ppn*$HOSTPPN)) $var3d_ppn ./da_wrfvar.exe >& da_wrfvar.log &
 	#$SCRIPT_DIR/job_submit.sh 64 0 4 ./da_wrfvar.exe >& da_wrfvar.log &
 
   tid=$((tid+1))
@@ -93,13 +93,14 @@ if [ $DATE == $DATE_START ]; then
   #nest down perturbations for inner domains
   if [ $MAX_DOM -gt 1 ]; then
     tid=0
-    nt=$((total_ntasks/$wrf_ntasks))
+    nt=$((total_ntasks/$wps_ntasks))
     echo "  Nestdown perturbations for inner domains..."
     for n in `seq 2 $MAX_DOM`; do
       dm=d`expr $n + 100 |cut -c2-`
       parent_dm=d`expr ${PARENT_ID[$n-1]} + 100 |cut -c2-`
       for NE in `seq 1 $NUM_ENS`; do
         id=`expr $NE + 1000 |cut -c2-`
+        if [[ `tail -n5 $id/$dm/rsl.error.0000 |grep SUCCESS` ]]; then continue; fi
         cd $id
         if [[ ! -d $dm ]]; then mkdir -p $dm; fi
         cd $dm
@@ -114,7 +115,7 @@ if [ $DATE == $DATE_START ]; then
         ln -fs $WRF_DIR/run/ndown.exe .
         ln -fs $WORK_DIR/fc/$DATE/wrfinput_${parent_dm}_$id wrfout_d01_`wrf_time_string $DATE`
         ln -fs ../wrfinput_$dm wrfndi_d02
-        $SCRIPT_DIR/job_submit.sh $wrf_ntasks $((tid*$wrf_ntasks)) $HOSTPPN ./ndown.exe >& ndown.log &
+        $SCRIPT_DIR/job_submit.sh $wps_ntasks $((tid*$wps_ntasks)) $HOSTPPN ./ndown.exe >& ndown.log &
         tid=$((tid+1))
         if [[ $tid == $nt ]]; then
           tid=0

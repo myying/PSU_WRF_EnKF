@@ -89,19 +89,6 @@ subroutine grid2d(xind,yind,x,y)
 end subroutine grid2d
 
 
-subroutine warp_state(x,xw,u,v)
-  real,dimension(:,:) :: x,u,v
-  real,dimension(:,:),intent(inout) :: xw
-  integer :: i,j,buffer
-  xw=x
-  buffer=4
-  do i=1+buffer,size(x,1)-buffer
-  do j=1+buffer,size(x,2)-buffer
-    xw(i,j) = interp2d(x,real(i)-u(i,j),real(j)-v(i,j))
-  enddo
-  enddo
-end subroutine warp_state
-
 function interp2d(x,i,j) result(xout)
   real,dimension(:,:),intent(in) :: x
   real :: i,j,xout,di,dj
