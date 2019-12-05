@@ -5,5 +5,4 @@ out*
 *.exe
 *.mpi
 log
-config
 slurm*out
