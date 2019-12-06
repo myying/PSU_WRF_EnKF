@@ -34,15 +34,9 @@ for n in $domlist; do
 
   #make several copies
   for NE in `seq 1 $((NUM_ENS+1))`; do
-    if [ $NUM_SCALES == 1 ]; then
-      ln -fs fort.`expr 80010 + $NE` fort.`expr 50010 + $NE`
-      ln -fs fort.`expr 80010 + $NE` fort.`expr 90010 + $NE`
-    else
-      cp -L fort.`expr 80010 + $NE` fort.`expr 50010 + $NE`
-      cp -L fort.`expr 80010 + $NE` fort.`expr 60010 + $NE`
-      cp -L fort.`expr 80010 + $NE` fort.`expr 90010 + $NE`
-    fi
-    cp -L  fort.`expr 80010 + $NE` fort.`expr 70010 + $NE`
+    cp -L fort.`expr 80010 + $NE` fort.`expr 50010 + $NE`
+    cp -L fort.`expr 80010 + $NE` fort.`expr 90010 + $NE`
+    cp -L fort.`expr 80010 + $NE` fort.`expr 70010 + $NE`
   done
 
   ln -fs $ENKF_DIR/enkf.mpi .
@@ -118,7 +112,7 @@ else
       #if [ -f scale$s/${DATE}.finish_flag ]; then continue; fi
       ##nestdown fields
       for unit in 50010 70010; do
-        echo fort.$unit
+        echo nesting down fort.$unit
         tid=0
         nt=$((total_ntasks/wps_ntasks))
         for NE in `seq 1 $NUM_ENS`; do
@@ -148,10 +142,13 @@ else
         done
       done
       for NE in `seq 1 $NUM_ENS`; do
+        rm -f fort.`expr 60010 + $NE`
         ncdiff fort.`expr 90010 + $NE` fort.`expr 50010 + $NE` fort.`expr 60010 + $NE`
       done
 
       ##calculate displacement
+      echo run displacement step
+      echo > alignment.log
       $SCRIPT_DIR/namelist_enkf.sh $n $s > namelist.enkf
       $SCRIPT_DIR/job_submit.sh $NUM_ENS 0 $enkf_ppn ./alignment.exe >& alignment.log
       watch_log alignment.log Successful 5 $rundir
