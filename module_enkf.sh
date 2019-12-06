@@ -107,7 +107,7 @@ else
     watch_log alignment.log Successful 5 $rundir
     ##save copy
     mv ${DATE}.finish_flag scale$s/.
-    cp fort.5* fort.6* fort.7* fort.9* scale$s/.
+    cp fort.1* enkf.log fort.5* fort.6* fort.7* fort.9* scale$s/.
     for n in `seq 2 $MAX_DOM`; do
       dm1=d`expr $n + 100 |cut -c2-`
       cp ../$dm1/fort.9* ../$dm1/scale$s/.
@@ -117,6 +117,9 @@ else
   for n in `seq 2 $MAX_DOM`; do
     dm=d`expr $n + 100 |cut -c2-`
     cd $dm
+    for NE in `seq 1 $((NUM_ENS+1))`; do
+      cp -L fort.`expr 90010 + $NE` fort.`expr 50010 + $NE`
+    done
     $SCRIPT_DIR/namelist_enkf.sh $n 1 > namelist.enkf
     $SCRIPT_DIR/job_submit.sh $enkf_ntasks 0 $enkf_ppn ./enkf.mpi >& enkf.log
     watch_log enkf.log Successful 5 $rundir
