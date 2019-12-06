@@ -113,8 +113,9 @@ watch_log metgrid.log Successful 10 $rundir
 #4. real.exe ----------------------------------------------------------------------
 echo "    running real.exe"
 $SCRIPT_DIR/namelist_wrf.sh real > namelist.input
-ln -fs $WRF_DIR/main/real.exe .
-$SCRIPT_DIR/job_submit.sh $wps_ntasks 0 $HOSTPPN ./real.exe >& real.log
+ln -fs $WORK/code/WRFV3.9_serial/main/real.exe .
+#$SCRIPT_DIR/job_submit.sh $wps_ntasks 0 $HOSTPPN ./real.exe >& real.log
+./real.exe >& rsl.error.0000
 watch_log rsl.error.0000 SUCCESS 10 $rundir
 
 if [ $SST_UPDATE == 1 ]; then

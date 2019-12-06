@@ -41,14 +41,29 @@ nmcpu  = $NMCPU,
 nicpu  = $NICPU,
 njcpu  = $NJCPU,
 /
+EOF
 
+if [ $domain_id == 1 ]; then
+  cat << EOF
 &multiscale
 num_scales = ${NUM_SCALES:-1},
 krange = `for i in ${KRANGE[*]}; do echo $i', '; done`
 current_scale = ${current_scale:-1},
-run_alignment = .false.,
+run_alignment = .$RUN_ALIGNMENT.,
 /
+EOF
+else
+  cat << EOF
+&multiscale
+num_scales = 1,
+krange = 0,
+current_scale = 1,
+run_alignment = .$RUN_ALIGNMENT.,
+/
+EOF
+fi
 
+cat << EOF
 &osse
 use_ideal_obs    = .false.,
 gridobs_is   = 20,

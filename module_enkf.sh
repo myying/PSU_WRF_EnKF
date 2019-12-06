@@ -6,7 +6,7 @@ if [[ ! -d $rundir ]]; then mkdir -p $rundir; echo waiting > $rundir/stat; fi
 cd $rundir
 if [[ `cat stat` == "complete" ]]; then exit; fi
 
-wait_for_module ../../$PREVDATE/wrf_ens ../obsproc
+wait_for_module ../../$PREVDATE/wrf_ens ../obsproc ../icbc
 if [[ $JOB_SUBMIT_MODE == 1 ]]; then
   wait_for_module ../icbc
   if $RUN_4DVAR; then  wait_for_module ../4dvar ../wrf_window; fi
@@ -48,6 +48,11 @@ for n in $domlist; do
   ln -fs $ENKF_DIR/enkf.mpi .
   ln -fs $WRF_DIR/run/LANDUSE.TBL .
 
+  if [ $NUM_SCALES -gt 1 ]; then
+    ln -fs $ENKF_DIR/scale_decompose.exe .
+    ln -fs $ENKF_DIR/alignment.exe .
+  fi
+
   ##link observations
   #LITTLE_R format from obsproc
   ln -fs $WORK_DIR/obs/$DATE/obs_gts_`wrf_time_string $DATE`.3DVAR obs_3dvar_${DATE}00
@@ -70,21 +75,54 @@ for n in $domlist; do
   cd ..
 done
 
-###runing enkf.mpi multiscale scheme
-for n in $domlist; do
-  dm=d`expr $n + 100 |cut -c2-`
-  if [[ ! -d $dm ]]; then mkdir -p $dm; fi
-  if [ -f $dm/${DATE}.finish_flag ]; then continue; fi
-  cd $dm
-
-  #for s in `seq 1 $NUM_SCALES`; do
-  $SCRIPT_DIR/namelist_enkf.sh $n 1 > namelist.enkf
-  echo > enkf.log
-  $SCRIPT_DIR/job_submit.sh $enkf_ntasks $((tid*$enkf_ntasks)) $enkf_ppn ./enkf.mpi >& enkf.log
-  watch_log enkf.log Successful 5 $rundir
-  #done
-  cd ..
-done
+if [ $NUM_SCALES == 1 ]; then
+  for n in $domlist; do
+    dm=d`expr $n + 100 |cut -c2-`
+    if [[ ! -d $dm ]]; then mkdir -p $dm; fi
+    if [ -f $dm/${DATE}.finish_flag ]; then continue; fi
+    cd $dm
+    $SCRIPT_DIR/namelist_enkf.sh $n 1 > namelist.enkf
+    $SCRIPT_DIR/job_submit.sh $enkf_ntasks 0 $enkf_ppn ./enkf.mpi >& enkf.log
+    watch_log enkf.log Successful 5 $rundir
+    cd ..
+  done
+else
+  ###runing enkf.mpi multiscale scheme
+  for s in `seq 1 $NUM_SCALES`; do
+    dm=d01
+    if [[ ! -d $dm ]]; then mkdir -p $dm; fi
+    cd $dm
+    if [[ ! -d scale$s ]]; then mkdir -p scale$s; fi
+    for n in `seq 2 $MAX_DOM`; do
+      dm1=d`expr $n + 100 |cut -c2-`
+      mkdir -p ../$dm1/scale$s
+    done
+    if [ -f scale$s/${DATE}.finish_flag ]; then continue; fi
+    $SCRIPT_DIR/namelist_enkf.sh 1 $s > namelist.enkf
+    $SCRIPT_DIR/job_submit.sh $NUM_ENS 0 $enkf_ppn ./scale_decompose.exe >& scale_decompose.log
+    watch_log scale_decompose.log Successful 5 $rundir
+    $SCRIPT_DIR/job_submit.sh $enkf_ntasks 0 $enkf_ppn ./enkf.mpi >& enkf.log
+    watch_log enkf.log Successful 5 $rundir
+    $SCRIPT_DIR/job_submit.sh $NUM_ENS 0 $enkf_ppn ./alignment.exe >& alignment.log
+    watch_log alignment.log Successful 5 $rundir
+    ##save copy
+    mv ${DATE}.finish_flag scale$s/.
+    cp fort.5* fort.6* fort.7* fort.9* scale$s/.
+    for n in `seq 2 $MAX_DOM`; do
+      dm1=d`expr $n + 100 |cut -c2-`
+      cp ../$dm1/fort.9* ../$dm1/scale$s/.
+    done
+    cd ..
+  done
+  for n in `seq 2 $MAX_DOM`; do
+    dm=d`expr $n + 100 |cut -c2-`
+    cd $dm
+    $SCRIPT_DIR/namelist_enkf.sh $n 1 > namelist.enkf
+    $SCRIPT_DIR/job_submit.sh $enkf_ntasks 0 $enkf_ppn ./enkf.mpi >& enkf.log
+    watch_log enkf.log Successful 5 $rundir
+    cd ..
+  done
+fi
 
 #Check output
 for n in $domlist; do
@@ -138,13 +176,21 @@ for n in $domlist; do
     if [ $NUM_SCALES == 1 ]; then
       mv fort.`expr 70010 + $NE` $WORK_DIR/fc/$DATE/wrfinput_${dm}_$id
     else
-      mv fort.`expr 90010 + $NE` $WORK_DIR/fc/$DATE/wrfinput_${dm}_$id
+      if [ $n == 1 ]; then
+        mv fort.`expr 90010 + $NE` $WORK_DIR/fc/$DATE/wrfinput_${dm}_$id
+      else
+        mv fort.`expr 70010 + $NE` $WORK_DIR/fc/$DATE/wrfinput_${dm}_$id
+      fi
     fi
   done
   if [ $NUM_SCALES == 1 ]; then
     cp fort.`expr 70011 + $NUM_ENS` $WORK_DIR/fc/$DATE/wrfinput_${dm}_mean
   else
-    cp fort.`expr 90011 + $NUM_ENS` $WORK_DIR/fc/$DATE/wrfinput_${dm}_mean
+    if [ $n == 1 ]; then
+      cp fort.`expr 90011 + $NUM_ENS` $WORK_DIR/fc/$DATE/wrfinput_${dm}_mean
+    else
+      cp fort.`expr 70011 + $NUM_ENS` $WORK_DIR/fc/$DATE/wrfinput_${dm}_mean
+    fi
   fi
   cd ..
 done

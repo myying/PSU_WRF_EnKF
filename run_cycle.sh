@@ -1,15 +1,9 @@
 #!/bin/bash
-#SBATCH -A TG-ATM190001
-#SBATCH -J run_cycle
-#SBATCH -n 256 -N 8
-#SBATCH -p development
-#SBATCH -t 2:00:00
-#SBATCH -o out
 source ~/.bashrc
 
 #load configuration files, functions, parameters
 cd $WORK/PSU_WRF_EnKF
-export CONFIG_FILE=$WORK/PSU_WRF_EnKF/config/Patricia
+export CONFIG_FILE=$WORK/PSU_WRF_EnKF/config/$1
 . $CONFIG_FILE
 . util.sh
 
