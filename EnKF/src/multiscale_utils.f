@@ -98,11 +98,11 @@ function interp2d(x,i,j) result(xout)
   xout=(1-di)*(1-dj)*x(i1,j1)+di*(1-dj)*x(i2,j1)+(1-di)*dj*x(i1,j2)+di*dj*x(i2,j2)
 end function interp2d
 
-subroutine optical_flow_HS(xb,xa,wt,u,v)
-  real,intent(in) :: wt
+subroutine optical_flow_HS(xb,xa,u,v)
+  real :: w1=100, w2=100
   real,dimension(:,:),intent(in) :: xb,xa
   real,dimension(:,:),intent(inout) :: u,v
-  real,dimension(size(xb,1),size(xb,2)) :: Ix,Iy,It,ubar,vbar
+  real,dimension(size(xb,1),size(xb,2)) :: Ix,Iy,It,ubar1,vbar1,ubar2,vbar2,uxy,vxy
   integer :: niter,nx,ny
   nx=size(xb,1); ny=size(xb,2)
   niter=100
@@ -113,10 +113,14 @@ subroutine optical_flow_HS(xb,xa,wt,u,v)
   do i=1,niter
     u(1,:)=0.; u(nx,:)=0.; u(:,1)=0.; u(:,ny)=0. !!boundary condition
     v(1,:)=0.; v(nx,:)=0.; v(:,1)=0.; v(:,ny)=0.
-    ubar=laplacian(u)+u
-    vbar=laplacian(v)+v
-    u=ubar-Ix*(Ix*ubar+Iy*vbar+It)/(wt+Ix**2+Iy**2)
-    v=vbar-Iy*(Ix*ubar+Iy*vbar+It)/(wt+Ix**2+Iy**2)
+    ubar2=laplacian(u)+u
+    vbar2=laplacian(v)+v
+    ubar1=deriv_x(deriv_x(u))+u
+    vbar1=deriv_y(deriv_y(v))+v
+    uxy=deriv_x(deriv_y(u))
+    vxy=deriv_x(deriv_y(v))
+    u = (w1*ubar2 + w2*(ubar1+vxy))/(w1+w2) - Ix*((w1*(Ix*ubar2 + Iy*vbar2) + w2*((ubar1+vxy)*Ix + (vbar1+uxy)*Iy))/(w1+w2) + It)/(w1 + w2 + Ix**2 + Iy**2)
+    v = (w1*vbar2 + w2*(vbar1+uxy))/(w1+w2) - Iy*((w1*(Ix*ubar2 + Iy*vbar2) + w2*((ubar1+vxy)*Ix + (vbar1+uxy)*Iy))/(w1+w2) + It)/(w1 + w2 + Ix**2 + Iy**2)
   enddo
 end subroutine optical_flow_HS
 
