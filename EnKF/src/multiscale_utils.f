@@ -5,7 +5,7 @@ contains
 subroutine scale_response(k,krange,s,r)  !!!!response func for scale s
   integer :: s
   real,dimension(:,:) :: k
-  integer,dimension(:) :: krange
+  real,dimension(:) :: krange
   real,dimension(size(k,1),size(k,2)) :: r
   ns=size(krange)+1
   if(s<1 .or. s>ns) then
@@ -25,7 +25,7 @@ end subroutine scale_response
 subroutine scale_response1(k,krange,s,r)  !!!scales smaller than s
   integer :: s
   real,dimension(:,:) :: k
-  integer,dimension(:) :: krange
+  real,dimension(:) :: krange
   real,dimension(size(k,1),size(k,2)) :: r
   ns=size(krange)+1
   if(s<1 .or. s>ns) then
@@ -42,7 +42,7 @@ subroutine scale_bandpass(u,krange,s,us,us1)
   use,intrinsic :: iso_c_binding
   use fft_pack
   real,dimension(:,:) :: u
-  integer,dimension(:) :: krange
+  real,dimension(:) :: krange
   real,dimension(size(u,1),size(u,2)),intent(out) :: us,us1
   integer :: nx,ny,ns, n,i,z,s
   integer,dimension(size(u,1)) :: kx1
@@ -99,7 +99,7 @@ function interp2d(x,i,j) result(xout)
 end function interp2d
 
 subroutine optical_flow_HS(xb,xa,u,v)
-  real :: w1=100, w2=100
+  real :: w1=100, w2=0
   real,dimension(:,:),intent(in) :: xb,xa
   real,dimension(:,:),intent(inout) :: u,v
   real,dimension(size(xb,1),size(xb,2)) :: Ix,Iy,It,ubar1,vbar1,ubar2,vbar2,uxy,vxy

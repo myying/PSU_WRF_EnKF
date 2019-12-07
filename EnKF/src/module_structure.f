@@ -69,7 +69,7 @@ module namelist_define
 !-- multiscale
    integer       :: num_scales, current_scale
    logical       :: run_alignment
-   integer,dimension(50) :: krange
+   real,dimension(50) :: krange
 
 !-- use_hurricane_position_intensity
    logical       :: use_hurricane_PI    ! .true. : assimilated hurricane position and intensity 
