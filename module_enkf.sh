@@ -34,9 +34,16 @@ for n in $domlist; do
 
   #make several copies
   for NE in `seq 1 $((NUM_ENS+1))`; do
-    cp -L fort.`expr 80010 + $NE` fort.`expr 50010 + $NE`
-    cp -L fort.`expr 80010 + $NE` fort.`expr 90010 + $NE`
-    cp -L fort.`expr 80010 + $NE` fort.`expr 70010 + $NE`
+    if [ $NUM_SCALES == 1 ]; then
+      ln -fs fort.`expr 80010 + $NE` fort.`expr 50010 + $NE`
+      cp -L fort.`expr 80010 + $NE` fort.`expr 70010 + $NE`
+      ln -fs fort.`expr 80010 + $NE` fort.`expr 90010 + $NE`
+    else
+      cp -L fort.`expr 80010 + $NE` fort.`expr 50010 + $NE`
+      cp -L fort.`expr 80010 + $NE` fort.`expr 60010 + $NE`
+      cp -L fort.`expr 80010 + $NE` fort.`expr 70010 + $NE`
+      cp -L fort.`expr 80010 + $NE` fort.`expr 90010 + $NE`
+    fi
   done
 
   ln -fs $ENKF_DIR/enkf.mpi .
@@ -82,94 +89,30 @@ if [ $NUM_SCALES == 1 ]; then
   done
 else
   ###runing enkf.mpi multiscale scheme
-  dm=d01
-  if [[ ! -d $dm ]]; then mkdir -p $dm; fi
-  cd $dm
-  for s in `seq 1 $NUM_SCALES`; do
-    echo "scale $s for domain 1"
-    if [[ ! -d scale$s ]]; then mkdir -p scale$s; fi
-    if [ -f scale$s/${DATE}.finish_flag ]; then continue; fi
-    $SCRIPT_DIR/namelist_enkf.sh 1 $s > namelist.enkf
-    $SCRIPT_DIR/job_submit.sh $NUM_ENS 0 $enkf_ppn ./scale_decompose.exe >& scale_decompose.log
-    watch_log scale_decompose.log Successful 5 $rundir
-    $SCRIPT_DIR/job_submit.sh $enkf_ntasks 0 $enkf_ppn ./enkf.mpi >& enkf.log
-    watch_log enkf.log Successful 5 $rundir
-    $SCRIPT_DIR/job_submit.sh $NUM_ENS 0 $enkf_ppn ./alignment.exe >& alignment.log
-    watch_log alignment.log Successful 5 $rundir
-    ##save copy
-    mv ${DATE}.finish_flag scale$s/.
-    cp fort.1* enkf.log fort.5* fort.6* fort.7* fort.9* scale$s/.
-  done
-  cd ..
-  cd $rundir
-  for n in `seq 2 $MAX_DOM`; do
+  for n in `seq 1 $MAX_DOM`; do
     dm=d`expr $n + 100 |cut -c2-`
-    parent_dm=d`expr ${PARENT_ID[$n-1]} + 100 |cut -c2-`
+    if [[ ! -d $dm ]]; then mkdir -p $dm; fi
     cd $dm
     for s in `seq 1 $NUM_SCALES`; do
-      echo scale $s for domain $n
+      echo "scale $s for domain $n"
       if [[ ! -d scale$s ]]; then mkdir -p scale$s; fi
-      #if [ -f scale$s/${DATE}.finish_flag ]; then continue; fi
-      ##nestdown fields
-      for unit in 50010 70010; do
-        echo nesting down fort.$unit
-        tid=0
-        nt=$((total_ntasks/wps_ntasks))
-        for NE in `seq 1 $NUM_ENS`; do
-          if [[ ! -d ndown/$NE ]]; then mkdir -p ndown/$NE; fi
-          cd ndown/$NE
-          echo > rsl.error.0000
-          export run_minutes=0
-          export start_date=$DATE
-          if $FOLLOW_STORM; then
-            cp $WORK_DIR/rc/$DATE/ij_parent_start .
-          fi
-          $SCRIPT_DIR/namelist_wrf.sh ndown $n > namelist.input
-          ln -fs $WRF_DIR/run/ndown.exe .
-          ln -fs ../../../$parent_dm/scale$s/fort.`expr $unit + $NE` wrfout_d01_`wrf_time_string $DATE`
-          ln -fs ../../fort.`expr 80010 + $NE` wrfndi_d02
-          $SCRIPT_DIR/job_submit.sh $wps_ntasks $((tid*$wps_ntasks)) $HOSTPPN ./ndown.exe >& ndown.log &
-          tid=$((tid+1))
-          if [[ $tid == $nt ]]; then
-            tid=0
-            wait
-          fi
-          cd ../..
-        done
-        for NE in `seq 1 $NUM_ENS`; do
-          watch_log ndown/$NE/rsl.error.0000 SUCCESS 1 $rundir
-          mv ndown/$NE/wrfinput_d02 fort.`expr $unit + $NE`
-        done
-      done
-      for NE in `seq 1 $NUM_ENS`; do
-        rm -f fort.`expr 60010 + $NE`
-        ncdiff fort.`expr 90010 + $NE` fort.`expr 50010 + $NE` fort.`expr 60010 + $NE`
-      done
-
-      ##calculate displacement
-      echo run displacement step
-      echo > alignment.log
+      if [ -f scale$s/${DATE}.finish_flag ]; then continue; fi
+      echo "  scale decompose"
       $SCRIPT_DIR/namelist_enkf.sh $n $s > namelist.enkf
+      $SCRIPT_DIR/job_submit.sh $NUM_ENS 0 $enkf_ppn ./scale_decompose.exe >& scale_decompose.log
+      watch_log scale_decompose.log Successful 5 $rundir
+      echo "  enkf step"
+      $SCRIPT_DIR/job_submit.sh $enkf_ntasks 0 $enkf_ppn ./enkf.mpi >& enkf.log
+      watch_log enkf.log Successful 5 $rundir
+      echo "  alignment step"
       $SCRIPT_DIR/job_submit.sh $NUM_ENS 0 $enkf_ppn ./alignment.exe >& alignment.log
       watch_log alignment.log Successful 5 $rundir
-      ##save a copy to scale$s
-      echo > scale$s/${DATE}.finish_flag
-      cp fort.5* fort.6* fort.7* fort.9* scale$s/.
+      ##save copy
+      mv ${DATE}.finish_flag scale$s/.
+      cp fort.1* enkf.log fort.5* fort.6* fort.7* fort.9* scale$s/.
     done
     cd ..
   done
-  cd $rundir
-  #for n in `seq 2 $MAX_DOM`; do
-  #  dm=d`expr $n + 100 |cut -c2-`
-  #  cd $dm
-  #  for NE in `seq 1 $((NUM_ENS+1))`; do
-  #    cp -L fort.`expr 90010 + $NE` fort.`expr 50010 + $NE`
-  #  done
-  #  $SCRIPT_DIR/namelist_enkf.sh $n 1 > namelist.enkf
-  #  $SCRIPT_DIR/job_submit.sh $enkf_ntasks 0 $enkf_ppn ./enkf.mpi >& enkf.log
-  #  watch_log enkf.log Successful 5 $rundir
-  #  cd ..
-  #done
 fi
 
 #Check output

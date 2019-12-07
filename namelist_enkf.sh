@@ -44,7 +44,7 @@ njcpu  = $NJCPU,
 
 &multiscale
 num_scales = ${NUM_SCALES:-1},
-krange = `for i in ${KRANGE[*]}; do echo $i', '; done`
+krange = $(for k in ${KRANGE[*]}; do printf '%5.2f, ' `echo $k/${DX[0]}*${DX[0]} |bc -l`; done)
 current_scale = ${current_scale:-1},
 run_alignment = .$RUN_ALIGNMENT.,
 /
