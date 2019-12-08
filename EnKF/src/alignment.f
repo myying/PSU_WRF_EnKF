@@ -57,6 +57,7 @@ if(ie<=numbers_en) then
     allocate(xb(ii,jj,kk),xa(ii,jj,kk),xs(ii,jj,kk),xsw(ii,jj,kk))
     allocate(xin(ii,jj,kk),xout(ii,jj,kk),delx(ii,jj,kk))
     xb=0.; xa=0.; xs=0.; xsw=0.; xin=0.; xout=0.; delx=0.
+    u=0.; v=0.
 
     !!! Read in prior ensemble at current scale
     if(kk>1) then
@@ -83,7 +84,8 @@ if(ie<=numbers_en) then
       endif
 
       !!! Compute displacement vectors using Horn Schunck
-      call optical_flow_HS(sum(xb,3)/real(kk),sum(xa,3)/real(kk),u,v)
+      call optical_flow_HS(sum(xb(1:ix,1:jx,:),3)/real(kk),sum(xa(1:ix,1:jx,:),3)/real(kk),u(1:ix,1:jx),v(1:ix,1:jx),ix)
+      !print*,u,v
 
       !!! Warp smaller-scale field xs -> xsw
       xsw=xs
@@ -122,7 +124,7 @@ if(ie<=numbers_en) then
     endif
     call close_file(fid)
 
-    deallocate(u,v,xa,xb,xs,xsw,xin,xout,delx)
+    !deallocate(u,v,xa,xb,xs,xsw,xin,xout,delx)
   enddo
 endif
 if ( my_proc_id == 0 ) write(*,'(a)')' Successful completion of alignment.exe'

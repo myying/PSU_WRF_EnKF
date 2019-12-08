@@ -92,37 +92,58 @@ end subroutine grid2d
 function interp2d(x,i,j) result(xout)
   real,dimension(:,:),intent(in) :: x
   real :: i,j,xout,di,dj
-  integer :: i1,i2,j1,j2
+  integer :: i1,i2,j1,j2,ni,nj
+  ni=size(x,1); nj=size(x,2)
   i1=floor(i); i2=i1+1; di=i-real(i1)
   j1=floor(j); j2=j1+1; dj=j-real(j1)
   xout=(1-di)*(1-dj)*x(i1,j1)+di*(1-dj)*x(i2,j1)+(1-di)*dj*x(i1,j2)+di*dj*x(i2,j2)
 end function interp2d
 
-subroutine optical_flow_HS(xb,xa,u,v)
-  real :: w1=100, w2=0
-  real,dimension(:,:),intent(in) :: xb,xa
-  real,dimension(:,:),intent(inout) :: u,v
-  real,dimension(size(xb,1),size(xb,2)) :: Ix,Iy,It,ubar1,vbar1,ubar2,vbar2,uxy,vxy
-  integer :: niter,nx,ny
-  nx=size(xb,1); ny=size(xb,2)
-  niter=100
-  Ix=0.5*(deriv_x(xb)+deriv_x(xa))
-  Iy=0.5*(deriv_y(xb)+deriv_y(xa))
-  It=xa-xb
+
+subroutine optical_flow_HS(xb,xa,u,v,n)
+  real :: w=100
+  integer :: niter=100,nlevel=5,buffer=4
+  integer :: i,j,n,nn,lev,itr
+  real,dimension(n,n),intent(in) :: xb,xa
+  real,dimension(n,n),intent(inout) :: u,v
+  real,dimension(n,n) :: x1,x2,Im1c,Im2c,Ix,Iy,It,du,dv,ubar,vbar
+  !print*,size(xb,1),size(xb,2)
   u=0.; v=0.
-  do i=1,niter
-    u(1,:)=0.; u(nx,:)=0.; u(:,1)=0.; u(:,ny)=0. !!boundary condition
-    v(1,:)=0.; v(nx,:)=0.; v(:,1)=0.; v(:,ny)=0.
-    ubar2=laplacian(u)+u
-    vbar2=laplacian(v)+v
-    ubar1=deriv_x(deriv_x(u))+u
-    vbar1=deriv_y(deriv_y(v))+v
-    uxy=deriv_x(deriv_y(u))
-    vxy=deriv_x(deriv_y(v))
-    u = (w1*ubar2 + w2*(ubar1+vxy))/(w1+w2) - Ix*((w1*(Ix*ubar2 + Iy*vbar2) + w2*((ubar1+vxy)*Ix + (vbar1+uxy)*Iy))/(w1+w2) + It)/(w1 + w2 + Ix**2 + Iy**2)
-    v = (w1*vbar2 + w2*(vbar1+uxy))/(w1+w2) - Iy*((w1*(Ix*ubar2 + Iy*vbar2) + w2*((ubar1+vxy)*Ix + (vbar1+uxy)*Iy))/(w1+w2) + It)/(w1 + w2 + Ix**2 + Iy**2)
+  x1=xb
+  do lev=nlevel+1,1,-1
+    x2=x1
+    do i=1+buffer,n-buffer
+    do j=1+buffer,n-buffer
+      x1(i,j) = interp2d(x2,real(i)-u(i,j),real(j)-v(i,j))
+    enddo
+    enddo
+    Im1c = coarsen(x1,lev)
+    Im2c = coarsen(xa,lev)
+    Ix=0.5*(deriv_x(Im1c)+deriv_x(Im2c))
+    Iy=0.5*(deriv_y(Im1c)+deriv_y(Im2c))
+    It=Im2c-Im1c
+    du=0.; dv=0.
+    do itr=1,niter
+      du(1,:)=0.; du(nn,:)=0.; du(:,1)=0.; du(:,nn)=0. !!boundary condition
+      dv(1,:)=0.; dv(nn,:)=0.; dv(:,1)=0.; dv(:,nn)=0.
+      ubar=laplacian(du)+du
+      vbar=laplacian(dv)+dv
+      du=ubar-Ix*(Ix*ubar+Iy*vbar+It)/(w+Ix**2+Iy**2)
+      dv=vbar-Iy*(Ix*ubar+Iy*vbar+It)/(w+Ix**2+Iy**2)
+    enddo
+    u=u+du
+    v=v+dv
+    u(1,:)=0.; u(n,:)=0.; u(:,1)=0.; u(:,n)=0. !!boundary condition
+    v(1,:)=0.; v(n,:)=0.; v(:,1)=0.; v(:,n)=0.
   enddo
 end subroutine optical_flow_HS
+
+function coarsen(Im,lev) result(Imc)
+  integer :: i,n,lev
+  real,dimension(:,:) :: Im
+  real,dimension(size(Im,1),size(Im,2)) :: Imc
+  Imc=Im
+end function coarsen
 
 function deriv_x(u) result(dudx)
   real,dimension(:,:) :: u

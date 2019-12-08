@@ -9,7 +9,7 @@
  STORM_ID=PATRICIA           #storm id, format: basin (al) num (13) year (2010)
 
  NUM_SCALES=3                ###wheb > 1, run multiscale algorithms
- KRANGE=(10 40)
+ KRANGE=(5 20)
  RUN_ALIGNMENT=true              ###run alignment algorithm when true
 
  MULTI_PHYS_ENS=false         #if true, use a multi-physics ensemble
