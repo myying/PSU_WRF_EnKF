@@ -26,7 +26,7 @@
  DATE_CYCLE_END=201510240000    #date of final assimilation cycle
 
 #time control: unit=minutes
- CYCLE_PERIOD=60                #interval among cycles
+ CYCLE_PERIOD=360                #interval among cycles
  WRFOUT_INTERVAL=(60 60 60)     #interval of wrfout times
  LBC_INTERVAL=360               #interval of available first guess files
 
