@@ -27,7 +27,7 @@ if [ $JOB_SUBMIT_MODE == 1 ]; then
     export total_ntasks=$NCPUS
   fi
 else
-  export total_ntasks=9999999
+  export total_ntasks=5000
 fi
 echo total_ntasks=$total_ntasks
 

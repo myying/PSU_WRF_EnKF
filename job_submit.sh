@@ -36,10 +36,6 @@ if [[ $HOSTTYPE == "cheyenne" ]]; then
     jobname=`basename $exe |awk -F. '{print $1}'`
     queue="regular"
     wtime="06:00:00"
-      #if [ $jobname == "wrf" ]; then
-      #  queue="regular"
-      #  wtime="00:10:00"
-      #fi
     cat << EOF > run_$jobname.sh
 #!/bin/bash
 #PBS -A $HOSTACCOUNT
@@ -78,6 +74,37 @@ if [[ $HOSTTYPE == "stampede2" ]]; then
 		export SLURM_TACC_CORES=$((ppn*$SLURM_NNODES))
 		export SLURM_TASKS_PER_NODE="$ppn(x$SLURM_NNODES)"
 		ibrun -n $n -o $o $exe
+
+  elif [ $JOB_SUBMIT_MODE == 2 ]; then
+    nodes=`echo "($n+$ppn-1)/$ppn" |bc`
+    jobname=`basename $exe |awk -F. '{print $1}'`
+    queue="development"
+    wtime="02:00:00"
+    if [ $jobname == "wrf" ]; then
+      queue="normal"
+      wtime="00:10:00"
+    fi
+    cat << EOF > run_$jobname.sh
+#!/bin/bash
+#SBATCH -A $HOSTACCOUNT
+#SBATCH -J $jobname
+#SBATCH -n $n -N $nodes
+#SBATCH -p $queue
+#SBATCH -t $wtime
+#SBATCH -o job_run.log
+
+source ~/.bashrc
+cd `pwd`
+ibrun $exe >& $jobname.log
+EOF
+    qsub run_$jobname.sh >& job_submit.log
+    #wait for job to finish
+    jobid=`tail -n1 job_submit.log |cut -c20-`
+    jobstat=1
+    until [[ $jobstat == 0 ]]; do
+      sleep 10
+      jobstat=`/bin/squeue |grep $jobid |awk '{if($5=="PD" || $5=="R") print 1; else print 0;}'`
+    done
 
   fi
 fi
