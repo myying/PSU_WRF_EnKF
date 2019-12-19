@@ -37,12 +37,13 @@ for n in $domlist; do
     if [ $NUM_SCALES == 1 ]; then
       ln -fs fort.`expr 80010 + $NE` fort.`expr 50010 + $NE`
       cp -L fort.`expr 80010 + $NE` fort.`expr 70010 + $NE`
+      ln -fs fort.`expr 80010 + $NE` fort.`expr 90010 + $NE`
     else
       cp -L fort.`expr 80010 + $NE` fort.`expr 50010 + $NE`
       cp -L fort.`expr 80010 + $NE` fort.`expr 60010 + $NE`
       cp -L fort.`expr 80010 + $NE` fort.`expr 70010 + $NE`
+      cp -L fort.`expr 80010 + $NE` fort.`expr 90010 + $NE`
     fi
-    cp -L fort.`expr 80010 + $NE` fort.`expr 90010 + $NE`
   done
 
   ln -fs $ENKF_DIR/enkf.mpi .
@@ -141,7 +142,10 @@ for n in $domlist; do
   #fi
 
   if [ $NUM_SCALES == 1 ]; then
-    mv fort.`expr 70010 + $NE` fort.`expr 90010 + $NE`
+    for NE in `seq 1 $((NUM_ENS+1))`; do
+      rm -f fort.`expr 90010 + $NE`
+      mv fort.`expr 70010 + $NE` fort.`expr 90010 + $NE`
+    done
   fi
   mkdir -p post
   cp fort.9* post/.
