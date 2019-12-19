@@ -5,7 +5,6 @@
 ! 2, link wrfinput_d0? as fort.70010;
 ! 3, link best track file: YYYYMMDDHH.bal092011.dat
 ! 4, for each variable,  xa = xf + w*xm + (1-w)*gfsm
-!!!takes care of relaxation too (coef is different inside outside storm)  
 !----------------------------------------------------------------
   use netcdf
   use mapinfo_define
@@ -15,7 +14,6 @@
   implicit none
   type(proj_info)    :: proj
 
-  real :: relax_out=0.75, relax_in=0.5, relax
   integer            :: i_unit=80010, o_unit=90010, gfs_unit=20010
   integer            :: unit
   integer            :: numbers_en
@@ -119,17 +117,17 @@
       endif
 
 !.... get ensemble and calculate average
-      xbm = 0.0
-      do n = 1, numbers_en
-         write(wrf_file,'(a5,i5.5)')'fort.',i_unit+n
-         if ( kk > 1 ) then
-            call get_variable3d( wrf_file, var, ii, jj, kk, 1, xb )
-         else if ( kk == 1 ) then
-            call get_variable2d( wrf_file, var, ii, jj, 1, xb )
-         endif
-         xbm = xbm + xb
-      end do
-      xbm = xbm/float(numbers_en)
+      !xbm = 0.0
+      !do n = 1, numbers_en
+      !   write(wrf_file,'(a5,i5.5)')'fort.',i_unit+n
+      !   if ( kk > 1 ) then
+      !      call get_variable3d( wrf_file, var, ii, jj, kk, 1, xb )
+      !   else if ( kk == 1 ) then
+      !      call get_variable2d( wrf_file, var, ii, jj, 1, xb )
+      !   endif
+      !   xbm = xbm + xb
+      !end do
+      !xbm = xbm/float(numbers_en)
 
       xam = 0.0
       do n = 1, numbers_en
@@ -176,9 +174,8 @@
                   !alpha = ((Rmax_i-Rmin_i)**2 - (r-Rmin_i)**2)/((Rmax_i-Rmin_i)**2 + (r-Rmin_i)**2)
                   alpha = (Rmax_i-r)/(Rmax_i-Rmin_i)
                endif
-               relax = relax_out + alpha * (relax_in - relax_out)
 
-               work(i,j,k) = relax*(xb(i,j,k)-xbm(i,j,k)) + (1-relax)*(xa(i,j,k)-xam(i,j,k)) + alpha*xam(i,j,k) + (1.0-alpha)*gfsm(i,j,k)
+               work(i,j,k) = (xa(i,j,k)-xam(i,j,k)) + alpha*xam(i,j,k) + (1.0-alpha)*gfsm(i,j,k)
             end do
             end do
          end do
