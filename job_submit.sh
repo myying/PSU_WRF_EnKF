@@ -97,7 +97,7 @@ source ~/.bashrc
 cd `pwd`
 ibrun $exe >& $jobname.log
 EOF
-    qsub run_$jobname.sh >& job_submit.log
+    /bin/sbatch run_$jobname.sh >& job_submit.log
     #wait for job to finish
     jobid=`tail -n1 job_submit.log |cut -c20-`
     jobstat=1
