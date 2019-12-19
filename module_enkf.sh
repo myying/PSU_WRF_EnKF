@@ -147,35 +147,30 @@ for n in $domlist; do
       mv fort.`expr 70010 + $NE` fort.`expr 90010 + $NE`
     done
   fi
-  mkdir -p post
-  cp fort.9* post/.
+  #mkdir -p post; cp fort.9* post/.  ##save a copy of posteriors
 
   ###2. replacing mean with first guess (GFS/FNL) reanalysis
-  echo "  Replacing ens mean for domain $dm"
-  ##save a copy of posteriors
   if [[ $LBDATE == $DATE ]]; then
+    echo "  Replacing ens mean for domain $dm"
     ln -fs $WORK_DIR/rc/$DATE/wrfinput_$dm fort.20010
-  else
-    ln -fs fort.`expr 90011 + $NUM_ENS` fort.20010
+    ln -fs $ENKF_DIR/replace_mean_outside_site.exe .
+    ##lat/lon of storm
+    tcvitals_data=$TCVITALS_DIR/${DATE:0:4}/${DATE}.${STORM_ID}-tcvitals.dat
+    latstr=`head -n1 $tcvitals_data |awk '{print $6}'`
+    lonstr=`head -n1 $tcvitals_data |awk '{print $7}'`
+    if [ ${latstr:3:1} == "N" ]; then
+      slat=`echo "${latstr:0:3}/10" |bc -l`
+    else
+      slat=`echo "-${latstr:0:3}/10" |bc -l`
+    fi
+    if [ ${lonstr:4:1} == "E" ]; then
+      slon=`echo "${lonstr:0:4}/10" |bc -l`
+    else
+      slon=`echo "-${lonstr:0:4}/10" |bc -l`
+    fi
+    ./replace_mean_outside_site.exe $slat $slon $NUM_ENS >& replace_mean.log
+    watch_log replace_mean.log Successful 1 $rundir
   fi
-  ln -fs $ENKF_DIR/replace_mean_outside_site.exe .
-
-  ##lat/lon of storm
-  tcvitals_data=$TCVITALS_DIR/${DATE:0:4}/${DATE}.${STORM_ID}-tcvitals.dat
-  latstr=`head -n1 $tcvitals_data |awk '{print $6}'`
-  lonstr=`head -n1 $tcvitals_data |awk '{print $7}'`
-  if [ ${latstr:3:1} == "N" ]; then
-    slat=`echo "${latstr:0:3}/10" |bc -l`
-  else
-    slat=`echo "-${latstr:0:3}/10" |bc -l`
-  fi
-  if [ ${lonstr:4:1} == "E" ]; then
-    slon=`echo "${lonstr:0:4}/10" |bc -l`
-  else
-    slon=`echo "-${lonstr:0:4}/10" |bc -l`
-  fi
-  ./replace_mean_outside_site.exe $slat $slon $NUM_ENS >& replace_mean.log
-  watch_log replace_mean.log Successful 1 $rundir
 
   ###output
   for NE in `seq 1 $NUM_ENS`; do
