@@ -81,7 +81,7 @@ if [[ $HOSTTYPE == "stampede2" ]]; then
     queue="development"
     wtime="02:00:00"
     if [ $jobname == "wrf" ]; then
-      queue="normal"
+      queue="development"
       wtime="00:10:00"
     fi
     cat << EOF > run_$jobname.sh

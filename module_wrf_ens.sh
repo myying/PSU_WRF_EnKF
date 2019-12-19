@@ -148,13 +148,13 @@ for NE in `seq 1 $NUM_ENS`; do
   done
 done
 
-for NE in `seq 1 $NUM_ENS`; do
-  id=`expr $NE + 1000 |cut -c2-`
-  if $RUN_ENKF; then
-    mv $id/wrfout_d01_`wrf_time_string $DATE` $WORK_DIR/output/$DATE/wrfout_d01_`wrf_time_string $DATE`_$id
-  fi
-  mv $id/wrfout_d01_`wrf_time_string $NEXTDATE` $WORK_DIR/output/$DATE/wrfout_d01_`wrf_time_string $NEXTDATE`_$id
-done
+#for NE in `seq 1 $NUM_ENS`; do
+#  id=`expr $NE + 1000 |cut -c2-`
+#  if $RUN_ENKF; then
+#    mv $id/wrfout_d01_`wrf_time_string $DATE` $WORK_DIR/output/$DATE/wrfout_d01_`wrf_time_string $DATE`_$id
+#  fi
+#  mv $id/wrfout_d01_`wrf_time_string $NEXTDATE` $WORK_DIR/output/$DATE/wrfout_d01_`wrf_time_string $NEXTDATE`_$id
+#done
 
 #Calculate ensemble mean for 4DVar fg (next cycle)
 if $RUN_4DVAR; then

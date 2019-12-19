@@ -29,7 +29,7 @@ character (len=80), intent(in) :: times
 ! var,cov = error variance,covariance of something
 ! y_hxm = y-hxm (the innovation vector, mean), hxa is the perturbation (of ensemble members).
 real      :: fac,d,alpha,beta,var,cov,y_hxm,corr_coef,d_ogn
-real      :: var_a,var_b,m_d2,m_var_a,m_var_b
+real      :: la,ka,var_a,var_b,m_d2,m_var_a,m_var_b
 real,dimension(numbers_en) :: hxa
 integer   :: ngx, ngz, kzdamp
 integer   :: i, j, k, m, n, iob, iiob, nob, ie, iunit,ounit,ii, jj, kk, is, it, ig, iv, i1,j1, itot
@@ -703,13 +703,13 @@ if ( my_proc_id==0 ) write(*,*)'Performing covariance relaxation...'
 !------inflation factor from innovation statistics
 if(my_proc_id==0) write(*,*) 'lambda=',sqrt((m_d2-1)/m_var_b), ' kappa=',(sqrt(m_var_b)-sqrt(m_var_a))/sqrt(m_var_a)
 !!!adaptively determine mixing coef
-  !if(relax_adaptive) then
-    !la=max(sqrt((m_d2-1.0)/m_var_b),1.0)
-    !ka=(sqrt(m_var_b)-sqrt(m_var_a))/sqrt(m_var_a)
-    !mixing=(la-1.0)/ka
-    !if(my_proc_id==0) write(*,*) 'd2=',m_d2
-    !if(my_proc_id==0) write(*,*) 'lambda=',la,' kappa=',ka,' mixing=',mixing
-  !end if
+if(relax_adaptive) then
+  la=max(sqrt((m_d2-1.0)/m_var_b),1.0)
+  ka=(sqrt(m_var_b)-sqrt(m_var_a))/sqrt(m_var_a)
+  mixing=(la-1.0)/ka
+  if(my_proc_id==0) write(*,*) 'd2=',m_d2
+  if(my_proc_id==0) write(*,*) 'lambda=',la,' kappa=',ka,' mixing=',mixing
+end if
 
 !---option1. relax to prior perturbation (Zhang et al. 2004)
 if(relax_opt==0) then

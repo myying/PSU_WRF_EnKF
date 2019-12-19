@@ -53,6 +53,12 @@ character (len=6)                    :: pfile         !! out_##
     if(my_proc_id==0) write(*,'(a,5f8.2)')'Observation hurricane center =', center_io, center_jo, center(1:3)
   endif
 
+!---edited by Minamide 2014.11.18
+! Radiance data (satellite observation)
+  if ( use_radiance ) then
+    call get_radiance ( ix, jx, kx, proj, times )
+  endif
+
 ! Radar data 
   if ( use_radar_rv ) then
     !... get radar information from radar_data.info and saved to obs type data array
@@ -70,12 +76,6 @@ character (len=6)                    :: pfile         !! out_##
     call get_airborne ( ix, jx, kx, proj, times )
   endif
 
-
-!---edited by Minamide 2014.11.18
-! Radiance data (satellite observation)
-  if ( use_radiance ) then
-    call get_radiance ( ix, jx, kx, proj, times )
-  endif
 
 ! Add all obs type observations into obs%dat(num_rv)
 
@@ -205,6 +205,13 @@ character (len=6)                    :: pfile         !! out_##
               datathin_gpspw, hroi_gpspw, vroi_gpspw, grid_id )
    endif
 
+!---edited by Minamide 2014.11.18
+!....... Get Satellite radiance
+   if ( use_radiance ) then
+      call sort_radiance_data( wrf_file, ix, jx, kx, proj, 'Radiance', &
+              datathin_radiance, hroi_radiance, vroi_radiance, grid_id )
+   endif
+
 !....... Get Rv
    if ( use_radar_rv ) then
       call sort_radarRV_data( wrf_file, ix, jx, kx, proj, 'RadarRV   ', &
@@ -215,13 +222,6 @@ character (len=6)                    :: pfile         !! out_##
    if ( use_airborne_rv ) then
       call sort_radarRV_data( wrf_file, ix, jx, kx, proj, 'AirborneRV', &
               datathin_airborne, hroi_airborne  , vroi_airborne  , grid_id )
-   endif
-
-!---edited by Minamide 2014.11.18
-!....... Get Satellite radiance
-   if ( use_radiance ) then
-      call sort_radiance_data( wrf_file, ix, jx, kx, proj, 'Radiance', &
-              datathin_radiance, hroi_radiance, vroi_radiance, grid_id )
    endif
 
 !... hurricane center lat, lon and minimum sea-level-pressure

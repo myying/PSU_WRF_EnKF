@@ -179,6 +179,8 @@ for n in $domlist; do
   done
   cp fort.`expr 90011 + $NUM_ENS` $WORK_DIR/fc/$DATE/wrfinput_${dm}_mean
   mv fort.10000 $WORK_DIR/fc/$DATE/assim_obs_$dm
+  cat enkf.log |grep lambda |grep mixing > $WORK_DIR/fc/$DATE/adapt_relax_$dm
+  cp enkf.log $WORK_DIR/fc/$DATE/enkf.log.$dm
   cd ..
 done
 

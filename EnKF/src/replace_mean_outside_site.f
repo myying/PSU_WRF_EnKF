@@ -42,7 +42,7 @@
 
 !----------------------------------------------------------------
 ! variables will be replaced
-  varnum = 17
+  varnum = 18
   allocate( varname (varnum) )
 !----------------------------------------------------------------
 ! Get ensemble number
