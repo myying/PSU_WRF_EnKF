@@ -130,7 +130,7 @@ z_cycle: do iob=1,obs%num
   else if ( obstype(1:1) == 'P' .or. obstype(1:1) == 'H' ) then
       call calc_sounding_position_k(filename,proj,tmp,ix,jx,kx,nv,iob,xlong,znu,znw,p_top,obs%position(iob,3))
   else if ( obstype(1:8) == 'Radiance' ) then
-      obs%position(iob,3) = 17.
+      obs%position(iob,3) = 15.
   else
       obs%position(iob,3) = 1.
   endif

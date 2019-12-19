@@ -3,7 +3,7 @@
 FC=mpif90
 FCFLAG=-f90=ifort -i4 -w -ftz -align all -fno-alias -fp-model precise -assume realloc_lhs -convert big_endian -traceback
 
-all: enkf.mpi ensemble_mean.exe replace_mean.exe scale_decompose.exe alignment.exe
+all: enkf.mpi ensemble_mean.exe replace_mean.exe replace_mean_outside_site.exe scale_decompose.exe alignment.exe
 
 clean:
 	rm -f *.o *.mod *.mpi *.exe
@@ -54,6 +54,9 @@ scale_decompose.exe: module_structure.o mpi_module.o module_netcdf.o module_wrf_
 
 alignment.exe: module_structure.o mpi_module.o module_netcdf.o module_wrf_tools.o module_map_utils.o sub_enkf_util.o fft_pack.o multiscale_utils.o
 	$(FC) -o alignment.exe $(FCFLAG) -FR -I$(NETCDF)/include module_structure.o mpi_module.o module_netcdf.o module_wrf_tools.o module_map_utils.o sub_enkf_util.o fft_pack.o multiscale_utils.o -L$(NETCDF)/lib -lnetcdff -L$(FFTW)/lib -lfftw3 alignment.f
+
+replace_mean_outside_site.exe: module_structure.o module_netcdf.o module_wrf_tools.o module_map_utils.o
+		$(FC) -o replace_mean_outside_site.exe $(FCFLAG) -FR -I$(NETCDF)/include module_structure.o module_netcdf.o module_wrf_tools.o module_map_utils.o -L$(NETCDF)/lib -lnetcdf -lnetcdff replace_mean_outside_site.f
 
 replace_mean.exe: module_netcdf.o mpi_module.o
 	$(FC) -o replace_mean.exe $(FCFLAG) -FR -I$(NETCDF)/include module_netcdf.o mpi_module.o -L$(NETCDF)/lib -lnetcdff replace_mean.f

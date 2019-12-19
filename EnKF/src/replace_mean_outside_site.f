@@ -5,7 +5,7 @@
 ! 2, link wrfinput_d0? as fort.70010;
 ! 3, link best track file: YYYYMMDDHH.bal092011.dat
 ! 4, for each variable,  xa = xf + w*xm + (1-w)*gfsm
-  
+!!!takes care of relaxation too (coef is different inside outside storm)  
 !----------------------------------------------------------------
   use netcdf
   use mapinfo_define
@@ -15,10 +15,11 @@
   implicit none
   type(proj_info)    :: proj
 
-  integer            :: i_unit=80010, o_unit=90010, gfs_unit=70010
+  real :: relax_out=0.75, relax_in=0.5, relax
+  integer            :: i_unit=80010, o_unit=90010, gfs_unit=20010
   integer            :: unit
-  integer            :: numbers_en 
-  integer            :: ix, jx, kx, i, j, k, len 
+  integer            :: numbers_en
+  integer            :: ix, jx, kx, i, j, k, len
   integer            :: ii, jj, kk, m, n, fid, iargc
   character (len=10) :: wrf_file, filec
   character (len=10)  :: dum
@@ -29,8 +30,8 @@
   integer                                       :: varnum
   character (len=10)                            :: var
 
-  real, allocatable, dimension(:,:,:)   :: xa      !!! ensemble members
-  real, allocatable, dimension(:,:,:)   :: xm      !!! ensemble mean
+  real, allocatable, dimension(:,:,:)   :: xa,xb   !!! ensemble members
+  real, allocatable, dimension(:,:,:)   :: xam,xbm   !!! ensemble mean
   real, allocatable, dimension(:,:,:)   :: gfsm    !!! initial field
   real, allocatable, dimension(:,:,:)   :: work
 
@@ -62,26 +63,24 @@
   write(*,*)'numbers_en =', numbers_en
   write(*,*)'site lat/lon =', slat, slon
 
-  varname = (/'U         ', 'V         ', 'W         ', 'PH        ', &
-              'T         ', 'MU        ', 'MUB       ',  &
-              'Q2        ', 'T2        ', 'TH2       ', 'PSFC      ', &
-              'U10       ', 'V10       ', 'QVAPOR    ', 'QCLOUD    ', 'QRAIN     ', &
-              'TSK       '/)
+  varname = (/'U         ', 'V         ', 'W         ', 'P         ', &
+              'PH        ', 'T         ', 'MU        ',  &
+              'U10       ', 'V10       ', 'Q2        ', 'T2        ', 'PSFC      ', &
+              'QVAPOR    ', 'QCLOUD    ', 'QRAIN     ', &
+              'QICE      ', 'QSNOW     ', 'QGRAUP    '/)
 
 !----------------------------------------------------------------
 ! Get WRF model dimension from the 1th member
-  call set_domain_proj('fort.70010', proj )
-!  call get_var_ij ( 'fort.70010', 'T         ', ix, jx, kx )
-  call get_ij ( 'fort.70010', ix, jx, kx )
-  call get_times ( 'fort.70010', 'T         ', times )
-
+  call set_domain_proj('fort.80011', proj )
+  call get_ij ( 'fort.80011', ix, jx, kx )
+  call get_times ( 'fort.80011', 'T         ', times )
   write(*,*)'wrf dimension: ', ix, jx, kx
 
 !----------------------------------------------------------------
   ! 3, calculate storm center's position according to wrf domain grid
-  call latlon_to_ij( proj, slat,slon, si, sj) 
-  Rmax=300.*1000. 
-  Rmin=200.*1000.  
+  call latlon_to_ij( proj, slat,slon, si, sj)
+  Rmax=600.*1000.
+  Rmin=300.*1000.
   Rmax_i = Rmax/proj%dx
   Rmin_i = Rmin/proj%dx
   rep_is = int(si - Rmax_i)
@@ -103,12 +102,14 @@
       var = varname(m)
       write(*,*)var
       call wrf_var_dimension ( var, ix, jx, kx, ii, jj, kk )
+      allocate( xb    ( ii, jj, kk ) )
       allocate( xa    ( ii, jj, kk ) )
-      allocate( xm    ( ii, jj, kk ) )
+      allocate( xbm    ( ii, jj, kk ) )
+      allocate( xam    ( ii, jj, kk ) )
       allocate( gfsm  ( ii, jj, kk ) )
       allocate( work  ( ii, jj, kk ) )
 
-!.... get gfs initial 
+!.... get gfs initial
       write(wrf_file,'(a5,i5.5)')'fort.',gfs_unit
 !....... get data and sum
       if ( kk > 1 ) then
@@ -118,18 +119,29 @@
       endif
 
 !.... get ensemble and calculate average
-      xm = 0.0
-      do_ensemble_member : do n = 1, numbers_en
+      xbm = 0.0
+      do n = 1, numbers_en
          write(wrf_file,'(a5,i5.5)')'fort.',i_unit+n
-!....... get data and sum
+         if ( kk > 1 ) then
+            call get_variable3d( wrf_file, var, ii, jj, kk, 1, xb )
+         else if ( kk == 1 ) then
+            call get_variable2d( wrf_file, var, ii, jj, 1, xb )
+         endif
+         xbm = xbm + xb
+      end do
+      xbm = xbm/float(numbers_en)
+
+      xam = 0.0
+      do n = 1, numbers_en
+         write(wrf_file,'(a5,i5.5)')'fort.',o_unit+n
          if ( kk > 1 ) then
             call get_variable3d( wrf_file, var, ii, jj, kk, 1, xa )
          else if ( kk == 1 ) then
             call get_variable2d( wrf_file, var, ii, jj, 1, xa )
          endif
-         xm = xm + xa
-      end do do_ensemble_member
-      xm = xm/float(numbers_en)
+         xam = xam + xa
+      end do
+      xam = xam/float(numbers_en)
 
 !.... mixing and output to ensemble
       do n = 1, numbers_en
@@ -139,13 +151,19 @@
             call get_variable3d( wrf_file, var, ii, jj, kk, 1, xa )
          else if ( kk == 1 ) then
             call get_variable2d( wrf_file, var, ii, jj, 1, xa )
-         endif 
+         endif
 
          write(wrf_file,'(a5,i5.5)')'fort.',o_unit+n
+         if ( kk > 1 ) then
+            call get_variable3d( wrf_file, var, ii, jj, kk, 1, xb )
+         else if ( kk == 1 ) then
+            call get_variable2d( wrf_file, var, ii, jj, 1, xb )
+         endif
+
          write(*,*)'output to ', wrf_file
          call open_file( wrf_file, nf_write, fid )
 
-         work(:,:,:)=(xa(:,:,:)-xm(:,:,:))+gfsm(:,:,:)
+         work(:,:,:)=(xa(:,:,:)-xam(:,:,:))+gfsm(:,:,:)
          do k = 1, kk
             do j = rep_js, rep_je
             do i = rep_is, rep_ie
@@ -158,8 +176,9 @@
                   !alpha = ((Rmax_i-Rmin_i)**2 - (r-Rmin_i)**2)/((Rmax_i-Rmin_i)**2 + (r-Rmin_i)**2)
                   alpha = (Rmax_i-r)/(Rmax_i-Rmin_i)
                endif
+               relax = relax_out + alpha * (relax_in - relax_out)
 
-               work(i,j,k) = (xa(i,j,k)-xm(i,j,k)) + alpha*xm(i,j,k) + (1.0-alpha)*gfsm(i,j,k)
+               work(i,j,k) = relax*(xb(i,j,k)-xbm(i,j,k)) + (1-relax)*(xa(i,j,k)-xam(i,j,k)) + alpha*xam(i,j,k) + (1.0-alpha)*gfsm(i,j,k)
             end do
             end do
          end do
@@ -170,7 +189,7 @@
             call write_variable2d(fid, var, ii, jj,  1, work )
          endif
          call close_file( fid )
-      enddo 
+      enddo
 
       write(wrf_file,'(a5,i5.5)')'fort.',o_unit+numbers_en+1
       write(*,*)'output to ', wrf_file
@@ -187,7 +206,7 @@
             else if ( r > Rmin_i .and. r <= Rmax_i ) then
                alpha = (Rmax_i-r)/(Rmax_i-Rmin_i)
             endif
-            work(i,j,k) = alpha*xm(i,j,k) +(1.0-alpha)*gfsm(i,j,k)
+            work(i,j,k) = alpha*xam(i,j,k) +(1.0-alpha)*gfsm(i,j,k)
          end do
          end do
       end do
@@ -198,8 +217,8 @@
       endif
       call close_file( fid )
 
-      deallocate( xa    )
-      deallocate( xm    )
+      deallocate( xa,xb    )
+      deallocate( xam,xbm  )
       deallocate( gfsm  )
       deallocate( work  )
 

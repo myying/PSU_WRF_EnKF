@@ -101,7 +101,7 @@ if [[ $DATE == $DATE_START ]]; then
   ./ungrib.exe >& ungrib.log
   watch_log ungrib.log Successful 10 $rundir
 else
-  ln -fs $WORK_DIR/run/$DATE_START/icbc/FILE* .
+  ln -fs $WORK_DIR/../icbc/FILE* .
 fi
 
 #3. metgrid.exe --------------------------------------------------------------------

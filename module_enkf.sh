@@ -37,13 +37,12 @@ for n in $domlist; do
     if [ $NUM_SCALES == 1 ]; then
       ln -fs fort.`expr 80010 + $NE` fort.`expr 50010 + $NE`
       cp -L fort.`expr 80010 + $NE` fort.`expr 70010 + $NE`
-      ln -fs fort.`expr 80010 + $NE` fort.`expr 90010 + $NE`
     else
       cp -L fort.`expr 80010 + $NE` fort.`expr 50010 + $NE`
       cp -L fort.`expr 80010 + $NE` fort.`expr 60010 + $NE`
       cp -L fort.`expr 80010 + $NE` fort.`expr 70010 + $NE`
-      cp -L fort.`expr 80010 + $NE` fort.`expr 90010 + $NE`
     fi
+    cp -L fort.`expr 80010 + $NE` fort.`expr 90010 + $NE`
   done
 
   ln -fs $ENKF_DIR/enkf.mpi .
@@ -141,48 +140,46 @@ for n in $domlist; do
   #  cd ..
   #fi
 
-  ###2. replacing mean with first guess (GFS/FNL) reanalysis
-  #if [[ ! -d replace_mean ]]; then mkdir -p replace_mean; fi
-  #cd replace_mean
-  #echo "  Replacing ens mean with $REPLACE_MEAN_WITH for domain $dm"
-  #for NE in `seq 1 $((NUM_ENS+1))`; do
-  #  mv ../fort.`expr 90010 + $NE` fort.`expr 80010 + $NE`
-  #  cp fort.`expr 80010 + $NE` fort.`expr 90010 + $NE`
-  #done
-  #if [[ $REPLACE_MEAN_WITH == "forecast" ]]; then
-  #  ln -fs $WORK_DIR/fc/$DATE/wrfinput_$dm fort.70010
-  #elif [[ $REPLACE_MEAN_WITH == "gfs" ]]; then
-  #  ln -fs $WORK_DIR/rc/$DATE/wrfinput_$dm fort.70010
-  #fi
-  #ln -fs $ENKF_DIR/replace_mean.exe .
-  #./replace_mean.exe $NUM_ENS >& replace_mean.log
-  #watch_log replace_mean.log Successful 1 $rundir
-  #for NE in `seq 1 $((NUM_ENS+1))`; do
-  #  mv fort.`expr 90010 + $NE` ../
-  #done
-  #cd ..
+  if [ $NUM_SCALES == 1 ]; then
+    mv fort.`expr 70010 + $NE` fort.`expr 90010 + $NE`
+  fi
+  mkdir -p post
+  cp fort.9* post/.
 
+  ###2. replacing mean with first guess (GFS/FNL) reanalysis
+  echo "  Replacing ens mean for domain $dm"
+  ##save a copy of posteriors
+  if [[ $LBDATE == $DATE ]]; then
+    ln -fs $WORK_DIR/rc/$DATE/wrfinput_$dm fort.20010
+  else
+    ln -fs fort.`expr 90011 + $NUM_ENS` fort.20010
+  fi
+  ln -fs $ENKF_DIR/replace_mean_outside_site.exe .
+
+  ##lat/lon of storm
+  tcvitals_data=$TCVITALS_DIR/${DATE:0:4}/${DATE}.${STORM_ID}-tcvitals.dat
+  latstr=`head -n1 $tcvitals_data |awk '{print $6}'`
+  lonstr=`head -n1 $tcvitals_data |awk '{print $7}'`
+  if [ ${latstr:3:1} == "N" ]; then
+    slat=`echo "${latstr:0:3}/10" |bc -l`
+  else
+    slat=`echo "-${latstr:0:3}/10" |bc -l`
+  fi
+  if [ ${lonstr:4:1} == "E" ]; then
+    slon=`echo "${lonstr:0:4}/10" |bc -l`
+  else
+    slon=`echo "-${lonstr:0:4}/10" |bc -l`
+  fi
+  ./replace_mean_outside_site.exe $slat $slon $NUM_ENS >& replace_mean.log
+  watch_log replace_mean.log Successful 1 $rundir
+
+  ###output
   for NE in `seq 1 $NUM_ENS`; do
     id=`expr $NE + 1000 |cut -c2-`
-    if [ $NUM_SCALES == 1 ]; then
-      mv fort.`expr 70010 + $NE` $WORK_DIR/fc/$DATE/wrfinput_${dm}_$id
-    else
-      if [ $n == 1 ]; then
-        mv fort.`expr 90010 + $NE` $WORK_DIR/fc/$DATE/wrfinput_${dm}_$id
-      else
-        mv fort.`expr 70010 + $NE` $WORK_DIR/fc/$DATE/wrfinput_${dm}_$id
-      fi
-    fi
+    mv fort.`expr 90010 + $NE` $WORK_DIR/fc/$DATE/wrfinput_${dm}_$id
   done
-  if [ $NUM_SCALES == 1 ]; then
-    cp fort.`expr 70011 + $NUM_ENS` $WORK_DIR/fc/$DATE/wrfinput_${dm}_mean
-  else
-    if [ $n == 1 ]; then
-      cp fort.`expr 90011 + $NUM_ENS` $WORK_DIR/fc/$DATE/wrfinput_${dm}_mean
-    else
-      cp fort.`expr 70011 + $NUM_ENS` $WORK_DIR/fc/$DATE/wrfinput_${dm}_mean
-    fi
-  fi
+  cp fort.`expr 90011 + $NUM_ENS` $WORK_DIR/fc/$DATE/wrfinput_${dm}_mean
+  mv fort.10000 $WORK_DIR/fc/$DATE/assim_obs_$dm
   cd ..
 done
 

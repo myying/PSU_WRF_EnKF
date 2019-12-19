@@ -98,7 +98,7 @@ if $INCLUDE_BUFR; then
     $bufr_upa_decode_dir/bufr_craft2ob.x $bufr_dir/upaobs.$ccyymmdd/gdas.aircft.t${hh}z.$ccyymmdd.bufr $ccyymmdd$hh >> decode_bufr.log 2>&1
     $bufr_upa_decode_dir/bufr_sat2ob.x $bufr_dir/upaobs.$ccyymmdd/gdas.satwnd.t${hh}z.$ccyymmdd.bufr $ccyymmdd$hh >> decode_bufr.log 2>&1
     rm -f files.txt
-    for type in Airca Aircraft Satob Ship Surface Upper; do 
+    for type in Airca Aircraft Satob Ship Surface Upper; do
       echo $type$ccyymmdd$hh.obs >> files.txt
     done
     $bufr_sfc_decode_dir/runob2lit_imd_obs.x files.txt $ccyymmdd$hh >> decode_bufr.log 2>&1
@@ -124,8 +124,18 @@ for var_type in 3DVAR 4DVAR; do
   ./obsproc.exe >& obsproc.log
 
   watch_log obsproc.log 99999 1 $rundir
+
   mv obs_gts_*.$var_type $WORK_DIR/obs/$DATE/.
 done
+
+###squeeze in HPI obs_gts file
+mv $WORK_DIR/obs/$DATE/obs_gts_`wrf_time_string $DATE`.3DVAR tmpfile
+total=`head -n1 tmpfile |cut -c8-14`
+echo "`head -n1 tmpfile |cut -c1-7``printf '%7i' $((total+1))``head -n1 tmpfile |cut -c15-33`" > tmpfile1
+head -n21 tmpfile |tail -n20 >> tmpfile1
+tail -n3 $WORK/data/Patricia/HPI/HPI_obs_gts_`wrf_time_string $DATE`.3DVAR >> tmpfile1
+cat tmpfile |awk 'NR>21{print}' >> tmpfile1
+mv tmpfile1 $WORK_DIR/obs/$DATE/obs_gts_`wrf_time_string $DATE`.3DVAR
 
 #if $CLEAN; then rm obs.raw; fi
 
