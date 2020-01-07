@@ -112,9 +112,9 @@
 
 #Some of the following switches are shared in namelist_enkf and namelist_wrfvar to select certain observation types
 #                              in  namelist.enkf      in wrfvar namelist.input
- USE_SYNOPOBS=true               #        /              use_synopobs
- USE_SURFOBS=false               #  use_surface               /
- USE_SOUNDOBS=false               #  use_sounding         use_soundobs
+ USE_SYNOPOBS=false               #        /              use_synopobs
+ USE_SURFOBS=true               #  use_surface               /
+ USE_SOUNDOBS=true               #  use_sounding         use_soundobs
  USE_PILOTOBS=false               #        /              use_pilotobs
  USE_PROFILEROBS=false            #  use_profiler         use_profilerobs
  USE_AIREPOBS=true               #  use_aircft           use_airepobs
@@ -141,7 +141,7 @@
 #data thinning coef for EnKF
  THIN_SURFACE=0
  THIN_SOUNDING=0
- THIN_SOUNDING_VERT=3
+ THIN_SOUNDING_VERT=0
  THIN_PROFILER=0
  THIN_AIRCFT=0
  THIN_METAR=0
