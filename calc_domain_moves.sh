@@ -24,7 +24,7 @@ echo "off1->$off1"
 echo "off2->$off2"
 fgdate1=`advance_time $date1 -$off1`
 echo "fgdate1->$fgdate1"
-fgdate2=`advance_time $date1 $((TCV_INTERVAL-$off1))`
+fgdate2=`advance_time $date2 $((TCV_INTERVAL-$off1))`
 echo "fgdate2->$fgdate2"
 n=$(echo "`diff_time $fgdate1 $fgdate2`/$TCV_INTERVAL" |bc)
 echo "n->$n"
