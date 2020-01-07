@@ -144,19 +144,19 @@
 !.... mixing and output to ensemble
       do n = 1, numbers_en
 
-         write(wrf_file,'(a5,i5.5)')'fort.',i_unit+n
+         write(wrf_file,'(a5,i5.5)')'fort.',o_unit+n
          if ( kk > 1 ) then
             call get_variable3d( wrf_file, var, ii, jj, kk, 1, xa )
          else if ( kk == 1 ) then
             call get_variable2d( wrf_file, var, ii, jj, 1, xa )
          endif
 
-         write(wrf_file,'(a5,i5.5)')'fort.',o_unit+n
-         if ( kk > 1 ) then
-            call get_variable3d( wrf_file, var, ii, jj, kk, 1, xb )
-         else if ( kk == 1 ) then
-            call get_variable2d( wrf_file, var, ii, jj, 1, xb )
-         endif
+         !write(wrf_file,'(a5,i5.5)')'fort.',i_unit+n
+         !if ( kk > 1 ) then
+         !   call get_variable3d( wrf_file, var, ii, jj, kk, 1, xb )
+         !else if ( kk == 1 ) then
+         !   call get_variable2d( wrf_file, var, ii, jj, 1, xb )
+         !endif
 
          write(*,*)'output to ', wrf_file
          call open_file( wrf_file, nf_write, fid )
