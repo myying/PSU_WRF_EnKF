@@ -1157,23 +1157,23 @@ do_reports : do n = start_data, ista, inter_data
                obs%roi     (obs%num,1) = hroi * ngxn
                obs%roi     (obs%num,2) = vroi
           endif
-      else if ( data(n,k,1,1) .lt. 0. .or. data(n,k,1,1) .gt. 200000. ) then
-          if ( data(n,k,1,5).ge.100. .and. data(n,k,1,5) .le. 350. .and. abs(data(n,k,2,5)).lt. 90. ) then
-               obs%num                 = obs%num + 1
-               obs%dat     (obs%num  ) = data(n,k,1,5)
-               obs%type    (obs%num  ) = 'H'//instrument//'T'
-               if( abs(data(n,k,1,4)-obs_elv(n)) .le. 5. .and. obs_elv(n).gt.50. )obs%type(obs%num  ) = 'S'//instrument//'T'
-               obs%err     (obs%num  ) = data(n,k,3,5)
-               obs%position(obs%num,1) = x
-               obs%position(obs%num,2) = y
-               obs%position(obs%num,4) = data(n,k,1,4)
-               obs%sta     (obs%num,1) = obs_elv(n)
-               obs%sta     (obs%num,2) = data(n,1,1,1)
-               obs%sta     (obs%num,3) = data(n,1,1,5)
-               obs%sta     (obs%num,4) = data(n,1,1,7)
-               obs%roi     (obs%num,1) = hroi * ngxn
-               obs%roi     (obs%num,2) = vroi
-          endif
+      !else if ( data(n,k,1,1) .lt. 0. .or. data(n,k,1,1) .gt. 200000. ) then
+      !    if ( data(n,k,1,5).ge.100. .and. data(n,k,1,5) .le. 350. .and. abs(data(n,k,2,5)).lt. 90. ) then
+      !         obs%num                 = obs%num + 1
+      !         obs%dat     (obs%num  ) = data(n,k,1,5)
+      !         obs%type    (obs%num  ) = 'H'//instrument//'T'
+      !         if( abs(data(n,k,1,4)-obs_elv(n)) .le. 5. .and. obs_elv(n).gt.50. )obs%type(obs%num  ) = 'S'//instrument//'T'
+      !         obs%err     (obs%num  ) = data(n,k,3,5)
+      !         obs%position(obs%num,1) = x
+      !         obs%position(obs%num,2) = y
+      !         obs%position(obs%num,4) = data(n,k,1,4)
+      !         obs%sta     (obs%num,1) = obs_elv(n)
+      !         obs%sta     (obs%num,2) = data(n,1,1,1)
+      !         obs%sta     (obs%num,3) = data(n,1,1,5)
+      !         obs%sta     (obs%num,4) = data(n,1,1,7)
+      !         obs%roi     (obs%num,1) = hroi * ngxn
+      !         obs%roi     (obs%num,2) = vroi
+      !    endif
       endif
    enddo
 
@@ -1238,63 +1238,63 @@ do_reports : do n = start_data, ista, inter_data
           endif
                
 
-     else if ( data(n,k,1,1) .lt. 0. .or. data(n,k,1,1) .gt. 200000. ) then
-          if ( data(n,k,1,2).ge.0. .and. data(n,k,1,2).le.200. .and.   &
-               data(n,k,1,3).ge.0. .and. data(n,k,1,3).lt.360. .and.   &
-               abs(data(n,k,2,2)).lt. 90.  ) then
-               call dir_spd2xy(data(n,k,1,3), data(n,k,1,2), trueu, truev)
-               call truewind_to_gridwind(obs_lon(n), proj, trueu, truev, gridu, gridv)
-!................ u
-               obs%num                 = obs%num + 1
-               obs%dat     (obs%num  ) = gridu
-               obs%type    (obs%num  ) = 'H'//instrument//'U'
-               if( abs(data(n,k,1,4)-obs_elv(n)) .le. 5. .and. obs_elv(n).gt.50. )obs%type(obs%num  ) = 'S'//instrument//'U'
-               obs%err     (obs%num  ) = data(n,k,3,2)
-               obs%position(obs%num,1) = x
-               obs%position(obs%num,2) = y
-               obs%position(obs%num,4) = data(n,k,1,4)
-               obs%sta     (obs%num,1) = obs_elv(n)
-               obs%sta     (obs%num,2) = data(n,1,1,1)
-               obs%sta     (obs%num,3) = data(n,1,1,5)
-               obs%sta     (obs%num,4) = data(n,1,1,7)
-               obs%roi     (obs%num,1) = hroi * ngxn
-               obs%roi     (obs%num,2) = vroi
-!................ v
-               obs%num                 = obs%num + 1
-               obs%dat     (obs%num  ) = gridv
-               obs%type    (obs%num  ) = 'H'//instrument//'V'
-               if( abs(data(n,k,1,4)-obs_elv(n)) .le. 5. .and. obs_elv(n).gt.50. )obs%type(obs%num  ) = 'S'//instrument//'V'
-               obs%err     (obs%num  ) = data(n,k,3,2)
-               obs%position(obs%num,1) = x
-               obs%position(obs%num,2) = y
-               obs%position(obs%num,4) = data(n,k,1,4)
-               obs%sta     (obs%num,1) = obs_elv(n)
-               obs%sta     (obs%num,2) = data(n,1,1,1)
-               obs%sta     (obs%num,3) = data(n,1,1,5)
-               obs%sta     (obs%num,4) = data(n,1,1,7)
-               obs%roi     (obs%num,1) = hroi * ngxn
-               obs%roi     (obs%num,2) = vroi
-          endif
+!     else if ( data(n,k,1,1) .lt. 0. .or. data(n,k,1,1) .gt. 200000. ) then
+!          if ( data(n,k,1,2).ge.0. .and. data(n,k,1,2).le.200. .and.   &
+!               data(n,k,1,3).ge.0. .and. data(n,k,1,3).lt.360. .and.   &
+!               abs(data(n,k,2,2)).lt. 90.  ) then
+!               call dir_spd2xy(data(n,k,1,3), data(n,k,1,2), trueu, truev)
+!               call truewind_to_gridwind(obs_lon(n), proj, trueu, truev, gridu, gridv)
+!!................ u
+!               obs%num                 = obs%num + 1
+!               obs%dat     (obs%num  ) = gridu
+!               obs%type    (obs%num  ) = 'H'//instrument//'U'
+!               if( abs(data(n,k,1,4)-obs_elv(n)) .le. 5. .and. obs_elv(n).gt.50. )obs%type(obs%num  ) = 'S'//instrument//'U'
+!               obs%err     (obs%num  ) = data(n,k,3,2)
+!               obs%position(obs%num,1) = x
+!               obs%position(obs%num,2) = y
+!               obs%position(obs%num,4) = data(n,k,1,4)
+!               obs%sta     (obs%num,1) = obs_elv(n)
+!               obs%sta     (obs%num,2) = data(n,1,1,1)
+!               obs%sta     (obs%num,3) = data(n,1,1,5)
+!               obs%sta     (obs%num,4) = data(n,1,1,7)
+!               obs%roi     (obs%num,1) = hroi * ngxn
+!               obs%roi     (obs%num,2) = vroi
+!!................ v
+!               obs%num                 = obs%num + 1
+!               obs%dat     (obs%num  ) = gridv
+!               obs%type    (obs%num  ) = 'H'//instrument//'V'
+!               if( abs(data(n,k,1,4)-obs_elv(n)) .le. 5. .and. obs_elv(n).gt.50. )obs%type(obs%num  ) = 'S'//instrument//'V'
+!               obs%err     (obs%num  ) = data(n,k,3,2)
+!               obs%position(obs%num,1) = x
+!               obs%position(obs%num,2) = y
+!               obs%position(obs%num,4) = data(n,k,1,4)
+!               obs%sta     (obs%num,1) = obs_elv(n)
+!               obs%sta     (obs%num,2) = data(n,1,1,1)
+!               obs%sta     (obs%num,3) = data(n,1,1,5)
+!               obs%sta     (obs%num,4) = data(n,1,1,7)
+!               obs%roi     (obs%num,1) = hroi * ngxn
+!               obs%roi     (obs%num,2) = vroi
+!          endif
 
-          if ( (data(n,k,1,2).ge.0. .and. data(n,k,1,2).le.200.) .and.   &
-               (data(n,k,1,3).lt.0. .or.  data(n,k,1,3).gt.360.) .and.   &
-                abs(data(n,k,2,2)).lt. 90.  ) then
-!................ wind speed
-               obs%num                 = obs%num + 1
-               obs%dat     (obs%num  ) = data(n,k,1,2)
-               obs%type    (obs%num  ) = 'H'//instrument//'S'
-               if( abs(data(n,k,1,4)-obs_elv(n)) .le. 5. .and. obs_elv(n).gt.50. )obs%type(obs%num  ) = 'S'//instrument//'S'
-               obs%err     (obs%num  ) = data(n,k,3,2)
-               obs%position(obs%num,1) = x
-               obs%position(obs%num,2) = y
-               obs%position(obs%num,4) = data(n,k,1,4)
-               obs%sta     (obs%num,1) = obs_elv(n)
-               obs%sta     (obs%num,2) = data(n,1,1,1)
-               obs%sta     (obs%num,3) = data(n,1,1,5)
-               obs%sta     (obs%num,4) = data(n,1,1,7)
-               obs%roi     (obs%num,1) = hroi * ngxn
-               obs%roi     (obs%num,2) = vroi
-          endif
+!          if ( (data(n,k,1,2).ge.0. .and. data(n,k,1,2).le.200.) .and.   &
+!               (data(n,k,1,3).lt.0. .or.  data(n,k,1,3).gt.360.) .and.   &
+!                abs(data(n,k,2,2)).lt. 90.  ) then
+!!................ wind speed
+!               obs%num                 = obs%num + 1
+!               obs%dat     (obs%num  ) = data(n,k,1,2)
+!               obs%type    (obs%num  ) = 'H'//instrument//'S'
+!               if( abs(data(n,k,1,4)-obs_elv(n)) .le. 5. .and. obs_elv(n).gt.50. )obs%type(obs%num  ) = 'S'//instrument//'S'
+!               obs%err     (obs%num  ) = data(n,k,3,2)
+!               obs%position(obs%num,1) = x
+!               obs%position(obs%num,2) = y
+!               obs%position(obs%num,4) = data(n,k,1,4)
+!               obs%sta     (obs%num,1) = obs_elv(n)
+!               obs%sta     (obs%num,2) = data(n,1,1,1)
+!               obs%sta     (obs%num,3) = data(n,1,1,5)
+!               obs%sta     (obs%num,4) = data(n,1,1,7)
+!               obs%roi     (obs%num,1) = hroi * ngxn
+!               obs%roi     (obs%num,2) = vroi
+!          endif
 
      endif
    enddo
@@ -1318,23 +1318,23 @@ do_reports : do n = start_data, ista, inter_data
                obs%roi     (obs%num,1) = hroi * ngxn
                obs%roi     (obs%num,2) = vroi
           endif
-      else if ( data(n,k,1,1) .lt. 0. .or. data(n,k,1,1) .gt. 200000. ) then
-          if ( data(n,k,1,7).ge.0.01 .and. data(n,k,1,7) .le. 100. .and. abs(data(n,k,2,7)).lt. 5.) then
-               obs%num                 = obs%num + 1
-               obs%dat     (obs%num  ) = data(n,k,1,7)
-               obs%type    (obs%num  ) = 'H'//instrument//'Q'
-               if( abs(data(n,k,1,4)-obs_elv(n)) .le. 5. .and. obs_elv(n).gt.50. )obs%type(obs%num  ) = 'S'//instrument//'Q'
-               obs%err     (obs%num  ) = data(n,k,3,7)
-               obs%position(obs%num,1) = x
-               obs%position(obs%num,2) = y
-               obs%position(obs%num,4) = data(n,k,1,4)
-               obs%sta     (obs%num,1) = obs_elv(n)
-               obs%sta     (obs%num,2) = data(n,1,1,1)
-               obs%sta     (obs%num,3) = data(n,1,1,5)
-               obs%sta     (obs%num,4) = data(n,1,1,7)
-               obs%roi     (obs%num,1) = hroi * ngxn
-               obs%roi     (obs%num,2) = vroi
-          endif
+      !else if ( data(n,k,1,1) .lt. 0. .or. data(n,k,1,1) .gt. 200000. ) then
+      !    if ( data(n,k,1,7).ge.0.01 .and. data(n,k,1,7) .le. 100. .and. abs(data(n,k,2,7)).lt. 5.) then
+      !         obs%num                 = obs%num + 1
+      !         obs%dat     (obs%num  ) = data(n,k,1,7)
+      !         obs%type    (obs%num  ) = 'H'//instrument//'Q'
+      !         if( abs(data(n,k,1,4)-obs_elv(n)) .le. 5. .and. obs_elv(n).gt.50. )obs%type(obs%num  ) = 'S'//instrument//'Q'
+      !         obs%err     (obs%num  ) = data(n,k,3,7)
+      !         obs%position(obs%num,1) = x
+      !         obs%position(obs%num,2) = y
+      !         obs%position(obs%num,4) = data(n,k,1,4)
+      !         obs%sta     (obs%num,1) = obs_elv(n)
+      !         obs%sta     (obs%num,2) = data(n,1,1,1)
+      !         obs%sta     (obs%num,3) = data(n,1,1,5)
+      !         obs%sta     (obs%num,4) = data(n,1,1,7)
+      !         obs%roi     (obs%num,1) = hroi * ngxn
+      !         obs%roi     (obs%num,2) = vroi
+      !    endif
       endif
    enddo
 
@@ -1582,63 +1582,63 @@ do_reports : do n = start_data, ista/inter_data, inter_data
           endif
                
 
-     else if ( data(n,k,1,1) .lt. 0. .or. data(n,k,1,1) .gt. 200000. ) then
-          if ( data(n,k,1,2).ge.0. .and. data(n,k,1,2).le.200. .and.   &
-               data(n,k,1,3).ge.0. .and. data(n,k,1,3).lt.360. .and.   &
-               abs(data(n,k,2,2)).lt. 90.  ) then
-               call dir_spd2xy(data(n,k,1,3), data(n,k,1,2), trueu, truev)
-               call truewind_to_gridwind(obs_lon(n), proj, trueu, truev, gridu, gridv)
-!................ u
-               obs%num                 = obs%num + 1
-               obs%dat     (obs%num  ) = gridu
-               obs%type    (obs%num  ) = 'H'//instrument//'U'
-               if( abs(data(n,k,1,4)-obs_elv(n)) .le. 5. .and. obs_elv(n).gt.50. )obs%type(obs%num  ) = 'S'//instrument//'U'
-               obs%err     (obs%num  ) = data(n,k,3,2)
-               obs%position(obs%num,1) = x
-               obs%position(obs%num,2) = y
-               obs%position(obs%num,4) = data(n,k,1,4)
-               obs%sta     (obs%num,1) = obs_elv(n)
-               obs%sta     (obs%num,2) = data(n,1,1,1)
-               obs%sta     (obs%num,3) = data(n,1,1,5)
-               obs%sta     (obs%num,4) = data(n,1,1,7)
-               obs%roi     (obs%num,1) = hroi * ngxn
-               obs%roi     (obs%num,2) = vroi
-!................ v
-               obs%num                 = obs%num + 1
-               obs%dat     (obs%num  ) = gridv
-               obs%type    (obs%num  ) = 'H'//instrument//'V'
-               if( abs(data(n,k,1,4)-obs_elv(n)) .le. 5. .and. obs_elv(n).gt.50. )obs%type(obs%num  ) = 'S'//instrument//'V'
-               obs%err     (obs%num  ) = data(n,k,3,2)
-               obs%position(obs%num,1) = x
-               obs%position(obs%num,2) = y
-               obs%position(obs%num,4) = data(n,k,1,4)
-               obs%sta     (obs%num,1) = obs_elv(n)
-               obs%sta     (obs%num,2) = data(n,1,1,1)
-               obs%sta     (obs%num,3) = data(n,1,1,5)
-               obs%sta     (obs%num,4) = data(n,1,1,7)
-               obs%roi     (obs%num,1) = hroi * ngxn
-               obs%roi     (obs%num,2) = vroi
-          endif
+!     else if ( data(n,k,1,1) .lt. 0. .or. data(n,k,1,1) .gt. 200000. ) then
+!          if ( data(n,k,1,2).ge.0. .and. data(n,k,1,2).le.200. .and.   &
+!               data(n,k,1,3).ge.0. .and. data(n,k,1,3).lt.360. .and.   &
+!               abs(data(n,k,2,2)).lt. 90.  ) then
+!               call dir_spd2xy(data(n,k,1,3), data(n,k,1,2), trueu, truev)
+!               call truewind_to_gridwind(obs_lon(n), proj, trueu, truev, gridu, gridv)
+!!................ u
+!               obs%num                 = obs%num + 1
+!               obs%dat     (obs%num  ) = gridu
+!               obs%type    (obs%num  ) = 'H'//instrument//'U'
+!               if( abs(data(n,k,1,4)-obs_elv(n)) .le. 5. .and. obs_elv(n).gt.50. )obs%type(obs%num  ) = 'S'//instrument//'U'
+!               obs%err     (obs%num  ) = data(n,k,3,2)
+!               obs%position(obs%num,1) = x
+!               obs%position(obs%num,2) = y
+!               obs%position(obs%num,4) = data(n,k,1,4)
+!               obs%sta     (obs%num,1) = obs_elv(n)
+!               obs%sta     (obs%num,2) = data(n,1,1,1)
+!               obs%sta     (obs%num,3) = data(n,1,1,5)
+!               obs%sta     (obs%num,4) = data(n,1,1,7)
+!               obs%roi     (obs%num,1) = hroi * ngxn
+!               obs%roi     (obs%num,2) = vroi
+!!................ v
+!               obs%num                 = obs%num + 1
+!               obs%dat     (obs%num  ) = gridv
+!               obs%type    (obs%num  ) = 'H'//instrument//'V'
+!               if( abs(data(n,k,1,4)-obs_elv(n)) .le. 5. .and. obs_elv(n).gt.50. )obs%type(obs%num  ) = 'S'//instrument//'V'
+!               obs%err     (obs%num  ) = data(n,k,3,2)
+!               obs%position(obs%num,1) = x
+!               obs%position(obs%num,2) = y
+!               obs%position(obs%num,4) = data(n,k,1,4)
+!               obs%sta     (obs%num,1) = obs_elv(n)
+!               obs%sta     (obs%num,2) = data(n,1,1,1)
+!               obs%sta     (obs%num,3) = data(n,1,1,5)
+!               obs%sta     (obs%num,4) = data(n,1,1,7)
+!               obs%roi     (obs%num,1) = hroi * ngxn
+!               obs%roi     (obs%num,2) = vroi
+!          endif
 
-          if ( (data(n,k,1,2).ge.0. .and. data(n,k,1,2).le.200.) .and.   &
-               (data(n,k,1,3).lt.0. .or.  data(n,k,1,3).gt.360.) .and.   &
-                abs(data(n,k,2,2)).lt. 90.  ) then
-!................ wind speed
-               obs%num                 = obs%num + 1
-               obs%dat     (obs%num  ) = data(n,k,1,2)
-               obs%type    (obs%num  ) = 'H'//instrument//'S'
-               if( abs(data(n,k,1,4)-obs_elv(n)) .le. 5. .and. obs_elv(n).gt.50. )obs%type(obs%num  ) = 'S'//instrument//'S'
-               obs%err     (obs%num  ) = data(n,k,3,2)
-               obs%position(obs%num,1) = x
-               obs%position(obs%num,2) = y
-               obs%position(obs%num,4) = data(n,k,1,4)
-               obs%sta     (obs%num,1) = obs_elv(n)
-               obs%sta     (obs%num,2) = data(n,1,1,1)
-               obs%sta     (obs%num,3) = data(n,1,1,5)
-               obs%sta     (obs%num,4) = data(n,1,1,7)
-               obs%roi     (obs%num,1) = hroi * ngxn
-               obs%roi     (obs%num,2) = vroi
-          endif
+!          if ( (data(n,k,1,2).ge.0. .and. data(n,k,1,2).le.200.) .and.   &
+!               (data(n,k,1,3).lt.0. .or.  data(n,k,1,3).gt.360.) .and.   &
+!                abs(data(n,k,2,2)).lt. 90.  ) then
+!!................ wind speed
+!               obs%num                 = obs%num + 1
+!               obs%dat     (obs%num  ) = data(n,k,1,2)
+!               obs%type    (obs%num  ) = 'H'//instrument//'S'
+!               if( abs(data(n,k,1,4)-obs_elv(n)) .le. 5. .and. obs_elv(n).gt.50. )obs%type(obs%num  ) = 'S'//instrument//'S'
+!               obs%err     (obs%num  ) = data(n,k,3,2)
+!               obs%position(obs%num,1) = x
+!               obs%position(obs%num,2) = y
+!               obs%position(obs%num,4) = data(n,k,1,4)
+!               obs%sta     (obs%num,1) = obs_elv(n)
+!               obs%sta     (obs%num,2) = data(n,1,1,1)
+!               obs%sta     (obs%num,3) = data(n,1,1,5)
+!               obs%sta     (obs%num,4) = data(n,1,1,7)
+!               obs%roi     (obs%num,1) = hroi * ngxn
+!               obs%roi     (obs%num,2) = vroi
+!          endif
 
      endif
    enddo
@@ -1664,23 +1664,23 @@ do_reports : do n = start_data, ista/inter_data, inter_data
                obs%roi     (obs%num,1) = hroi * ngxn
                obs%roi     (obs%num,2) = vroi
           endif
-      else if ( data(n,k,1,1) .lt. 0. .or. data(n,k,1,1) .gt. 200000. ) then
-          if ( data(n,k,1,5).ge.100. .and. data(n,k,1,5) .le. 350. .and. abs(data(n,k,2,5)).lt. 90. ) then
-               obs%num                 = obs%num + 1
-               obs%dat     (obs%num  ) = data(n,k,1,5)
-               obs%type    (obs%num  ) = 'H'//instrument//'T'
-               if( abs(data(n,k,1,4)-obs_elv(n)) .le. 5. .and. obs_elv(n).gt.50. )obs%type(obs%num  ) = 'S'//instrument//'T'
-               obs%err     (obs%num  ) = data(n,k,3,5)
-               obs%position(obs%num,1) = x
-               obs%position(obs%num,2) = y
-               obs%position(obs%num,4) = data(n,k,1,4)
-               obs%sta     (obs%num,1) = obs_elv(n)
-               obs%sta     (obs%num,2) = data(n,1,1,1)
-               obs%sta     (obs%num,3) = data(n,1,1,5)
-               obs%sta     (obs%num,4) = data(n,1,1,7)
-               obs%roi     (obs%num,1) = hroi * ngxn
-               obs%roi     (obs%num,2) = vroi
-          endif
+      !else if ( data(n,k,1,1) .lt. 0. .or. data(n,k,1,1) .gt. 200000. ) then
+      !    if ( data(n,k,1,5).ge.100. .and. data(n,k,1,5) .le. 350. .and. abs(data(n,k,2,5)).lt. 90. ) then
+      !         obs%num                 = obs%num + 1
+      !         obs%dat     (obs%num  ) = data(n,k,1,5)
+      !         obs%type    (obs%num  ) = 'H'//instrument//'T'
+      !         if( abs(data(n,k,1,4)-obs_elv(n)) .le. 5. .and. obs_elv(n).gt.50. )obs%type(obs%num  ) = 'S'//instrument//'T'
+      !         obs%err     (obs%num  ) = data(n,k,3,5)
+      !         obs%position(obs%num,1) = x
+      !         obs%position(obs%num,2) = y
+      !         obs%position(obs%num,4) = data(n,k,1,4)
+      !         obs%sta     (obs%num,1) = obs_elv(n)
+      !         obs%sta     (obs%num,2) = data(n,1,1,1)
+      !         obs%sta     (obs%num,3) = data(n,1,1,5)
+      !         obs%sta     (obs%num,4) = data(n,1,1,7)
+      !         obs%roi     (obs%num,1) = hroi * ngxn
+      !         obs%roi     (obs%num,2) = vroi
+      !    endif
       endif
    enddo
 
@@ -1703,23 +1703,23 @@ do_reports : do n = start_data, ista/inter_data, inter_data
                obs%roi     (obs%num,1) = hroi * ngxn
                obs%roi     (obs%num,2) = vroi
           endif
-      else if ( data(n,k,1,1) .lt. 0. .or. data(n,k,1,1) .gt. 200000. ) then
-          if ( data(n,k,1,7).ge.0.01 .and. data(n,k,1,7) .le. 100. .and. abs(data(n,k,2,7)).lt. 5.) then
-               obs%num                 = obs%num + 1
-               obs%dat     (obs%num  ) = data(n,k,1,7)
-               obs%type    (obs%num  ) = 'H'//instrument//'Q'
-               if( abs(data(n,k,1,4)-obs_elv(n)) .le. 5. .and. obs_elv(n).gt.50. )obs%type(obs%num  ) = 'S'//instrument//'Q'
-               obs%err     (obs%num  ) = data(n,k,3,7)
-               obs%position(obs%num,1) = x
-               obs%position(obs%num,2) = y
-               obs%position(obs%num,4) = data(n,k,1,4)
-               obs%sta     (obs%num,1) = obs_elv(n)
-               obs%sta     (obs%num,2) = data(n,1,1,1)
-               obs%sta     (obs%num,3) = data(n,1,1,5)
-               obs%sta     (obs%num,4) = data(n,1,1,7)
-               obs%roi     (obs%num,1) = hroi * ngxn
-               obs%roi     (obs%num,2) = vroi
-          endif
+      !else if ( data(n,k,1,1) .lt. 0. .or. data(n,k,1,1) .gt. 200000. ) then
+      !    if ( data(n,k,1,7).ge.0.01 .and. data(n,k,1,7) .le. 100. .and. abs(data(n,k,2,7)).lt. 5.) then
+      !         obs%num                 = obs%num + 1
+      !         obs%dat     (obs%num  ) = data(n,k,1,7)
+      !         obs%type    (obs%num  ) = 'H'//instrument//'Q'
+      !         if( abs(data(n,k,1,4)-obs_elv(n)) .le. 5. .and. obs_elv(n).gt.50. )obs%type(obs%num  ) = 'S'//instrument//'Q'
+      !         obs%err     (obs%num  ) = data(n,k,3,7)
+      !         obs%position(obs%num,1) = x
+      !         obs%position(obs%num,2) = y
+      !         obs%position(obs%num,4) = data(n,k,1,4)
+      !         obs%sta     (obs%num,1) = obs_elv(n)
+      !         obs%sta     (obs%num,2) = data(n,1,1,1)
+      !         obs%sta     (obs%num,3) = data(n,1,1,5)
+      !         obs%sta     (obs%num,4) = data(n,1,1,7)
+      !         obs%roi     (obs%num,1) = hroi * ngxn
+      !         obs%roi     (obs%num,2) = vroi
+      !    endif
       endif
    enddo
   endif

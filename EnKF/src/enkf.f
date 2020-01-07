@@ -263,6 +263,11 @@ obs_assimilate_cycle : do it = 1,obs%num
       cycle obs_assimilate_cycle
    endif
 
+   if(obs%position(iob,3)>kx .or. obs%position(iob,3)<1) then
+      kick_flag(iob)=1
+      cycle obs_assimilate_cycle
+   endif
+
    if( any(yf(iob,:)==-888888.0) ) then
       if ( my_proc_id==0 ) write(*,*)' ...kicked off for invalid value'
       kick_flag(iob)=1

@@ -312,7 +312,7 @@ dym = real(j1+1)-obs_jj
     call to_zk(obs%position(iob,4), pres(1:kx), obs_kk,kx)
  endif
 
- !if(obs_kk>kx .or. obs_kk<1) print *, 'obs z location error: k=',obs_kk
+!if(obs_kk>kx .or. obs_kk<1) print *, 'obs z location error: k=',obs_kk
 end subroutine calc_sounding_position_k 
 
 subroutine xb_to_sounding (inputfile,proj,xa,ix,jx,kx,nv,iob,xlong,znu,znw,p_top,xb)
