@@ -55,7 +55,7 @@ EOF
     jobid=`cat job_submit.log |cut -c1-15`
     jobstat=1
     until [[ $jobstat == 0 ]]; do
-      sleep 10
+      sleep 10m
       jobstat=`qstat -x |grep $jobid |awk '{if($5==R || $5==Q) print 1; else print 0;}'`
       #########BUGGY
       #########DOESNT WAIT BEFORE FINISH
@@ -79,14 +79,14 @@ if [[ $HOSTTYPE == "stampede2" ]]; then
     nodes=`echo "($n+$ppn-1)/$ppn" |bc`
     jobname=`basename $exe |awk -F. '{print $1}'`
     queue="development"
-    wtime="01:00:00"
-    if [ $jobname == "enkf" ]; then
-      queue="normal"
-      wtime="04:00:00"
-    fi
+    wtime="00:30:00"
     if [ $jobname == "wrf" ]; then
       queue="normal"
       wtime="00:30:00"
+    fi
+    if [ $jobname == "enkf" ]; then
+      queue="normal"
+      wtime="04:00:00"
     fi
     cat << EOF > run_$jobname.sh
 #!/bin/bash
@@ -106,7 +106,7 @@ EOF
     jobid=`tail -n1 job_submit.log |cut -c20-`
     jobstat=1
     until [[ $jobstat == 0 ]]; do
-      sleep 10
+      sleep 10m
       jobstat=`/bin/squeue |grep $jobid |awk '{if($5=="PD" || $5=="R") print 1; else print 0;}'`
     done
 
@@ -156,7 +156,7 @@ EOF
     jobid=`cat job_submit.log |awk -F. '{print $1}'`
     jobstat=1
     until [[ $jobstat == 0 ]]; do
-      sleep 1m
+      sleep 10m
       jobstat=`/apps/torque/default/bin/qstat |grep $jobid |awk '{if($5=="R" || $5=="Q") print 1; else print 0;}'`
     done
   fi
