@@ -7,6 +7,19 @@ def ncread(filename, varname):
   dat = f.variables[varname]
   return np.array(dat)
 
+def ncwrite(filename, varname, varout):
+  from netCDF4 import Dataset
+  f = Dataset(filename, 'w', format='NETCDF4_CLASSIC')
+  nm, ni, nj = varout.shape
+  mm = f.createDimension('m', nm)
+  ii = f.createDimension('i', ni)
+  jj = f.createDimension('j', nj)
+  dat = f.createVariable(varname, np.float32, ('m', 'i', 'j'))
+  for m in range(nm):
+    dat[m, :, :] = varout[m, :, :]
+  f.close()
+
+
 def writevar(infile, varname, var):
   import netCDF4
   f = netCDF4.Dataset(infile, 'r+')
@@ -42,6 +55,9 @@ def getvar(infile, varname):
 
   elif (varname == 'p'):
     var = ncread(infile, 'P') + ncread(infile, 'PB')
+
+  elif (varname == 'slp'):
+    var = ncread(infile, 'P')[:, 0, :, :] + ncread(infile, 'PB')[:, 0, :, :]
 
   elif (varname == 'z'):
     var = (ncread(infile, 'P') + ncread(infile, 'PB')) / g
