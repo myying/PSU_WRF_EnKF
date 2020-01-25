@@ -59,7 +59,7 @@ for c in obsproc icbc enkf 4dvar perturb_ic wrf_ens wrf_ens_window1 wrf_window w
              echo -e "\e[7m$dm\e[0m"
              if [ ! -f $rundir/$t/$c/$dm/enkf.log ]; then
                echo "preparing... "
-               ls -l $rundir/$t/$c/$dm/fort.9*
+               #ls -l $rundir/$t/$c/$dm/fort.9*
              else
                if [ ! -z "`tail -n5 $rundir/$t/$c/$dm/enkf.log |grep Successful`" ]; then
                  echo -e "\e[7menkf.mpi done\e[0m"

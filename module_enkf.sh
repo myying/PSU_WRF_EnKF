@@ -82,11 +82,12 @@ if [ $NUM_SCALES == 1 ]; then
     if [[ ! -d $dm ]]; then mkdir -p $dm; fi
     if [ -f $dm/${DATE}.finish_flag ]; then continue; fi
     cd $dm
+    echo "domain $dm"
     $SCRIPT_DIR/namelist_enkf.sh $n 1 > namelist.enkf
-    $SCRIPT_DIR/job_submit.sh $enkf_ntasks 0 $enkf_ppn ./enkf.mpi >& enkf.log
-    watch_log enkf.log Successful 5 $rundir
+    $SCRIPT_DIR/job_submit.sh $enkf_ntasks 0 $enkf_ppn ./enkf.mpi >& enkf.log &
     cd ..
   done
+  wait
 else
   ###runing enkf.mpi multiscale scheme
   for n in `seq 1 $MAX_DOM`; do
@@ -119,6 +120,7 @@ fi
 for n in $domlist; do
   dm=d`expr $n + 100 |cut -c2-`
   cd $dm
+  watch_log enkf.log Successful 5 $rundir
 
   #Replace mean
   #1. replacing mean with 4DVar analysis (recentering) if running hybrid DA

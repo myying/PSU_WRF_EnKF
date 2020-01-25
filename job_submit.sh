@@ -108,6 +108,9 @@ EOF
     until [[ $jobstat == 0 ]]; do
       sleep 10m
       jobstat=`/bin/squeue |grep $jobid |awk '{if($5=="PD" || $5=="R") print 1; else print 0;}'`
+      if [[ $jobstat == "" ]]; then
+        jobstat=0
+      fi
     done
 
   fi
