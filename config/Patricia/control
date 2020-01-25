@@ -20,10 +20,10 @@
 
 #experiment design
  EXP_NAME=Patricia/control              #name of experiment
- DATE_START=201510211200        #initial date, need to have available first guess (0 6 12 18 h)
- DATE_END=201510231800          #end date
- DATE_CYCLE_START=201510211800  #date of first assimilation cycle, also need first guess available
- DATE_CYCLE_END=201510231800    #date of final assimilation cycle
+ DATE_START=201510210600        #initial date, need to have available first guess (0 6 12 18 h)
+ DATE_END=201510241200          #end date
+ DATE_CYCLE_START=201510211200  #date of first assimilation cycle, also need first guess available
+ DATE_CYCLE_END=201510231200    #date of final assimilation cycle
 
 #time control: unit=minutes
  CYCLE_PERIOD=60                #interval among cycles
@@ -101,7 +101,7 @@
  NJCPU=4
  INFLATION_COEF=1.0
  RELAX_OPT=1
- RELAX_ADAPTIVE=true
+ RELAX_ADAPTIVE=false
  RELAXATION_COEF=0.6
  REPLACE_MEAN=true
 
