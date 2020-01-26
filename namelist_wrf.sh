@@ -210,8 +210,6 @@ maxens2            = 3,
 maxens3            = 16,
 ensdim             = 144,
 seaice_threshold   = 271,
-sst_update         = 0,
-sst_skin           = 1,
 sf_ocean_physics   = 3
 isftcflx           = 1,
 EOF
