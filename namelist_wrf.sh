@@ -129,6 +129,33 @@ smooth_option=0,
 num_metgrid_levels=${NUM_METGRID_LEVELS:-38},
 p_top_requested=$P_TOP,
 num_metgrid_soil_levels=4,
+interp_theta                        = .false.,
+interp_type                         = 2,
+vert_refine_fact                    = 1,
+extrap_type                         = 2,
+t_extrap_type                       = 2,
+hypsometric_opt                     = 2,
+lowest_lev_from_sfc                 =.false.,
+use_levels_below_ground             =.true.,
+use_tavg_for_tsk                    =.false.,
+use_surface                         =.true.,
+lagrange_order                      = 2,
+force_sfc_in_vinterp                = 1,
+zap_close_levels                    = 500,
+sfcp_to_sfcp                        = .false.,
+adjust_heights                      = .false.,
+smooth_cg_topo                      = .false.,
+nest_interp_coord                   = 0,
+aggregate_lu                        = .false.,
+rh2qv_wrt_liquid                    = .true.,
+rh2qv_method                        = 1,
+qv_max_p_safe                       = 10000,
+qv_max_flag                         = 1.E-5,
+qv_max_value                        = 3.E-6,
+qv_min_p_safe                       = 110000,
+qv_min_flag                         = 1.E-6,
+qv_min_value                        = 1.E-6,
+eta_levels                          = 1.0,.9919699,.9827400,.9721600,.9600599,.9462600,.9306099,.9129300,.8930600,.8708600,.8462000,.8190300,.7893100,.7570800,.7224600,.6856500,.6469100,.6066099,.5651600,.5230500,.4807700,.4388600,.3978000,.3580500,.3200099,.2840100,.2502900,.2190100,.1902600,.1640600,.1403600,.1190600,.1000500,.0831600,.0682400,.0551200,.0436200,.0335700,.0248200,.0172200,.0106300,.0049200,.0000000,
 EOF
 echo "/"
 
@@ -168,16 +195,25 @@ cat << EOF
 mp_zero_out        = 2,
 sst_update         = $SST_UPDATE,
 sst_skin           = ${SST_SKIN:-0},
-
 EOF
 
 #extra physics options here:
 cat << EOF
-isfflx                              = 1,
-ifsnow                              = 1,
-icloud                              = 1,
-surface_input_source                = 1,
-num_soil_layers                     = 4,
+isfflx             = 1,
+ifsnow             = 0,
+icloud             = 1,
+surface_input_source=1,
+num_soil_layers    = 4,
+maxiens            = 1,
+maxens             = 3,
+maxens2            = 3,
+maxens3            = 16,
+ensdim             = 144,
+seaice_threshold   = 271,
+sst_update         = 0,
+sst_skin           = 1,
+sf_ocean_physics   = 3
+isftcflx           = 1,
 EOF
 echo "/"
 
@@ -185,21 +221,27 @@ echo "/"
 #=============DYNAMICS PART=============
 echo "&dynamics"
 cat << EOF
- w_damping                           = 0,
- diff_opt                            = 2,
- km_opt                              = 4,
- diff_6th_opt                        = 0,      0,      0,
- diff_6th_factor                     = 0.12,   0.12,   0.12,
- base_temp                           = 290.
- damp_opt                            = 3,
- zdamp                               = 7000.,  7000.,  5000.,
- dampcoef                            = 0.1,    0.1,    0.2
- khdif                               = 0,      0,      0,
- kvdif                               = 0,      0,      0,
- non_hydrostatic                     = .true., .true., .true.,
- moist_adv_opt                       = 1,      1,      1,
- scalar_adv_opt                      = 1,      1,      1,
- use_input_w = .true.,
+w_damping            = 0,
+use_input_w          = .false.,
+diff_opt             = 0,
+km_opt               = 1,
+diff_6th_opt         = 0,0,0,0,
+diff_6th_factor      = 0.12,0.12,0.12,0.12,
+base_temp            = 290.,
+damp_opt             = 3,
+zdamp                = 5000.,5000.,5000.,5000.,
+dampcoef             = 0.2,0.2,0.2,0.2,
+khdif                = 0,0,0,0,
+kvdif                = 0,0,0,0,
+smdiv                = 0.1,0.1,0.1,0.1,
+emdiv                = 0.01,0.01,0.01,0.01,
+epssm                = 0.1,0.1,0.1,0.1,
+non_hydrostatic      = .true.,.true.,.true.,.true.,
+h_mom_adv_order      = 5,5,5,5,
+v_mom_adv_order      = 3,3,3,3,
+h_sca_adv_order      = 5,5,5,5,
+v_sca_adv_order      = 3,3,3,3,
+use_baseparam_fr_nml = .true.
 EOF
 echo "/"
 
