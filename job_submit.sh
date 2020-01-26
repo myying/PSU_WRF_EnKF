@@ -55,8 +55,11 @@ EOF
     jobid=`cat job_submit.log |cut -c1-15`
     jobstat=1
     until [[ $jobstat == 0 ]]; do
-      sleep 10m
+      sleep 2m
       jobstat=`qstat -x |grep $jobid |awk '{if($5==R || $5==Q) print 1; else print 0;}'`
+      if [[ $jobstat == "" ]]; then
+        jobstat=0
+      fi
       #########BUGGY
       #########DOESNT WAIT BEFORE FINISH
     done

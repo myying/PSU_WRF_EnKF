@@ -20,10 +20,10 @@
 
 #experiment design
  EXP_NAME=Patricia/control              #name of experiment
- DATE_START=201510211200        #initial date, need to have available first guess (0 6 12 18 h)
+ DATE_START=201510210600        #initial date, need to have available first guess (0 6 12 18 h)
  DATE_END=201510241200          #end date
- DATE_CYCLE_START=201510211800  #date of first assimilation cycle, also need first guess available
- DATE_CYCLE_END=201510240000    #date of final assimilation cycle
+ DATE_CYCLE_START=201510211200  #date of first assimilation cycle, also need first guess available
+ DATE_CYCLE_END=201510231200    #date of final assimilation cycle
 
 #time control: unit=minutes
  CYCLE_PERIOD=60                #interval among cycles
@@ -96,12 +96,12 @@
  NUM_ENS=60                      #ensemble size
  ADAPTIVE_INFLATION=false
  UPDATE_VAR=(U V W P PH T MU QVAPOR QCLOUD QRAIN QICE QSNOW QGRAUP U10 V10 T2 Q2 PSFC)
- NMCPU=61
+ NMCPU=32
  NICPU=4
  NJCPU=4
  INFLATION_COEF=1.0
  RELAX_OPT=1
- RELAX_ADAPTIVE=true
+ RELAX_ADAPTIVE=false
  RELAXATION_COEF=0.6
  REPLACE_MEAN=true
 
@@ -112,8 +112,8 @@
 
 #Some of the following switches are shared in namelist_enkf and namelist_wrfvar to select certain observation types
 #                              in  namelist.enkf      in wrfvar namelist.input
- USE_SYNOPOBS=true               #        /              use_synopobs
- USE_SURFOBS=false               #  use_surface               /
+ USE_SYNOPOBS=false               #        /              use_synopobs
+ USE_SURFOBS=true               #  use_surface               /
  USE_SOUNDOBS=true               #  use_sounding         use_soundobs
  USE_PILOTOBS=false               #        /              use_pilotobs
  USE_PROFILEROBS=false            #  use_profiler         use_profilerobs
@@ -141,14 +141,14 @@
 #data thinning coef for EnKF
  THIN_SURFACE=0
  THIN_SOUNDING=0
- THIN_SOUNDING_VERT=3
+ THIN_SOUNDING_VERT=0
  THIN_PROFILER=0
  THIN_AIRCFT=0
  THIN_METAR=0
  THIN_SFCSHP=0
  THIN_SPSSMI=0
  THIN_ATOVS=0
- THIN_SATWND=10
+ THIN_SATWND=2
  THIN_GPSPW=0
  THIN_RADAR=0
  THIN_RADIANCE=(0 0)
@@ -157,11 +157,11 @@
  HROI_SFC=400                 #horizontal radius of influence for surface obs
  HROI_SOUNDING=600
  HROI_UPPER=600               #horizontal radius of influence for upper air obs
- HROI_RADAR=20                #horizontal radius of influence for radar obs,
+ HROI_RADAR=60                #horizontal radius of influence for radar obs,
  HROI_RADIANCE=60
  VROI=15                      #vertical radius of influence
  VROI_SOUNDING=5
- VROI_RADAR=10                #vertical radius of influence for radar obs
+ VROI_RADAR=25                #vertical radius of influence for radar obs
  VROI_RADIANCE=99
 
 #WRFDA options
@@ -188,7 +188,7 @@
 
 #CPU usage
  HOSTACCOUNT=P54048000
- HOSTPPN=32            #number of CPUs per node on host machines
+ HOSTPPN=16            #number of CPUs per node on host machines
  HOSTTYPE=cheyenne     #host type (used in job_submit.sh, currently supports "jet" and "stampede")
  JOB_SUBMIT_MODE=2     # 1 - submit run_cycle.sh to queue as a single job. The scheduling of
                        #     each component is taken care of in each module script.
@@ -196,11 +196,11 @@
                        #     as a separate job in the queue, scheduling is done by the queue.
 
  wps_ntasks=32                # number of processes for WPS programs and real.exe
- wrf_ntasks=128                # ..    ..  ..  ..  WRF run       (wrf.exe)
+ wrf_ntasks=64                # ..    ..  ..  ..  WRF run       (wrf.exe)
  var3d_ntasks=128              # ..    ..  ..  ..  3DVar component (perturb_ic da_wrfvar.exe)
  var3d_ppn=16
  var4d_ntasks=(128 128 128)     # ..    ..  ..  ..  4DVar component (da_wrfvar.exe) (for each domain)
  var4d_ppn=16
- enkf_ntasks=976                # ..    ..  ..  ..  EnKF component (enkf.mpi)
+ enkf_ntasks=512                # ..    ..  ..  ..  EnKF component (enkf.mpi)
  enkf_ppn=32
 
