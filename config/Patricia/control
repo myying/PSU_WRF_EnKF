@@ -90,7 +90,7 @@
  BLDT=(0 0 0)
  CU_PHYSICS=(3 0 0)
  CUDT=(5 5 5)
- SST_UPDATE=1
+ SST_UPDATE=0
 
 #EnKF options
  NUM_ENS=60                      #ensemble size
