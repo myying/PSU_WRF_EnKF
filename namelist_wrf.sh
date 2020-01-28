@@ -114,8 +114,10 @@ EOF
 fi
 
 #Preset moves for following TC
-if [ -f domain_moves ]; then
+if [ -f domain_moves ] && [ $use_for != "wrf_fcst" ]; then
   cat domain_moves
+else
+  echo "corral_dist   = 8, 8, 119,"
 fi
 
 if $TWO_WAY_NESTING; then

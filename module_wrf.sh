@@ -33,7 +33,7 @@ for r in 1; do
     fi
 
     ####Running model
-    ln -fs $WRF_DIR/run/* .
+    ln -fs $WORK/code/WRFV3.9_vortexfollow/run/* .
     rm -f namelist.*
 
     for n in `seq 1 $MAX_DOM`; do
@@ -43,7 +43,8 @@ for r in 1; do
       #else
       #  ln -fs ../../../fc/$PREVDATE/wrfinput_${dm}_`wrf_time_string $DATE`_mean wrfinput_$dm
       #fi
-      ncea ../../../fc/$DATE/wrfinput_${dm}_??? wrfinput_$dm
+      #ncea ../../../fc/$DATE/wrfinput_${dm}_??? wrfinput_$dm
+      ln -fs ../../../rc/$DATE/wrfinput_$dm .
     done
 		ln -fs ../../../fc/wrfbdy_d01 wrfbdy_d01
 
@@ -57,7 +58,7 @@ for r in 1; do
       $SCRIPT_DIR/calc_domain_moves.sh $DATE `advance_time $DATE_END -$TCV_INTERVAL` domain_moves >& follow_storm.log
       watch_file domain_moves 1 $rundir
     fi
-    $SCRIPT_DIR/namelist_wrf.sh wrf > namelist.input
+    $SCRIPT_DIR/namelist_wrf.sh wrf_fcst > namelist.input
     $SCRIPT_DIR/job_submit.sh $wrf_ntasks 0 $HOSTPPN ./wrf.exe >& wrf.log
 done
 
