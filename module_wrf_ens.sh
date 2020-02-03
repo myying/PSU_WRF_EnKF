@@ -55,7 +55,7 @@ for r in 1; do
  #wrf_input_from_si_randmean = 'random_mean'
  #wrf_3dvar_random_draw = 'random_draw'
  #cycling = .true.
- #low_bdy_only = .false. 
+ #low_bdy_only = .false.
  #perturb_bdy = .true.
  #n_1 = $n_1
 #/
@@ -72,20 +72,17 @@ for r in 1; do
       #ln -fs ../../../../fc/$DATE_START/wrfinput_d01 random_mean
       #echo $n_1 $randnum >> ../../../../fc/rand_$id
 
-      #./update_wrf_bc.exe >& update_wrf_bc.log 
+      #./update_wrf_bc.exe >& update_wrf_bc.log
       #watch_log update_wrf_bc.log successfully 1 $rundir
       #mv wrfbdy_d01_update $WORK_DIR/fc/wrfbdy_d01_$id
     #fi
-    if [ $DATE == $LBDATE ]; then
-      export sst_update=1
-    else
-      export sst_update=0
-    fi
+
+    export sst_update=0
 
     ####Running model
     ln -fs $WRF_DIR/run/* .
     rm -f namelist.*
-  
+
     for n in `seq 1 $MAX_DOM`; do
       dm=d`expr $n + 100 |cut -c2-`
       if $RUN_ENKF; then
@@ -94,6 +91,7 @@ for r in 1; do
         ln -fs ../../../../fc/$PREVDATE/wrfinput_${dm}_`wrf_time_string $DATE`_$id wrfinput_$dm
       fi
     done
+
     #ln -fs ../../../../fc/wrfbdy_d01_$id wrfbdy_d01
 		ln -fs ../../../../fc/wrfbdy_d01 wrfbdy_d01
 
@@ -103,8 +101,12 @@ for r in 1; do
       fi
     fi
 
-    if [[ $SST_UPDATE == 1 ]]; then
-      ln -fs ../../../../rc/$LBDATE/wrflowinp_d?? .
+    if [ $DATE == $LBDATE ]; then
+      for n in `seq 1 $MAX_DOM`; do
+        dm=d`expr $n + 100 |cut -c2-`
+        $SCRIPT_DIR/diagnose/update_var.py ../../../../rc/$DATE/wrfinput_${dm}_sst wrfinput_$dm SST
+        $SCRIPT_DIR/diagnose/update_var.py ../../../../rc/$DATE/wrfinput_${dm}_sst wrfinput_$dm TSK
+      done
     fi
 
     if $FOLLOW_STORM; then

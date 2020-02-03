@@ -53,8 +53,8 @@ interval_seconds   = $((LBC_INTERVAL*60)),
 history_interval   = $(for i in $domlist; do printf $(min $wrfout_interval ${WRFOUT_INTERVAL[$i-1]}), ; done)
 frames_per_outfile = $(for i in $domlist; do printf 1, ; done)
 debug_level        = 0,
-restart = .false.,
-restart_interval = 1440,
+restart = .${restart:-false}.,
+restart_interval = $LBC_INTERVAL,
 EOF
 
 if [ ! -z $inputout_interval ]; then
@@ -212,7 +212,7 @@ maxens2            = 3,
 maxens3            = 16,
 ensdim             = 144,
 seaice_threshold   = 271,
-sf_ocean_physics   = 3
+sf_ocean_physics   = 0,
 isftcflx           = 1,
 EOF
 echo "/"

@@ -35,23 +35,23 @@ if $FOLLOW_STORM; then
     done
     echo $i_parent_start > $WORK_DIR/rc/$DATE/ij_parent_start
     echo $j_parent_start >> $WORK_DIR/rc/$DATE/ij_parent_start
-    if $RUN_4DVAR; then
-      i_parent_start="1 "
-      j_parent_start="1 "
-      for n in `seq 2 $MAX_DOM`; do
-        dm=d`expr $n + 100 |cut -c2-`
-        if $RUN_ENKF; then
-          outfile=$WORK_DIR/fc/$PREVDATE/wrfinput_${dm}_$(wrf_time_string `advance_time $DATE $OBS_WIN_MIN`)_mean
-        else
-          outfile=$WORK_DIR/fc/$PREVDATE/wrfinput_${dm}_$(wrf_time_string `advance_time $DATE $OBS_WIN_MIN`)
-        fi
-        watch_file $outfile 1 $rundir
-        i_parent_start="$i_parent_start $(ncdump -h $outfile |grep :I_PARENT_START |awk '{print $3}')"
-        j_parent_start="$j_parent_start $(ncdump -h $outfile |grep :J_PARENT_START |awk '{print $3}')"
-      done
-      echo $i_parent_start > $WORK_DIR/rc/$DATE/ij_parent_start_4dvar
-      echo $j_parent_start >> $WORK_DIR/rc/$DATE/ij_parent_start_4dvar
-    fi
+  #  if $RUN_4DVAR; then
+  #    i_parent_start="1 "
+  #    j_parent_start="1 "
+  #    for n in `seq 2 $MAX_DOM`; do
+  #      dm=d`expr $n + 100 |cut -c2-`
+  #      if $RUN_ENKF; then
+  #        outfile=$WORK_DIR/fc/$PREVDATE/wrfinput_${dm}_$(wrf_time_string `advance_time $DATE $OBS_WIN_MIN`)_mean
+  #      else
+  #        outfile=$WORK_DIR/fc/$PREVDATE/wrfinput_${dm}_$(wrf_time_string `advance_time $DATE $OBS_WIN_MIN`)
+  #      fi
+  #      watch_file $outfile 1 $rundir
+  #      i_parent_start="$i_parent_start $(ncdump -h $outfile |grep :I_PARENT_START |awk '{print $3}')"
+  #      j_parent_start="$j_parent_start $(ncdump -h $outfile |grep :J_PARENT_START |awk '{print $3}')"
+  #    done
+  #    echo $i_parent_start > $WORK_DIR/rc/$DATE/ij_parent_start_4dvar
+  #    echo $j_parent_start >> $WORK_DIR/rc/$DATE/ij_parent_start_4dvar
+  #  fi
   fi
 
   #Domain move steps
@@ -101,7 +101,8 @@ if [[ $DATE == $DATE_START ]]; then
   ./ungrib.exe >& ungrib.log
   watch_log ungrib.log Successful 10 $rundir
 else
-  ln -fs $WORK_DIR/../icbc/FILE* .
+  rm -f FILE*
+  ln -fs $WORK/data/Patricia/icbc/FILE* .
 fi
 
 #3. metgrid.exe --------------------------------------------------------------------
@@ -119,17 +120,18 @@ ln -fs $WORK/code/WRFV3.9_serial/main/real.exe .
 ./real.exe >& rsl.error.0000
 watch_log rsl.error.0000 SUCCESS 10 $rundir
 
-if [ $SST_UPDATE == 1 ]; then
-  if [ $CYCLE_PERIOD -lt $LBC_INTERVAL ]; then
-    for n in `seq 1 $MAX_DOM`; do
-      dm=d`expr $n + 100 |cut -c2-`
-      ncl $SCRIPT_DIR/util_linint_nc_time.ncl dmin=$CYCLE_PERIOD 'infile="wrflowinp_'$dm'"' >> lowinp.log 2>&1
-      mv tmp.nc $WORK_DIR/rc/$DATE/wrflowinp_$dm
-    done
-  else
-    cp wrflowinp_d?? $WORK_DIR/rc/$DATE
-  fi
-fi
+###deprecated, new sst update method is replacing SST TSK variables directly
+#if [ $SST_UPDATE == 1 ]; then
+#  if [ $CYCLE_PERIOD -lt $LBC_INTERVAL ]; then
+#    for n in `seq 1 $MAX_DOM`; do
+#      dm=d`expr $n + 100 |cut -c2-`
+#      ncl $SCRIPT_DIR/util_linint_nc_time.ncl dmin=$CYCLE_PERIOD 'infile="wrflowinp_'$dm'"' >> lowinp.log 2>&1
+#      mv tmp.nc $WORK_DIR/rc/$DATE/wrflowinp_$dm
+#    done
+#  else
+#    cp wrflowinp_d?? $WORK_DIR/rc/$DATE
+#  fi
+#fi
 cp wrfinput_d?? $WORK_DIR/rc/$DATE/.
 cp wrfbdy_d01 $WORK_DIR/rc/$DATE/.
 if [[ $DATE == $DATE_START ]]; then
@@ -140,6 +142,20 @@ if [[ $DATE == $DATE_START ]]; then
     cp $WORK_DIR/fc/wrfbdy_d01 $WORK_DIR/fc/wrfbdy_d01_window
   fi
 fi
+
+###get wrfinput for SST update
+echo "    preparing sst update"
+rm -f FILE*
+ln -fs $WORK/data/Patricia/icbc/sst/FILE* .
+$SCRIPT_DIR/job_submit.sh $wps_ntasks 0 $HOSTPPN ./metgrid.exe >& metgrid.log
+watch_log metgrid.log Successful 10 $rundir
+ln -fs $WORK/code/WRFV3.9_serial/main/real.exe .
+./real.exe >& rsl.error.0000
+watch_log rsl.error.0000 SUCCESS 10 $rundir
+for n in `seq 1 $MAX_DOM`; do
+  dm=d`expr $n + 100 |cut -c2-`
+  cp wrfinput_$dm $WORK_DIR/rc/$DATE/wrfinput_${dm}_sst
+done
 
 if $CLEAN; then rm -f *log.???? GRIB* rsl.*; fi
 echo complete > stat

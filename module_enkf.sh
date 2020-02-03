@@ -16,7 +16,17 @@ fi
 echo running > stat
 echo "  Running EnKF..."
 
-domlist=`seq 1 $MAX_DOM`
+
+####only run enkf for domain 2::::
+for n in 1; do
+  dm=d`expr $n + 100 |cut -c2-`
+  for NE in `seq 1 $NUM_ENS`; do
+    id=`expr $NE + 1000 |cut -c2-`
+    cp -L $WORK_DIR/fc/$PREVDATE/wrfinput_${dm}_`wrf_time_string $DATE`_$id $WORK_DIR/fc/$DATE/wrfinput_${dm}_$id
+  done
+done
+
+domlist=2 #`seq 1 $MAX_DOM`
 
 ###preparing files
 for n in $domlist; do
@@ -90,7 +100,7 @@ if [ $NUM_SCALES == 1 ]; then
   wait
 else
   ###runing enkf.mpi multiscale scheme
-  for n in `seq 1 $MAX_DOM`; do
+  for n in $domlist; do
     dm=d`expr $n + 100 |cut -c2-`
     if [[ ! -d $dm ]]; then mkdir -p $dm; fi
     cd $dm
