@@ -94,10 +94,9 @@ if [ $NUM_SCALES == 1 ]; then
     cd $dm
     echo "domain $dm"
     $SCRIPT_DIR/namelist_enkf.sh $n 1 > namelist.enkf
-    $SCRIPT_DIR/job_submit.sh $enkf_ntasks 0 $enkf_ppn ./enkf.mpi >& enkf.log &
+    $SCRIPT_DIR/job_submit.sh $enkf_ntasks 0 $enkf_ppn ./enkf.mpi >& enkf.log
     cd ..
   done
-  wait
 else
   ###runing enkf.mpi multiscale scheme
   for n in $domlist; do
