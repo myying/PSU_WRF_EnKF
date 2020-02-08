@@ -307,12 +307,19 @@ t0=MPI_Wtime()
    if (obstype=='Radiance  ') then
      d = max(fac * var + error * error, y_hxm * y_hxm)
      alpha = 1.0/(1.0+sqrt((d-fac * var)/d))
-     obs%err(iob) = sqrt(d-fac * var)
+     !obs%err(iob) = sqrt(d-fac * var)
      if ( my_proc_id == 0 .and. sqrt(d-fac * var) > error .and. varname=='T         ')&
           write(*,*) 'observation-error inflated to ',sqrt(d-fac * var)
    endif
 !!---OEI & SCL end
 
+   if (obstype=='Radiance  ') then
+     if (varname=='P         ' .or. varname=='PH        ' .or. varname=='MU        ' .or. varname=='PSFC      ') then
+       update_flag=0
+     else
+       update_flag=1
+     end if
+   end if
    !if (obstype=='Radiance  ') then
    !  if (varname=='QCLOUD    ' .or. varname=='QRAIN     ' .or. varname=='QICE      ' .or. &
    !    varname=='QGRAUP    ' .or. varname=='QSNOW     ') then

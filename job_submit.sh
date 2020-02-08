@@ -35,7 +35,15 @@ if [[ $HOSTTYPE == "cheyenne" ]]; then
     nodes=`echo "($n+$ppn-1)/$ppn" |bc`
     jobname=`basename $exe |awk -F. '{print $1}'`
     queue="regular"
-    wtime="03:00:00"
+    wtime="01:00:00"
+    if [ $jobname == "wrf" ]; then
+      queue="regular"
+      wtime="01:00:00"
+    fi
+    if [ $jobname == "enkf" ]; then
+      queue="regular"
+      wtime="04:00:00"
+    fi
     cat << EOF > run_$jobname.sh
 #!/bin/bash
 #PBS -A $HOSTACCOUNT

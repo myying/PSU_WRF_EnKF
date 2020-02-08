@@ -2,6 +2,12 @@
 . $CONFIG_FILE
 domain_id=$1
 current_scale=$2
+scale_roi_factor=(1.5 0.8 0.5)
+if [ $NUM_SCALES == 1 ]; then
+  srf=1
+else
+  srf=${scale_roi_factor[$current_scale-1]}
+fi
 
 dx=`echo ${DX[$domain_id-1]}/1000 |bc -l`
 
@@ -11,7 +17,10 @@ if [[ $offset != 0 ]]; then USE_ATOVS=false; fi
 
 ##This if statement swiths the radar rv data off for parent domains
 ##  the radar data is only assimilated for d03
-if [[ $domain_id != 3 ]]; then USE_RADAR_RV=false; fi
+#if [[ $domain_id != 3 ]]; then USE_RADAR_RV=false; fi
+
+use_airborne_rv=${USE_AIRBORNE_RV[$domain_id-1]}
+if [[ $current_scale != $NUM_SCALES ]]; then use_airborne_rv=false; fi
 
 buffer=4 #buffer=0 if update_bc, buffer=spec_bdy_width-1 if bc is fixed as in perfect model case
 
@@ -41,14 +50,28 @@ nmcpu  = $NMCPU,
 nicpu  = $NICPU,
 njcpu  = $NJCPU,
 /
+EOF
 
+if [ $domain_id == 1 ]; then
+  cat << EOF
+&multiscale
+num_scales = 1,
+krange = 0.00,
+current_scale = 1,
+run_alignment = .false.,
+/
+EOF
+else
+  cat << EOF
 &multiscale
 num_scales = ${NUM_SCALES:-1},
 krange = $(for k in ${KRANGE[*]}; do printf '%5.2f, ' `echo $k/${DX[0]}*${DX[0]} |bc -l`; done)
 current_scale = ${current_scale:-1},
 run_alignment = .$RUN_ALIGNMENT.,
 /
-
+EOF
+fi
+cat << EOF
 &osse
 use_ideal_obs    = .false.,
 gridobs_is   = 20,
@@ -71,7 +94,7 @@ vroi_hurricane_PI = 35,
 &surface_obs
 use_surface      = .$USE_SURFOBS.,
 datathin_surface = ${THIN_SURFACE:-0},
-hroi_surface     = $(printf %.0f `echo $HROI_SFC/$dx |bc -l`),
+hroi_surface     = $(printf %.0f `echo $HROI_SFC*$srf/$dx |bc -l`),
 vroi_surface     = $VROI,
 /
 
@@ -79,7 +102,7 @@ vroi_surface     = $VROI,
 use_sounding      = .$USE_SOUNDOBS.,
 datathin_sounding = ${THIN_SOUNDING:-0},
 datathin_sounding_vert = ${THIN_SOUNDING_VERT:-0},
-hroi_sounding     = $(printf %.0f `echo ${HROI_SOUNDING:-$HROI_UPPER}/$dx |bc -l`),
+hroi_sounding     = $(printf %.0f `echo ${HROI_SOUNDING:-$HROI_UPPER}*$srf/$dx |bc -l`),
 vroi_sounding     = ${VROI_SOUNDING:-$VROI},
 /
 
@@ -87,35 +110,35 @@ vroi_sounding     = ${VROI_SOUNDING:-$VROI},
 use_profiler      = .$USE_PROFILEROBS.,
 datathin_profiler = ${THIN_PROFILER:-0},
 datathin_profiler_vert = ${THIN_PROFILER_VERT:-0},
-hroi_profiler     = $(printf %.0f `echo ${HROI_PROFILER:-$HROI_UPPER}/$dx |bc -l`),
+hroi_profiler     = $(printf %.0f `echo ${HROI_PROFILER:-$HROI_UPPER}*$srf/$dx |bc -l`),
 vroi_profiler     = ${VROI_PROFILER:-$VROI},
 /
 
 &aircft_obs
 use_aircft      = .$USE_AIREPOBS.,
 datathin_aircft = ${THIN_AIRCFT:-0},
-hroi_aircft     = $(printf %.0f `echo $HROI_UPPER/$dx |bc -l`),
+hroi_aircft     = $(printf %.0f `echo $HROI_UPPER*$srf/$dx |bc -l`),
 vroi_aircft     = $VROI,
 /
 
 &metar_obs
 use_metar      = .$USE_METAROBS.,
 datathin_metar = ${THIN_METAR:-0},
-hroi_metar     = $(printf %.0f `echo $HROI_SFC/$dx |bc -l`),
+hroi_metar     = $(printf %.0f `echo $HROI_SFC*$srf/$dx |bc -l`),
 vroi_metar     = $VROI,
 /
 
 &sfcshp_obs
 use_sfcshp      = .$USE_SHIPSOBS.,
 datathin_sfcshp = ${THIN_SFCSHP:-0},
-hroi_sfcshp     = $(printf %.0f `echo $HROI_SFC/$dx |bc -l`),
+hroi_sfcshp     = $(printf %.0f `echo $HROI_SFC*$srf/$dx |bc -l`),
 vroi_sfcshp     = $VROI,
 /
 
 &spssmi_obs
 use_spssmi      = .$USE_SSMIOBS.,
 datathin_spssmi = ${THIN_SPSSMI:-0},
-hroi_spssmi     = $(printf %.0f `echo $HROI_UPPER/$dx |bc -l`),
+hroi_spssmi     = $(printf %.0f `echo $HROI_UPPER*$srf/$dx |bc -l`),
 vroi_spssmi     = $VROI,
 /
 
@@ -123,28 +146,28 @@ vroi_spssmi     = $VROI,
 use_atovs      = .$USE_ATOVS.,
 datathin_atovs = ${THIN_ATOVS:-0},
 datathin_atovs_vert = ${THIN_ATOVS_VERT:-0},
-hroi_atovs     = $(printf %.0f `echo ${HROI_ATOVS:-$HROI_UPPER}/$dx |bc -l`),
+hroi_atovs     = $(printf %.0f `echo ${HROI_ATOVS:-$HROI_UPPER}*$srf/$dx |bc -l`),
 vroi_atovs     = ${VROI_ATOVS:-$VROI},
 /
 
 &satwnd_obs
 use_satwnd      = .$USE_GEOAMVOBS.,
 datathin_satwnd = ${THIN_SATWND:-0},
-hroi_satwnd     = $(printf %.0f `echo ${HROI_SATWND:-$HROI_UPPER}/$dx |bc -l`),
+hroi_satwnd     = $(printf %.0f `echo ${HROI_SATWND:-$HROI_UPPER}*$srf/$dx |bc -l`),
 vroi_satwnd     = ${VROI_SATWND:-$VROI},
 /
 
 &seawind_obs
 use_seawind      = .$USE_SEAWIND.,
 datathin_seawind = ${THIN_SEAWIND:-0},
-hroi_seawind     = $(printf %.0f `echo ${HROI_SEAWIND:-$HROI_UPPER}/$dx |bc -l`),
+hroi_seawind     = $(printf %.0f `echo ${HROI_SEAWIND:-$HROI_UPPER}*$srf/$dx |bc -l`),
 vroi_seawind     = ${VROI_SEAWIND:-$VROI},
 /
 
 &gpspw_obs
 use_gpspw      = .$USE_GPSPWOBS.,
 datathin_gpspw = ${THIN_GPSPW:-0},
-hroi_gpspw     = $(printf %.0f `echo $HROI_SFC/$dx |bc -l`),
+hroi_gpspw     = $(printf %.0f `echo $HROI_SFC*$srf/$dx |bc -l`),
 vroi_gpspw     = $VROI,
 /
 
@@ -153,22 +176,22 @@ radar_number   = 1,
 use_radar_rf   = .$USE_RADAR_RF.,
 use_radar_rv   = .$USE_RADAR_RV.,
 datathin_radar = $THIN_RADAR,
-hroi_radar     = $(printf %.0f `echo $HROI_RADAR/$dx |bc -l`),
+hroi_radar     = $(printf %.0f `echo $HROI_RADAR*$srf/$dx |bc -l`),
 vroi_radar     = $VROI_RADAR,
 /
 
 &airborne_radar
 use_airborne_rf   = .$USE_AIRBORNE_RF.,
-use_airborne_rv   = .${USE_AIRBORNE_RV[$domain_id-1]}.,
+use_airborne_rv   = .$use_airborne_rv.,
 datathin_airborne = $THIN_RADAR,
-hroi_airborne     = $(printf %.0f `echo $HROI_RADAR/$dx |bc -l`),
+hroi_airborne     = $(printf %.0f `echo $HROI_RADAR*$srf/$dx |bc -l`),
 vroi_airborne     = $VROI_RADAR,
 /
 
 &radiance
-use_radiance      = .${USE_RADIANCE:-false}.,
+use_radiance      = .${USE_RADIANCE[$domain_id-1]:-false}.,
 datathin_radiance = ${THIN_RADIANCE[$domain_id-1]},
-hroi_radiance     = $(printf %.0f `echo ${HROI_RADIANCE:-$HROI_UPPER}/$dx |bc -l`),
+hroi_radiance     = $(printf %.0f `echo ${HROI_RADIANCE:-$HROI_UPPER}*$srf/$dx |bc -l`),
 vroi_radiance     = ${VROI_RADIANCE:-99},
 /
 EOF

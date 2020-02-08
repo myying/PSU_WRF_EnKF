@@ -88,7 +88,11 @@ for r in 1; do
       if $RUN_ENKF; then
         ln -fs ../../../../fc/$DATE/wrfinput_${dm}_$id wrfinput_$dm
       else
-        ln -fs ../../../../fc/$PREVDATE/wrfinput_${dm}_`wrf_time_string $DATE`_$id wrfinput_$dm
+        if [ $DATE == $DATE_START ]; then
+          ln -fs ../../../../fc/$DATE/wrfinput_${dm}_$id wrfinput_$dm
+        else
+          ln -fs ../../../../fc/$PREVDATE/wrfinput_${dm}_`wrf_time_string $DATE`_$id wrfinput_$dm
+        fi
       fi
     done
 
@@ -190,5 +194,5 @@ if $RUN_4DVAR; then
 fi
 
 echo complete > stat
-rm ???/rsl.* &
+rm ???/rsl.* ???/wrfout* &
 

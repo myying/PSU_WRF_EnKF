@@ -54,7 +54,7 @@ history_interval   = $(for i in $domlist; do printf $(min $wrfout_interval ${WRF
 frames_per_outfile = $(for i in $domlist; do printf 1, ; done)
 debug_level        = 0,
 restart = .${restart:-false}.,
-restart_interval = $LBC_INTERVAL,
+restart_interval = ${restart_interval:-$LBC_INTERVAL},
 EOF
 
 if [ ! -z $inputout_interval ]; then

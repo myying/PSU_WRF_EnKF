@@ -18,15 +18,15 @@ echo "  Running EnKF..."
 
 
 ####only run enkf for domain 2::::
-for n in 1; do
-  dm=d`expr $n + 100 |cut -c2-`
-  for NE in `seq 1 $NUM_ENS`; do
-    id=`expr $NE + 1000 |cut -c2-`
-    cp -L $WORK_DIR/fc/$PREVDATE/wrfinput_${dm}_`wrf_time_string $DATE`_$id $WORK_DIR/fc/$DATE/wrfinput_${dm}_$id
-  done
-done
+#for n in 1; do
+#  dm=d`expr $n + 100 |cut -c2-`
+#  for NE in `seq 1 $NUM_ENS`; do
+#    id=`expr $NE + 1000 |cut -c2-`
+#    cp -L $WORK_DIR/fc/$PREVDATE/wrfinput_${dm}_`wrf_time_string $DATE`_$id $WORK_DIR/fc/$DATE/wrfinput_${dm}_$id
+#  done
+#done
 
-domlist=2 #`seq 1 $MAX_DOM`
+domlist=`seq 1 $MAX_DOM`
 
 ###preparing files
 for n in $domlist; do
@@ -44,7 +44,7 @@ for n in $domlist; do
 
   #make several copies
   for NE in `seq 1 $((NUM_ENS+1))`; do
-    if [ $NUM_SCALES == 1 ]; then
+    if [ $NUM_SCALES == 1 ] || [ $n == 1 ]; then
       ln -fs fort.`expr 80010 + $NE` fort.`expr 50010 + $NE`
       cp -L fort.`expr 80010 + $NE` fort.`expr 70010 + $NE`
       ln -fs fort.`expr 80010 + $NE` fort.`expr 90010 + $NE`
@@ -59,14 +59,15 @@ for n in $domlist; do
   ln -fs $ENKF_DIR/enkf.mpi .
   ln -fs $WRF_DIR/run/LANDUSE.TBL .
 
-  if [ $NUM_SCALES -gt 1 ]; then
+  if [ $NUM_SCALES -gt 1 ] && [ $n > 1 ]; then
     ln -fs $ENKF_DIR/scale_decompose.exe .
     ln -fs $ENKF_DIR/alignment.exe .
   fi
 
   ##link observations
   #LITTLE_R format from obsproc
-  ln -fs $WORK_DIR/obs/$DATE/obs_gts_`wrf_time_string $DATE`.3DVAR obs_3dvar_${DATE}00
+  ln -fs $WORK/data/Patricia/obs/$DATE/obs_gts_`wrf_time_string $DATE`.3DVAR obs_3dvar_${DATE}00
+  #ln -fs $WORK_DIR/obs/$DATE/obs_gts_`wrf_time_string $DATE`.3DVAR obs_3dvar_${DATE}00
 
   #airborne radar superobs
   if [ -f $DATA_DIR/airborne_radar/SO/${DATE}_all.so_ass ]; then
@@ -86,24 +87,19 @@ for n in $domlist; do
   cd ..
 done
 
-if [ $NUM_SCALES == 1 ]; then
-  for n in $domlist; do
-    dm=d`expr $n + 100 |cut -c2-`
-    if [[ ! -d $dm ]]; then mkdir -p $dm; fi
-    if [ -f $dm/${DATE}.finish_flag ]; then continue; fi
-    cd $dm
-    echo "domain $dm"
+for n in $domlist; do
+  dm=d`expr $n + 100 |cut -c2-`
+  if [[ ! -d $dm ]]; then mkdir -p $dm; fi
+  if [ -f $dm/${DATE}.finish_flag ]; then continue; fi
+  cd $dm
+  echo "domain $dm"
+  if [ $NUM_SCALES == 1 ] || [ $n == 1 ]; then
     $SCRIPT_DIR/namelist_enkf.sh $n 1 > namelist.enkf
-    $SCRIPT_DIR/job_submit.sh $enkf_ntasks 0 $enkf_ppn ./enkf.mpi >& enkf.log
-    cd ..
-  done
-else
-  ###runing enkf.mpi multiscale scheme
-  for n in $domlist; do
-    dm=d`expr $n + 100 |cut -c2-`
-    if [[ ! -d $dm ]]; then mkdir -p $dm; fi
-    cd $dm
-    for s in `seq 1 $NUM_SCALES`; do
+    $SCRIPT_DIR/job_submit.sh $enkf_ntasks 0 $enkf_ppn ./enkf.mpi >& enkf.log &
+    #watch_log enkf.log Successful 15 $rundir
+  else
+    ###runing enkf.mpi multiscale scheme
+    for s in `seq 1 $((NUM_SCALES-1))`; do
       echo "scale $s for domain $n"
       if [[ ! -d scale$s ]]; then mkdir -p scale$s; fi
       if [ -f scale$s/${DATE}.finish_flag ]; then continue; fi
@@ -115,15 +111,45 @@ else
       $SCRIPT_DIR/job_submit.sh $enkf_ntasks 0 $enkf_ppn ./enkf.mpi >& enkf.log
       watch_log enkf.log Successful 5 $rundir
       echo "  alignment step"
-      $SCRIPT_DIR/job_submit.sh $NUM_ENS 0 $enkf_ppn ./alignment.exe >& alignment.log
-      watch_log alignment.log Successful 5 $rundir
+      #$SCRIPT_DIR/job_submit.sh $NUM_ENS 0 $enkf_ppn ./alignment.exe >& alignment.log
+      #watch_log alignment.log Successful 5 $rundir
+      rm run_alignment_done
+      cat > run_alignment.sh << EOF
+#!/bin/bash
+#PBS -A $HOSTACCOUNT
+#PBS -N alignment 
+#PBS -l walltime=0:30:00
+#PBS -q regular
+#PBS -l select=1:ncpus=32:mpiprocs=32
+#PBS -j oe
+#PBS -o job_run.log
+source ~/.bashrc
+cd `pwd`
+EOF
+      for m in `seq 1 $NUM_ENS`; do
+        echo "$SCRIPT_DIR/diagnose/alignment.py $m $s &" >> run_alignment.sh
+        if [ $m == 30 ]; then
+          echo "wait" >> run_alignment.sh
+        fi
+      done
+      echo "touch run_alignment_done" >> run_alignment.sh
+      qsub run_alignment.sh
+      until [ -f run_alignment_done ]; do sleep 1m; done
       ##save copy
       mv ${DATE}.finish_flag scale$s/.
-      cp fort.1* enkf.log fort.5* fort.6* fort.7* fort.9* scale$s/.
+      #cp fort.1* enkf.log fort.5* fort.7* fort.9* scale$s/.
     done
-    cd ..
-  done
-fi
+    rm fort.5* fort.7*
+    for NE in `seq 1 $((NUM_ENS+1))`; do
+      ln -fs fort.`expr 90010 + $NE` fort.`expr 50010 + $NE`
+      cp -L fort.`expr 50010 + $NE` fort.`expr 70010 + $NE`
+    done
+    $SCRIPT_DIR/namelist_enkf.sh $n $NUM_SCALES > namelist.enkf
+    $SCRIPT_DIR/job_submit.sh $enkf_ntasks 0 $enkf_ppn ./enkf.mpi >& enkf.log
+  fi
+  cd ..
+done
+wait
 
 #Check output
 for n in $domlist; do
@@ -152,36 +178,34 @@ for n in $domlist; do
   #  cd ..
   #fi
 
-  if [ $NUM_SCALES == 1 ]; then
-    for NE in `seq 1 $((NUM_ENS+1))`; do
-      rm -f fort.`expr 90010 + $NE`
-      mv fort.`expr 70010 + $NE` fort.`expr 90010 + $NE`
-    done
-  fi
+  for NE in `seq 1 $((NUM_ENS+1))`; do
+    rm -f fort.`expr 90010 + $NE`
+    mv fort.`expr 70010 + $NE` fort.`expr 90010 + $NE`
+  done
   #mkdir -p post; cp fort.9* post/.  ##save a copy of posteriors
 
   ###2. replacing mean with first guess (GFS/FNL) reanalysis
-  if [[ $LBDATE == $DATE ]]; then
-    echo "  Replacing ens mean for domain $dm"
-    ln -fs $WORK_DIR/rc/$DATE/wrfinput_$dm fort.20010
-    ln -fs $ENKF_DIR/replace_mean_outside_site.exe .
-    ##lat/lon of storm
-    tcvitals_data=$TCVITALS_DIR/${DATE:0:4}/${DATE}.${STORM_ID}-tcvitals.dat
-    latstr=`head -n1 $tcvitals_data |awk '{print $6}'`
-    lonstr=`head -n1 $tcvitals_data |awk '{print $7}'`
-    if [ ${latstr:3:1} == "N" ]; then
-      slat=`echo "${latstr:0:3}/10" |bc -l`
-    else
-      slat=`echo "-${latstr:0:3}/10" |bc -l`
-    fi
-    if [ ${lonstr:4:1} == "E" ]; then
-      slon=`echo "${lonstr:0:4}/10" |bc -l`
-    else
-      slon=`echo "-${lonstr:0:4}/10" |bc -l`
-    fi
-    ./replace_mean_outside_site.exe $slat $slon $NUM_ENS >& replace_mean.log
-    watch_log replace_mean.log Successful 1 $rundir
-  fi
+  #if [[ $LBDATE == $DATE ]]; then
+  #  echo "  Replacing ens mean for domain $dm"
+  #  ln -fs $WORK_DIR/rc/$DATE/wrfinput_$dm fort.20010
+  #  ln -fs $ENKF_DIR/replace_mean_outside_site.exe .
+  #  ##lat/lon of storm
+  #  tcvitals_data=$TCVITALS_DIR/${DATE:0:4}/${DATE}.${STORM_ID}-tcvitals.dat
+  #  latstr=`head -n1 $tcvitals_data |awk '{print $6}'`
+  #  lonstr=`head -n1 $tcvitals_data |awk '{print $7}'`
+  #  if [ ${latstr:3:1} == "N" ]; then
+  #    slat=`echo "${latstr:0:3}/10" |bc -l`
+  #  else
+  #    slat=`echo "-${latstr:0:3}/10" |bc -l`
+  #  fi
+  #  if [ ${lonstr:4:1} == "E" ]; then
+  #    slon=`echo "${lonstr:0:4}/10" |bc -l`
+  #  else
+  #    slon=`echo "-${lonstr:0:4}/10" |bc -l`
+  #  fi
+  #  ./replace_mean_outside_site.exe $slat $slon $NUM_ENS >& replace_mean.log
+  #  watch_log replace_mean.log Successful 1 $rundir
+  #fi
 
   ###output
   for NE in `seq 1 $NUM_ENS`; do
