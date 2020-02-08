@@ -10,11 +10,11 @@ icdate=$1
 outfile=$2
 
 #find tcvitals data that covers icdate
-minute_off=`echo "(${icdate:8:2}*60+${icdate:10:2})%$LBC_INTERVAL" |bc`
+minute_off=`echo "(${icdate:8:2}*60+${icdate:10:2})%$TCV_INTERVAL" |bc`
 fgdate=`advance_time $icdate -$minute_off`
 
 for i in 0 1; do
-  tcdate=`advance_time $fgdate $((i*$LBC_INTERVAL))`
+  tcdate=`advance_time $fgdate $((i*$TCV_INTERVAL))`
   tcvitals_data=$TCVITALS_DIR/${tcdate:0:4}/${tcdate}.${STORM_ID}-tcvitals.dat
   if [ ! -f $tcvitals_data ]; then echo "$tcvitals_data not found!"; exit; fi
   latstr=`head -n1 $tcvitals_data |awk '{print $6}'`
@@ -31,8 +31,8 @@ for i in 0 1; do
   fi
 done
 
-iclat=$(echo "${lat[0]}+(${lat[1]} - ${lat[0]})*$minute_off/$LBC_INTERVAL" |bc -l)
-iclon=$(echo "${lon[0]}+(${lon[1]} - ${lon[0]})*$minute_off/$LBC_INTERVAL" |bc -l)
+iclat=$(echo "${lat[0]}+(${lat[1]} - ${lat[0]})*$minute_off/$TCV_INTERVAL" |bc -l)
+iclon=$(echo "${lon[0]}+(${lon[1]} - ${lon[0]})*$minute_off/$TCV_INTERVAL" |bc -l)
 
 cat << EOF > ll2ij.ncl
 begin

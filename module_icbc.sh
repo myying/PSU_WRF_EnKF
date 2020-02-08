@@ -19,40 +19,40 @@ echo running > stat
 if $FOLLOW_STORM; then
   echo "    calculate domain moves"
   #Nested domain location i,j: calculate from tcvatils if first cycle, otherwise get from previous cycle outputs
-  if [ $DATE == $DATE_START ]; then
+  #if [ $DATE == $DATE_START ]; then
     $SCRIPT_DIR/calc_ij_parent_start.sh $DATE $WORK_DIR/rc/$DATE/ij_parent_start >& follow_storm.log
     watch_file $WORK_DIR/rc/$DATE/ij_parent_start 1 $rundir
-    cp $WORK_DIR/rc/$DATE/ij_parent_start $WORK_DIR/rc/$DATE/ij_parent_start_4dvar
-  else
-    i_parent_start="1 "
-    j_parent_start="1 "
-    for n in `seq 2 $MAX_DOM`; do
-      dm=d`expr $n + 100 |cut -c2-`
-      outfile=$WORK_DIR/fc/$PREVDATE/wrfinput_${dm}_`wrf_time_string $DATE`_001
-      watch_file $outfile 1 $rundir
-      i_parent_start="$i_parent_start $(ncdump -h $outfile |grep :I_PARENT_START |awk '{print $3}')"
-      j_parent_start="$j_parent_start $(ncdump -h $outfile |grep :J_PARENT_START |awk '{print $3}')"
-    done
-    echo $i_parent_start > $WORK_DIR/rc/$DATE/ij_parent_start
-    echo $j_parent_start >> $WORK_DIR/rc/$DATE/ij_parent_start
-  #  if $RUN_4DVAR; then
-  #    i_parent_start="1 "
-  #    j_parent_start="1 "
-  #    for n in `seq 2 $MAX_DOM`; do
-  #      dm=d`expr $n + 100 |cut -c2-`
-  #      if $RUN_ENKF; then
-  #        outfile=$WORK_DIR/fc/$PREVDATE/wrfinput_${dm}_$(wrf_time_string `advance_time $DATE $OBS_WIN_MIN`)_mean
-  #      else
-  #        outfile=$WORK_DIR/fc/$PREVDATE/wrfinput_${dm}_$(wrf_time_string `advance_time $DATE $OBS_WIN_MIN`)
-  #      fi
-  #      watch_file $outfile 1 $rundir
-  #      i_parent_start="$i_parent_start $(ncdump -h $outfile |grep :I_PARENT_START |awk '{print $3}')"
-  #      j_parent_start="$j_parent_start $(ncdump -h $outfile |grep :J_PARENT_START |awk '{print $3}')"
-  #    done
-  #    echo $i_parent_start > $WORK_DIR/rc/$DATE/ij_parent_start_4dvar
-  #    echo $j_parent_start >> $WORK_DIR/rc/$DATE/ij_parent_start_4dvar
-  #  fi
-  fi
+    #cp $WORK_DIR/rc/$DATE/ij_parent_start $WORK_DIR/rc/$DATE/ij_parent_start_4dvar
+  #else
+  #  i_parent_start="1 "
+  #  j_parent_start="1 "
+  #  for n in `seq 2 $MAX_DOM`; do
+  #    dm=d`expr $n + 100 |cut -c2-`
+  #    outfile=$WORK_DIR/fc/$PREVDATE/wrfinput_${dm}_`wrf_time_string $DATE`_001
+  #    watch_file $outfile 1 $rundir
+  #    i_parent_start="$i_parent_start $(ncdump -h $outfile |grep :I_PARENT_START |awk '{print $3}')"
+  #    j_parent_start="$j_parent_start $(ncdump -h $outfile |grep :J_PARENT_START |awk '{print $3}')"
+  #  done
+  #  echo $i_parent_start > $WORK_DIR/rc/$DATE/ij_parent_start
+  #  echo $j_parent_start >> $WORK_DIR/rc/$DATE/ij_parent_start
+  ##  if $RUN_4DVAR; then
+  ##    i_parent_start="1 "
+  ##    j_parent_start="1 "
+  ##    for n in `seq 2 $MAX_DOM`; do
+  ##      dm=d`expr $n + 100 |cut -c2-`
+  ##      if $RUN_ENKF; then
+  ##        outfile=$WORK_DIR/fc/$PREVDATE/wrfinput_${dm}_$(wrf_time_string `advance_time $DATE $OBS_WIN_MIN`)_mean
+  ##      else
+  ##        outfile=$WORK_DIR/fc/$PREVDATE/wrfinput_${dm}_$(wrf_time_string `advance_time $DATE $OBS_WIN_MIN`)
+  ##      fi
+  ##      watch_file $outfile 1 $rundir
+  ##      i_parent_start="$i_parent_start $(ncdump -h $outfile |grep :I_PARENT_START |awk '{print $3}')"
+  ##      j_parent_start="$j_parent_start $(ncdump -h $outfile |grep :J_PARENT_START |awk '{print $3}')"
+  ##    done
+  ##    echo $i_parent_start > $WORK_DIR/rc/$DATE/ij_parent_start_4dvar
+  ##    echo $j_parent_start >> $WORK_DIR/rc/$DATE/ij_parent_start_4dvar
+  ##  fi
+  #fi
 
   #Domain move steps
   $SCRIPT_DIR/calc_domain_moves.sh $DATE $NEXTDATE $WORK_DIR/rc/$DATE/domain_moves >& follow_storm.log
