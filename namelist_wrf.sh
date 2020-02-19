@@ -77,6 +77,11 @@ if [[ $SST_UPDATE == 1 ]]; then
   echo io_form_auxinput4=2,
 fi
 
+if [ $use_for == "wrf_fcst" ]; then
+  echo 'iofields_filename  = "my_output_d01.txt", "my_output_d02.txt", "my_output_d03.txt",'
+  echo 'ignore_iofields_warning = .true.,'
+fi
+
 echo "/"
 
 #=============DOMAIN PART=============

@@ -7,7 +7,7 @@ export CONFIG_FILE=$WORK/PSU_WRF_EnKF/config/Patricia/control_cheyenne
 . $CONFIG_FILE
 . util.sh
 
-export DATE=201510220000
+export DATE=201510212100
 
 rundir=$WORK_DIR/run/$DATE/wrf
 if [[ ! -d $rundir ]]; then mkdir -p $rundir; echo waiting > $rundir/stat; fi
@@ -89,6 +89,9 @@ export run_minutes=$LBC_INTERVAL
 export start_date=$DATE
 export restart=false
 $SCRIPT_DIR/namelist_wrf.sh wrf_fcst > namelist.input
+echo "+:h:0:H_DIABATIC" > my_output_d01.txt
+echo "+:h:0:H_DIABATIC" > my_output_d02.txt
+echo "+:h:0:H_DIABATIC" > my_output_d03.txt
 $SCRIPT_DIR/job_submit.sh $wrf_ntasks 0 $HOSTPPN ./wrf.exe >& wrf.log
 watch_log rsl.error.0000 SUCCESS 10 $WORK_DIR/run/$DATE/wrf
 mv rsl.error.0000 rsl.error.0000_$start_date
@@ -160,6 +163,9 @@ while [[ $next_date -lt $DATE_END ]]; do  #time loop
   export restart=true
   export restart_interval=$LBC_INTERVAL
   $SCRIPT_DIR/namelist_wrf.sh wrf_fcst > namelist.input
+  echo "+:h:0:H_DIABATIC" > my_output_d01.txt
+  echo "+:h:0:H_DIABATIC" > my_output_d02.txt
+  echo "+:h:0:H_DIABATIC" > my_output_d03.txt
 
   for n in `seq 1 $MAX_DOM`; do
     dm=d`expr $n + 100 |cut -c2-`

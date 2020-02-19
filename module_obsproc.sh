@@ -4,8 +4,7 @@
 rundir=$WORK_DIR/run/$DATE/obsproc
 
 if [[ ! -d $rundir ]]; then mkdir -p $rundir; echo waiting > $rundir/stat; fi
-
-echo complete > $rundir/stat
+#echo complete > $rundir/stat
 
 cd $rundir
 if [[ `cat stat` == "complete" ]]; then exit; fi
