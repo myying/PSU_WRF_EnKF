@@ -155,7 +155,7 @@ wait
 for n in $domlist; do
   dm=d`expr $n + 100 |cut -c2-`
   cd $dm
-  watch_log enkf.log Successful 15 $rundir
+  watch_log enkf.log Successful 120 $rundir
 
   #Replace mean
   #1. replacing mean with 4DVar analysis (recentering) if running hybrid DA
