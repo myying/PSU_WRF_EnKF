@@ -9,7 +9,7 @@
  STORM_ID=PATRICIA           #storm id, format: basin (al) num (13) year (2010)
 
  NUM_SCALES=3                ###wheb > 1, run multiscale algorithms
- KRANGE=(5 20)
+ KRANGE=(6 22)
  RUN_ALIGNMENT=true              ###run alignment algorithm when true
 
  MULTI_PHYS_ENS=false         #if true, use a multi-physics ensemble
@@ -19,19 +19,19 @@
  CLEAN=false                  #if true, delete unwanted wrfout files in rundir
 
 #experiment design
- EXP_NAME=Patricia_multiscale   #name of experiment
- DATE_START=201510230000        #initial date, need to have available first guess (0 6 12 18 h)
- DATE_END=201510240000          #end date
- DATE_CYCLE_START=201510230600  #date of first assimilation cycle, also need first guess available
- DATE_CYCLE_END=201510240000    #date of final assimilation cycle
+ EXP_NAME=Patricia/multiscale   #name of experiment
+ DATE_START=201510210000        #initial date, need to have available first guess (0 6 12 18 h)
+ DATE_END=201510241200          #end date
+ DATE_CYCLE_START=201510211200  #date of first assimilation cycle, also need first guess available
+ DATE_CYCLE_END=201510230000    #date of final assimilation cycle
 
 #time control: unit=minutes
- CYCLE_PERIOD=360                #interval among cycles
+ CYCLE_PERIOD=60                #interval among cycles
  WRFOUT_INTERVAL=(60 60 60)     #interval of wrfout times
  LBC_INTERVAL=360               #interval of available first guess files
 
- OBS_WIN_MIN=-90                #observation window start offset
- OBS_WIN_MAX=90                 #observation window end offset
+ OBS_WIN_MIN=-30                #observation window start offset
+ OBS_WIN_MAX=30                 #observation window end offset
  MINUTES_PER_SLOT=10            #bin size, defines how may time slots are there in a window
                                 #Observation window is usually set to +-1/2 CYCLE_PERIOD, so that
                                 #EnKF analysis date locates in the center of the window.
@@ -54,27 +54,27 @@
  GEOG_DIR=$WORK/data/geog                  #path to geog, needed by WPS
  BE_DIR=$DATA_DIR                          #path to be.dat
  TCVITALS_DIR=$DATA_DIR/tcvitals          #tcvitals data files
- TCV_INTERVAL=360
+ TCV_INTERVAL=60
 
 #domain setup
  TWO_WAY_NESTING=true         #if true, set feedback=1 in namelist.input for WRF
  MAX_DOM=2                    #the following options are the same as in namelist.input for WRF
  TIME_STEP=(30 10 5)
  TIME_STEP_RATIO=(1 3 3)
- E_WE=(301 301 301)
- E_SN=(301 301 301)
+ E_WE=(501 361 361)
+ E_SN=(402 361 361)
  E_VERT=(43 43 43)
- DX=(15000 3000 1000)
- DY=(15000 3000 1000)
+ DX=(9000 3000 1000)
+ DY=(9000 3000 1000)
  PARENT_ID=(0 1 2)
- GRID_RATIO=(1 5 3)
- I_PARENT_START=(1 257 101)
- J_PARENT_START=(1 104 101)
+ GRID_RATIO=(1 3 3)
+ I_PARENT_START=(1 257 121)
+ J_PARENT_START=(1 104 121)
  NUM_METGRID_LEVELS=27
  MAP_PROJ="mercator"
- REF_LAT=16.8
- REF_LON=-99.5
- STAND_LON=-99.5
+ REF_LAT=16.0
+ REF_LON=-103.0
+ STAND_LON=-103.0
  TRUELAT1=16.0
  TRUELAT2=16.0
  P_TOP=1000
@@ -94,16 +94,16 @@
 
 #EnKF options
  NUM_ENS=60                      #ensemble size
- ADAPTIVE_INFLATION=true
+ ADAPTIVE_INFLATION=false
  UPDATE_VAR=(U V W P PH T MU QVAPOR QCLOUD QRAIN QICE QSNOW QGRAUP U10 V10 T2 Q2 PSFC)
- NMCPU=16
+ NMCPU=32
  NICPU=4
  NJCPU=4
  INFLATION_COEF=1.0
- RELAX_OPT=1
- RELAX_ADAPTIVE=false
- RELAXATION_COEF=0.0
- REPLACE_MEAN=true
+ RELAX_OPT=0
+ RELAX_ADAPTIVE=true
+ RELAXATION_COEF=0.6
+ REPLACE_MEAN=false
 
 #data sources
  INCLUDE_LITTLE_R=true           #include LITTLE_R formatted data as input to obsproc.exe
@@ -112,8 +112,8 @@
 
 #Some of the following switches are shared in namelist_enkf and namelist_wrfvar to select certain observation types
 #                              in  namelist.enkf      in wrfvar namelist.input
- USE_SYNOPOBS=true               #        /              use_synopobs
- USE_SURFOBS=false               #  use_surface               /
+ USE_SYNOPOBS=false               #        /              use_synopobs
+ USE_SURFOBS=true               #  use_surface               /
  USE_SOUNDOBS=true               #  use_sounding         use_soundobs
  USE_PILOTOBS=false               #        /              use_pilotobs
  USE_PROFILEROBS=false            #  use_profiler         use_profilerobs
@@ -132,36 +132,36 @@
  USE_RADAR_RF=false              #  use_radar_rf              /
  USE_RADAR_RV=false              #  use_radar_rv              /
  USE_AIRBORNE_RF=false           #  use_airborne_rf           /
- USE_AIRBORNE_RV=(false false)           #  use_airborne_rv           /
+ USE_AIRBORNE_RV=(false true)           #  use_airborne_rv           /
  USE_BOGUSOBS=false              #        /              use_bogusobs
  USE_BUOYOBS=false                #        /              use_buoyobs
  USE_SEAWIND=false           #CYGNSS sea surface wind
- USE_RADIANCE=true
+ USE_RADIANCE=(false true)
 
 #data thinning coef for EnKF
  THIN_SURFACE=0
  THIN_SOUNDING=0
- THIN_SOUNDING_VERT=3
+ THIN_SOUNDING_VERT=0
  THIN_PROFILER=0
  THIN_AIRCFT=0
  THIN_METAR=0
  THIN_SFCSHP=0
  THIN_SPSSMI=0
  THIN_ATOVS=0
- THIN_SATWND=10
+ THIN_SATWND=2
  THIN_GPSPW=0
  THIN_RADAR=0
- THIN_RADIANCE=(10 0)
+ THIN_RADIANCE=(0 0)
 
 #localization distance (km for HROI, # of layers for VROI) for EnKF
  HROI_SFC=400                 #horizontal radius of influence for surface obs
  HROI_SOUNDING=600
  HROI_UPPER=600               #horizontal radius of influence for upper air obs
- HROI_RADAR=45                #horizontal radius of influence for radar obs,
- HROI_RADIANCE=200
+ HROI_RADAR=60                #horizontal radius of influence for radar obs,
+ HROI_RADIANCE=100
  VROI=15                      #vertical radius of influence
  VROI_SOUNDING=5
- VROI_RADAR=10                #vertical radius of influence for radar obs
+ VROI_RADAR=25                #vertical radius of influence for radar obs
  VROI_RADIANCE=99
 
 #WRFDA options
@@ -201,6 +201,6 @@
  var3d_ppn=16
  var4d_ntasks=(128 128 128)     # ..    ..  ..  ..  4DVar component (da_wrfvar.exe) (for each domain)
  var4d_ppn=16
- enkf_ntasks=256                # ..    ..  ..  ..  EnKF component (enkf.mpi)
- enkf_ppn=16
+ enkf_ntasks=512                # ..    ..  ..  ..  EnKF component (enkf.mpi)
+ enkf_ppn=32
 
