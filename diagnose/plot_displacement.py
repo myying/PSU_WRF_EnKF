@@ -6,7 +6,8 @@ import wrf_functions as wrf
 import cartopy.crs as ccrs
 
 workdir = '/glade/scratch/mying/Patricia/test_201510230600/enkf_multiscale/'
-varname = 'U10'
+varname = 'V10'
+varfactor = 1
 m = 1
 clevel = np.arange(-30, 32, 2)
 center_lat = 16.5
@@ -14,8 +15,8 @@ center_lon = -105.4
 lat = wrf.getvar(workdir+'fort.80011', 'XLAT')[0, :, :]
 lon = wrf.getvar(workdir+'fort.80011', 'XLONG')[0, :, :]
 
-var1 = wrf.getvar(workdir+'scale1/fort.{}'.format(m+50010), varname)[0, :, :]
-var2 = wrf.getvar(workdir+'scale1/fort.{}'.format(m+70010), varname)[0, :, :]
+var1 = varfactor * wrf.getvar(workdir+'scale2/fort.{}'.format(m+50010), varname)[0, :, :]
+var2 = varfactor * wrf.getvar(workdir+'scale2/fort.{}'.format(m+70010), varname)[0, :, :]
 u, v = util.optical_flow_HS(var1, var2, 5)
 
 for factor in np.arange(0.0, 1.1, 0.1):
@@ -25,7 +26,7 @@ for factor in np.arange(0.0, 1.1, 0.1):
 
   var3 = util.warp(var1, -factor*u, -factor*v)
 
-  c = ax.contourf(lon, lat, var2, clevel, cmap='seismic')
+  c = ax.contourf(lon, lat, var3, clevel, cmap='seismic')
   cbar = plt.colorbar(c)
   cbar.ax.tick_params(labelsize=20)
   ax.quiver(lon[::10, ::10], lat[::10, ::10], factor*v[::10, ::10], factor*u[::10, ::10], scale=200, headwidth=6, headlength=8, headaxislength=6, linewidths=3)

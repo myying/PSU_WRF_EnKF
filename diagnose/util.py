@@ -50,7 +50,7 @@ def laplacian_spacetime(f):
   return del2f
 
 ###compute optical flow in observed space using hierarchical HS algorithm
-def optical_flow_HS(Im1, Im2, nlevel):
+def optical_flow_HS(Im1, Im2, nlevel, mask):
   ni, nj = Im1.shape
   u = np.zeros((ni, nj))
   v = np.zeros((ni, nj))
@@ -58,6 +58,7 @@ def optical_flow_HS(Im1, Im2, nlevel):
     Im1warp = warp(Im1, -u, -v)
     Im1c, off = coarsen(Im1warp, lev)
     Im2c, off = coarsen(Im2, lev)
+    maskc, off = coarsen(mask, lev)
 
     niter = 100
     w1 = 1000
@@ -70,6 +71,8 @@ def optical_flow_HS(Im1, Im2, nlevel):
     for k in range(niter):
       du[0,:] = 0; du[-1,:] = 0; du[:,0] = 0; du[:,-1] = 0
       dv[0,:] = 0; dv[-1,:] = 0; dv[:,0] = 0; dv[:,-1] = 0
+      du[np.where(maskc>0)] = 0
+      dv[np.where(maskc>0)] = 0
       ubar2 = laplacian(du) + du
       vbar2 = laplacian(dv) + dv
       ubar1 = deriv_xx(du) + du
