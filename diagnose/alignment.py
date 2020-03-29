@@ -33,7 +33,7 @@ if(current_scale<3):
 for varname in ('U', 'V', 'W', 'P', 'PH', 'T', 'MU', 'QVAPOR', 'QCLOUD', 'QRAIN', 'QICE', 'QSNOW', 'QGRAUP', 'U10', 'V10', 'T2', 'Q2', 'PSFC'):
   xb = wrf.getvar(workdir+'fort.{}'.format(m+50010), varname)
   xa = wrf.getvar(workdir+'fort.{}'.format(m+70010), varname)
-  # xs = wrf.getvar(workdir+'fort.{}'.format(m+60010), varname)
+  xs = wrf.getvar(workdir+'fort.{}'.format(m+60010), varname)
   xin = wrf.getvar(workdir+'fort.{}'.format(m+90010), varname)
 
   if(xb.ndim==4):
@@ -41,19 +41,19 @@ for varname in ('U', 'V', 'W', 'P', 'PH', 'T', 'MU', 'QVAPOR', 'QCLOUD', 'QRAIN'
   if(xb.ndim==3):
     nt, ny, nx = xb.shape
 
-  # xsw = xs.copy()
+  xsw = xs.copy()
   xout = xin.copy()
 
   if(current_scale<3):
     if(xb.ndim==4):
-      # xsw[0, :, 0:n, 0:n] = util.warp(xs[0, :, 0:n, 0:n], -u, -v)
-      xout[0, :, 0:n, 0:n] = util.warp(xin[0, :, 0:n, 0:n], -u, -v)
+      xsw[0, :, 0:n, 0:n] = util.warp(xs[0, :, 0:n, 0:n], -u, -v)
+      # xout[0, :, 0:n, 0:n] = util.warp(xin[0, :, 0:n, 0:n], -u, -v)
     if(xb.ndim==3):
-      # xsw[0, 0:n, 0:n] = util.warp(xs[0, 0:n, 0:n], -u, -v)
-      xout[0, 0:n, 0:n] = util.warp(xin[0, 0:n, 0:n], -u, -v)
-    # xout = xin + xa - xb + xsw - xs
-  # else:
-    # xout = xin + xa - xb
+      xsw[0, 0:n, 0:n] = util.warp(xs[0, 0:n, 0:n], -u, -v)
+      # xout[0, 0:n, 0:n] = util.warp(xin[0, 0:n, 0:n], -u, -v)
+    xout = xin + xa - xb + xsw - xs
+  else:
+    xout = xin + xa - xb
 
   wrf.writevar(workdir+'fort.{}'.format(m+90010), varname, xout)
 

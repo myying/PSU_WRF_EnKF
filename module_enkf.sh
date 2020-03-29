@@ -17,15 +17,6 @@ echo running > stat
 echo "  Running EnKF..."
 
 
-####only run enkf for domain 2::::
-#for n in 1; do
-#  dm=d`expr $n + 100 |cut -c2-`
-#  for NE in `seq 1 $NUM_ENS`; do
-#    id=`expr $NE + 1000 |cut -c2-`
-#    cp -L $WORK_DIR/fc/$PREVDATE/wrfinput_${dm}_`wrf_time_string $DATE`_$id $WORK_DIR/fc/$DATE/wrfinput_${dm}_$id
-#  done
-#done
-
 domlist=`seq 1 $MAX_DOM`
 
 ###preparing files
@@ -68,14 +59,12 @@ for n in $domlist; do
   #LITTLE_R format from obsproc
   ln -fs $WORK/data/Patricia/obs/$DATE/obs_gts_`wrf_time_string $DATE`.3DVAR obs_3dvar_${DATE}00
   #ln -fs $WORK_DIR/obs/$DATE/obs_gts_`wrf_time_string $DATE`.3DVAR obs_3dvar_${DATE}00
-
   #airborne radar superobs
   if [ -f $DATA_DIR/airborne_radar/SO/${DATE}_all.so_ass ]; then
     ln -fs $DATA_DIR/airborne_radar/SO/${DATE}_all.so_ass airborne_${DATE}_so
   else
     echo > airborne_${DATE}_so
   fi
-
   #radiance obs
   ln -fs $WORK/code/CRTM/crtm_wrf/coefficients
   if [ -f $DATA_DIR/radiance/SO/radiance_d03_${DATE}_so ]; then
@@ -94,30 +83,32 @@ for n in $domlist; do
   cd $dm
   echo "domain $dm"
   if [ $NUM_SCALES == 1 ] || [ $n == 1 ]; then
-    $SCRIPT_DIR/namelist_enkf.sh $n 1 > namelist.enkf
+    $SCRIPT_DIR/namelist_enkf.sh $n 1 1 > namelist.enkf
     $SCRIPT_DIR/job_submit.sh $enkf_ntasks 0 $enkf_ppn ./enkf.mpi >& enkf.log &
     #watch_log enkf.log Successful 15 $rundir
   else
+    mv obs_3dvar_${DATE}00 obs_3dvar_tmp
+    mv airborne_${DATE}_so airborne_tmp; echo > airborne_${DATE}_so
     ###runing enkf.mpi multiscale scheme
-    for s in `seq 1 $((NUM_SCALES-1))`; do
+    for s in `seq 1 $NUM_SCALES`; do
       echo "scale $s for domain $n"
       if [[ ! -d scale$s ]]; then mkdir -p scale$s; fi
       if [ -f scale$s/${DATE}.finish_flag ]; then continue; fi
       echo "  scale decompose"
-      $SCRIPT_DIR/namelist_enkf.sh $n $s > namelist.enkf
+      $SCRIPT_DIR/namelist_enkf.sh $n $s $NUM_SCALES> namelist.enkf
       $SCRIPT_DIR/job_submit.sh $NUM_ENS 0 $enkf_ppn ./scale_decompose.exe >& scale_decompose.log
       watch_log scale_decompose.log Successful 5 $rundir
       echo "  enkf step"
       $SCRIPT_DIR/job_submit.sh $enkf_ntasks 0 $enkf_ppn ./enkf.mpi >& enkf.log
-      watch_log enkf.log Successful 5 $rundir
+      watch_log enkf.log Successful 300 $rundir
       echo "  alignment step"
       #$SCRIPT_DIR/job_submit.sh $NUM_ENS 0 $enkf_ppn ./alignment.exe >& alignment.log
       #watch_log alignment.log Successful 5 $rundir
-      rm run_alignment_done
+      rm -f run_alignment_done
       cat > run_alignment.sh << EOF
 #!/bin/bash
 #PBS -A $HOSTACCOUNT
-#PBS -N alignment 
+#PBS -N alignment
 #PBS -l walltime=0:30:00
 #PBS -q regular
 #PBS -l select=1:ncpus=32:mpiprocs=32
@@ -128,7 +119,7 @@ cd `pwd`
 EOF
       for m in `seq 1 $NUM_ENS`; do
         echo "$SCRIPT_DIR/diagnose/alignment.py $m $s &" >> run_alignment.sh
-        if [ $m == 30 ]; then
+        if [ $m == 30 ] || [ $m == $NUM_ENS ]; then
           echo "wait" >> run_alignment.sh
         fi
       done
@@ -139,12 +130,18 @@ EOF
       mv ${DATE}.finish_flag scale$s/.
       #cp fort.1* enkf.log fort.5* fort.7* fort.9* scale$s/.
     done
-    rm fort.5* fort.7*
+
+    mv radiance_${DATE}_so radiance_tmp
+    mv obs_3dvar_tmp obs_3dvar_${DATE}00
+    mv airborne_tmp airborne_${DATE}_so
+    rm fort.5* fort.6* fort.7*
     for NE in `seq 1 $((NUM_ENS+1))`; do
       ln -fs fort.`expr 90010 + $NE` fort.`expr 50010 + $NE`
       cp -L fort.`expr 50010 + $NE` fort.`expr 70010 + $NE`
+      rm -f fort.`expr 80010 + $NE`
+      ln -fs fort.`expr 90010 + $NE` fort.`expr 80010 + $NE`
     done
-    $SCRIPT_DIR/namelist_enkf.sh $n $NUM_SCALES > namelist.enkf
+    $SCRIPT_DIR/namelist_enkf.sh $n 1 1 > namelist.enkf
     $SCRIPT_DIR/job_submit.sh $enkf_ntasks 0 $enkf_ppn ./enkf.mpi >& enkf.log
   fi
   cd ..
@@ -155,7 +152,7 @@ wait
 for n in $domlist; do
   dm=d`expr $n + 100 |cut -c2-`
   cd $dm
-  watch_log enkf.log Successful 120 $rundir
+  watch_log enkf.log Successful 300 $rundir
 
   #Replace mean
   #1. replacing mean with 4DVar analysis (recentering) if running hybrid DA

@@ -2,8 +2,9 @@
 . $CONFIG_FILE
 domain_id=$1
 current_scale=$2
+num_scales=$3
 scale_roi_factor=(1.5 0.8 0.5)
-if [ $NUM_SCALES == 1 ]; then
+if [ $num_scales == 1 ]; then
   srf=1
 else
   srf=${scale_roi_factor[$current_scale-1]}
@@ -20,7 +21,6 @@ if [[ $offset != 0 ]]; then USE_ATOVS=false; fi
 #if [[ $domain_id != 3 ]]; then USE_RADAR_RV=false; fi
 
 use_airborne_rv=${USE_AIRBORNE_RV[$domain_id-1]}
-if [[ $current_scale != $NUM_SCALES ]]; then use_airborne_rv=false; fi
 
 buffer=4 #buffer=0 if update_bc, buffer=spec_bdy_width-1 if bc is fixed as in perfect model case
 
@@ -52,7 +52,7 @@ njcpu  = $NJCPU,
 /
 EOF
 
-if [ $domain_id == 1 ]; then
+if [ $num_scales == 1 ]; then
   cat << EOF
 &multiscale
 num_scales = 1,
@@ -64,7 +64,7 @@ EOF
 else
   cat << EOF
 &multiscale
-num_scales = ${NUM_SCALES:-1},
+num_scales = $num_scales,
 krange = $(for k in ${KRANGE[*]}; do printf '%5.2f, ' `echo $k/${DX[0]}*${DX[0]} |bc -l`; done)
 current_scale = ${current_scale:-1},
 run_alignment = .$RUN_ALIGNMENT.,
