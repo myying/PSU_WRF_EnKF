@@ -7,11 +7,12 @@
    integer, intent(in)                    :: grid_id, iroi
    integer, intent(inout)                 :: ngxn
 
+   ngxn = 1
 !   if ( instrument == 'Radiance' .or. instrument == 'seawind ' .or.  &
 !        instrument == 'atovs   ' .or. instrument == 'satwnd  ' ) then
 !!Successive covariance localization (SCL) technique:
 !!http://hfip.psu.edu/fuz4/2011/WengZhang2011MWR.pdf
-!   if ( instrument == 'sadar   ' ) then
+!   if ( instrument == 'Radar   ' ) then
 !        if ( grid_id == 1 ) then
 !             ngxn = 1
 !        else if ( grid_id == 2 ) then
@@ -29,9 +30,8 @@
 !        endif
 !   else
 !        ngxn = 3**(grid_id-1)
-! need to adjust HROI in namelist.enkf to match the (hroi_n_grid)*(grid spacing)=hroi_km
-! namelist.enkf sets hroi_n_grid
-       ngxn = 1
+!! need to adjust HROI in namelist.enkf to match the (hroi_n_grid)*(grid spacing)=hroi_km
+!! namelist.enkf sets hroi_n_grid
 !   endif
 
    end subroutine cal_hroi

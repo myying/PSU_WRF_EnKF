@@ -96,6 +96,13 @@ for r in 1; do
       fi
     done
 
+    ###add random perturb
+    #randnum=`expr $((RANDOM%99+1)) + 1000 |cut -c2-`
+    #dm='d02'
+    #mv wrfinput_${dm} wrfinput_${dm}_orig
+    #ncdiff wrfinput_${dm}_orig $WORK/data/Patricia/init_ensemble/random_noise/noise_$randnum wrfinput_${dm}
+    #echo $randnum > ../../../../fc/$DATE/rand_$id
+
     #ln -fs ../../../../fc/wrfbdy_d01_$id wrfbdy_d01
 		ln -fs ../../../../fc/wrfbdy_d01 wrfbdy_d01
 

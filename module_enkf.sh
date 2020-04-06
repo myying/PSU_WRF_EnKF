@@ -55,24 +55,25 @@ for n in $domlist; do
     ln -fs $ENKF_DIR/alignment.exe .
   fi
 
-  ##link observations
-  #LITTLE_R format from obsproc
-  ln -fs $WORK/data/Patricia/obs/$DATE/obs_gts_`wrf_time_string $DATE`.3DVAR obs_3dvar_${DATE}00
-  #ln -fs $WORK_DIR/obs/$DATE/obs_gts_`wrf_time_string $DATE`.3DVAR obs_3dvar_${DATE}00
-  #airborne radar superobs
-  if [ -f $DATA_DIR/airborne_radar/SO/${DATE}_all.so_ass ]; then
-    ln -fs $DATA_DIR/airborne_radar/SO/${DATE}_all.so_ass airborne_${DATE}_so
-  else
-    echo > airborne_${DATE}_so
+  ##link observations, only assimilate for d02
+  if [ $n -gt 1 ]; then
+    #LITTLE_R format from obsproc
+    ln -fs $WORK/data/Patricia/obs/$DATE/obs_gts_`wrf_time_string $DATE`.3DVAR obs_3dvar_${DATE}00
+    #ln -fs $WORK_DIR/obs/$DATE/obs_gts_`wrf_time_string $DATE`.3DVAR obs_3dvar_${DATE}00
+    #airborne radar superobs
+    if [ -f $DATA_DIR/airborne_radar/SO/${DATE}_all.so_ass ]; then
+      ln -fs $DATA_DIR/airborne_radar/SO/${DATE}_all.so_ass airborne_${DATE}_so
+    else
+      echo > airborne_${DATE}_so
+    fi
+    #radiance obs
+    ln -fs $WORK/code/CRTM/crtm_wrf/coefficients
+    if [ -f $DATA_DIR/radiance/SO/radiance_d03_${DATE}_so ]; then
+      ln -fs $DATA_DIR/radiance/SO/radiance_d03_${DATE}_so radiance_${DATE}_so
+    else
+      echo > radiance_${DATE}_so
+    fi
   fi
-  #radiance obs
-  ln -fs $WORK/code/CRTM/crtm_wrf/coefficients
-  if [ -f $DATA_DIR/radiance/SO/radiance_d03_${DATE}_so ]; then
-    ln -fs $DATA_DIR/radiance/SO/radiance_d03_${DATE}_so radiance_${DATE}_so
-  else
-    echo > radiance_${DATE}_so
-  fi
-
   cd ..
 done
 
@@ -87,10 +88,10 @@ for n in $domlist; do
     $SCRIPT_DIR/job_submit.sh $enkf_ntasks 0 $enkf_ppn ./enkf.mpi >& enkf.log &
     #watch_log enkf.log Successful 15 $rundir
   else
-    mv obs_3dvar_${DATE}00 obs_3dvar_tmp
-    mv airborne_${DATE}_so airborne_tmp; echo > airborne_${DATE}_so
+    #mv obs_3dvar_${DATE}00 obs_3dvar_tmp
+    #mv airborne_${DATE}_so airborne_tmp; echo > airborne_${DATE}_so
     ###runing enkf.mpi multiscale scheme
-    for s in `seq 1 $NUM_SCALES`; do
+    for s in `seq 1 $((NUM_SCALES-1))`; do
       echo "scale $s for domain $n"
       if [[ ! -d scale$s ]]; then mkdir -p scale$s; fi
       if [ -f scale$s/${DATE}.finish_flag ]; then continue; fi
@@ -131,9 +132,9 @@ EOF
       #cp fort.1* enkf.log fort.5* fort.7* fort.9* scale$s/.
     done
 
-    mv radiance_${DATE}_so radiance_tmp
-    mv obs_3dvar_tmp obs_3dvar_${DATE}00
-    mv airborne_tmp airborne_${DATE}_so
+    #mv radiance_${DATE}_so radiance_tmp
+    #mv obs_3dvar_tmp obs_3dvar_${DATE}00
+    #mv airborne_tmp airborne_${DATE}_so
     rm fort.5* fort.6* fort.7*
     for NE in `seq 1 $((NUM_ENS+1))`; do
       ln -fs fort.`expr 90010 + $NE` fort.`expr 50010 + $NE`
@@ -181,38 +182,43 @@ for n in $domlist; do
   done
   #mkdir -p post; cp fort.9* post/.  ##save a copy of posteriors
 
-  ###2. replacing mean with first guess (GFS/FNL) reanalysis
-  #if [[ $LBDATE == $DATE ]]; then
-  #  echo "  Replacing ens mean for domain $dm"
-  #  ln -fs $WORK_DIR/rc/$DATE/wrfinput_$dm fort.20010
-  #  ln -fs $ENKF_DIR/replace_mean_outside_site.exe .
-  #  ##lat/lon of storm
-  #  tcvitals_data=$TCVITALS_DIR/${DATE:0:4}/${DATE}.${STORM_ID}-tcvitals.dat
-  #  latstr=`head -n1 $tcvitals_data |awk '{print $6}'`
-  #  lonstr=`head -n1 $tcvitals_data |awk '{print $7}'`
-  #  if [ ${latstr:3:1} == "N" ]; then
-  #    slat=`echo "${latstr:0:3}/10" |bc -l`
-  #  else
-  #    slat=`echo "-${latstr:0:3}/10" |bc -l`
-  #  fi
-  #  if [ ${lonstr:4:1} == "E" ]; then
-  #    slon=`echo "${lonstr:0:4}/10" |bc -l`
-  #  else
-  #    slon=`echo "-${lonstr:0:4}/10" |bc -l`
-  #  fi
-  #  ./replace_mean_outside_site.exe $slat $slon $NUM_ENS >& replace_mean.log
-  #  watch_log replace_mean.log Successful 1 $rundir
-  #fi
+  ###relaxation after multiscale
 
-  ###output
+
+  ###2. replacing mean with first guess (GFS/FNL) reanalysis
+  if [[ $LBDATE == $DATE ]]; then
+    echo "  Replacing ens mean for domain $dm"
+    ln -fs $WORK_DIR/rc/$DATE/wrfinput_$dm fort.20010
+    ln -fs $ENKF_DIR/replace_mean_outside_site.exe .
+    ##lat/lon of storm
+    tcvitals_data=$TCVITALS_DIR/${DATE:0:4}/${DATE}.${STORM_ID}-tcvitals.dat
+    latstr=`head -n1 $tcvitals_data |awk '{print $6}'`
+    lonstr=`head -n1 $tcvitals_data |awk '{print $7}'`
+    if [ ${latstr:3:1} == "N" ]; then
+      slat=`echo "${latstr:0:3}/10" |bc -l`
+    else
+      slat=`echo "-${latstr:0:3}/10" |bc -l`
+    fi
+    if [ ${lonstr:4:1} == "E" ]; then
+      slon=`echo "${lonstr:0:4}/10" |bc -l`
+    else
+      slon=`echo "-${lonstr:0:4}/10" |bc -l`
+    fi
+    ./replace_mean_outside_site.exe $slat $slon $NUM_ENS >& replace_mean.log
+    watch_log replace_mean.log Successful 1 $rundir
+  fi
+
+  ##output
   for NE in `seq 1 $NUM_ENS`; do
     id=`expr $NE + 1000 |cut -c2-`
     mv fort.`expr 90010 + $NE` $WORK_DIR/fc/$DATE/wrfinput_${dm}_$id
   done
   cp fort.`expr 90011 + $NUM_ENS` $WORK_DIR/fc/$DATE/wrfinput_${dm}_mean
-  mv fort.10000 $WORK_DIR/fc/$DATE/assim_obs_$dm
-  cat enkf.log |grep lambda |grep mixing > $WORK_DIR/fc/$DATE/adapt_relax_$dm
-  cp enkf.log $WORK_DIR/fc/$DATE/enkf.log.$dm
+  if [ $n -gt 1 ]; then
+    mv fort.10000 $WORK_DIR/fc/$DATE/assim_obs_$dm
+    #cat enkf.log |grep lambda |grep mixing > $WORK_DIR/fc/$DATE/adapt_relax_$dm
+    cp enkf.log $WORK_DIR/fc/$DATE/enkf.log.$dm
+  fi
   cd ..
 done
 

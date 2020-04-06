@@ -46,12 +46,12 @@ for varname in ('U', 'V', 'W', 'P', 'PH', 'T', 'MU', 'QVAPOR', 'QCLOUD', 'QRAIN'
 
   if(current_scale<3):
     if(xb.ndim==4):
-      xsw[0, :, 0:n, 0:n] = util.warp(xs[0, :, 0:n, 0:n], -u, -v)
-      # xout[0, :, 0:n, 0:n] = util.warp(xin[0, :, 0:n, 0:n], -u, -v)
+      # xsw[0, :, 0:n, 0:n] = util.warp(xs[0, :, 0:n, 0:n], -u, -v)
+      xout[0, :, 0:n, 0:n] = util.warp(xin[0, :, 0:n, 0:n], -u, -v)
     if(xb.ndim==3):
-      xsw[0, 0:n, 0:n] = util.warp(xs[0, 0:n, 0:n], -u, -v)
-      # xout[0, 0:n, 0:n] = util.warp(xin[0, 0:n, 0:n], -u, -v)
-    xout = xin + xa - xb + xsw - xs
+      # xsw[0, 0:n, 0:n] = util.warp(xs[0, 0:n, 0:n], -u, -v)
+      xout[0, 0:n, 0:n] = util.warp(xin[0, 0:n, 0:n], -u, -v)
+    # xout = xin + xa - xb + xsw - xs
   else:
     xout = xin + xa - xb
 

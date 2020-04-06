@@ -3,7 +3,7 @@
 domain_id=$1
 current_scale=$2
 num_scales=$3
-scale_roi_factor=(1.5 0.8 0.5)
+scale_roi_factor=(2.0 1.0 0.5)
 if [ $num_scales == 1 ]; then
   srf=1
 else

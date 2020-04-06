@@ -98,36 +98,37 @@ if [ $DATE == $DATE_START ]; then
     for n in `seq 2 $MAX_DOM`; do
       dm=d`expr $n + 100 |cut -c2-`
       parent_dm=d`expr ${PARENT_ID[$n-1]} + 100 |cut -c2-`
+      #for NE in `seq 1 $NUM_ENS`; do
+      #  id=`expr $NE + 1000 |cut -c2-`
+      #  if [[ `tail -n5 $id/$dm/rsl.error.0000 |grep SUCCESS` ]]; then continue; fi
+      #  cd $id
+      #  if [[ ! -d $dm ]]; then mkdir -p $dm; fi
+      #  cd $dm
+      #  ln -fs ../wrfinput_d0? .
+      #  export run_minutes=0
+      #  export start_date=$DATE
+      #  if $FOLLOW_STORM; then
+      #    cp $WORK_DIR/rc/$DATE/ij_parent_start .
+      #  fi
+      #  $SCRIPT_DIR/namelist_wrf.sh ndown $n > namelist.input
+      #  rm -f wrfinput_d0?
+      #  ln -fs $WRF_DIR/run/ndown.exe .
+      #  ln -fs $WORK_DIR/fc/$DATE/wrfinput_${parent_dm}_$id wrfout_d01_`wrf_time_string $DATE`
+      #  ln -fs ../wrfinput_$dm wrfndi_d02
+      #  $SCRIPT_DIR/job_submit.sh $wps_ntasks $((tid*$wps_ntasks)) $HOSTPPN ./ndown.exe >& ndown.log &
+      #  tid=$((tid+1))
+      #  if [[ $tid == $nt ]]; then
+      #    tid=0
+      #     wait
+      #  fi
+      #  cd ../..
+      #done
+      #wait
       for NE in `seq 1 $NUM_ENS`; do
         id=`expr $NE + 1000 |cut -c2-`
-        if [[ `tail -n5 $id/$dm/rsl.error.0000 |grep SUCCESS` ]]; then continue; fi
-        cd $id
-        if [[ ! -d $dm ]]; then mkdir -p $dm; fi
-        cd $dm
-        ln -fs ../wrfinput_d0? .
-        export run_minutes=0
-        export start_date=$DATE
-        if $FOLLOW_STORM; then
-          cp $WORK_DIR/rc/$DATE/ij_parent_start .
-        fi
-        $SCRIPT_DIR/namelist_wrf.sh ndown $n > namelist.input
-        rm -f wrfinput_d0?
-        ln -fs $WRF_DIR/run/ndown.exe .
-        ln -fs $WORK_DIR/fc/$DATE/wrfinput_${parent_dm}_$id wrfout_d01_`wrf_time_string $DATE`
-        ln -fs ../wrfinput_$dm wrfndi_d02
-        $SCRIPT_DIR/job_submit.sh $wps_ntasks $((tid*$wps_ntasks)) $HOSTPPN ./ndown.exe >& ndown.log &
-        tid=$((tid+1))
-        if [[ $tid == $nt ]]; then
-          tid=0
-           wait
-        fi
-        cd ../..
-      done
-      wait
-      for NE in `seq 1 $NUM_ENS`; do
-        id=`expr $NE + 1000 |cut -c2-`
-        watch_log $id/$dm/rsl.error.0000 SUCCESS 1 $rundir
-        mv $id/$dm/wrfinput_d02 $WORK_DIR/fc/$DATE/wrfinput_${dm}_$id
+        #watch_log $id/$dm/rsl.error.0000 SUCCESS 1 $rundir
+        #mv $id/$dm/wrfinput_d02 $WORK_DIR/fc/$DATE/wrfinput_${dm}_$id
+        ln -fs $WORK_DIR/fc/$DATE/wrfinput_$dm $WORK_DIR/fc/$DATE/wrfinput_${dm}_$id
       done
     done
   fi
