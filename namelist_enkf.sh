@@ -39,7 +39,7 @@ update_ke    = `echo ${E_VERT[$domain_id-1]}-1 |bc`,
 inflate      = ${INFLATION_COEF:-1.0},
 relax_opt    = ${RELAX_OPT:-0},
 relax_adaptive = .${RELAX_ADAPTIVE:-false}.,
-mixing       = ${RELAXATION_COEF:-0.0},
+mixing       = ${RELAXATION_COEF[$domain_id-1]:-0.0},
 random_order = .false.,
 print_detail = 0,
 /

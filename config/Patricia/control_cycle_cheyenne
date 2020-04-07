@@ -19,16 +19,16 @@
  CLEAN=false                  #if true, delete unwanted wrfout files in rundir
 
 #experiment design
- EXP_NAME=Patricia/control              #name of experiment
+ EXP_NAME=Patricia/control      #name of experiment
  DATE_START=201510210000        #initial date, need to have available first guess (0 6 12 18 h)
  DATE_END=201510241200          #end date
  DATE_CYCLE_START=201510211200  #date of first assimilation cycle, also need first guess available
- DATE_CYCLE_END=201510230000    #date of final assimilation cycle
+ DATE_CYCLE_END=201510240000    #date of final assimilation cycle
 
 #time control: unit=minutes
  CYCLE_PERIOD=60                #interval among cycles
  WRFOUT_INTERVAL=(60 60 60)     #interval of wrfout times
- LBC_INTERVAL=360               #interval of available first guess files
+ LBC_INTERVAL=180               #interval of available first guess files
 
  OBS_WIN_MIN=-30                #observation window start offset
  OBS_WIN_MAX=30                 #observation window end offset
@@ -101,8 +101,8 @@
  NJCPU=4
  INFLATION_COEF=1.0
  RELAX_OPT=0
- RELAX_ADAPTIVE=true
- RELAXATION_COEF=0.6
+ RELAX_ADAPTIVE=false
+ RELAXATION_COEF=(0.75 0.5)
  REPLACE_MEAN=false
 
 #data sources
@@ -150,28 +150,28 @@
  THIN_ATOVS=0
  THIN_SATWND=2
  THIN_GPSPW=0
- THIN_RADAR=0
+ THIN_RADAR=10
  THIN_RADIANCE=(0 0)
 
 #localization distance (km for HROI, # of layers for VROI) for EnKF
- HROI_SFC=400                 #horizontal radius of influence for surface obs
+ HROI_SFC=300                 #horizontal radius of influence for surface obs
  HROI_SOUNDING=600
  HROI_UPPER=600               #horizontal radius of influence for upper air obs
- HROI_RADAR=60                #horizontal radius of influence for radar obs,
+ HROI_RADAR=45                #horizontal radius of influence for radar obs,
  HROI_RADIANCE=100
- VROI=15                      #vertical radius of influence
+ VROI=42                      #vertical radius of influence
  VROI_SOUNDING=5
- VROI_RADAR=25                #vertical radius of influence for radar obs
+ VROI_RADAR=42                #vertical radius of influence for radar obs
  VROI_RADIANCE=99
 
 #WRFDA options
  CV_OPTIONS=3                 #3 -   uses be.dat.cv3
                               #5/6 - uses be.dat from run_gen_be.sh ($BE_DIR)
- VAR_SCALING1=0.1
- VAR_SCALING2=0.1
- VAR_SCALING3=0.1
- VAR_SCALING4=0.1
- VAR_SCALING5=0.1
+ VAR_SCALING1=1.0
+ VAR_SCALING2=1.0
+ VAR_SCALING3=1.0
+ VAR_SCALING4=1.0
+ VAR_SCALING5=1.0
  LEN_SCALING1=1.0
  LEN_SCALING2=1.0
  LEN_SCALING3=1.0

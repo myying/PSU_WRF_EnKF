@@ -55,25 +55,24 @@ for n in $domlist; do
     ln -fs $ENKF_DIR/alignment.exe .
   fi
 
-  ##link observations, only assimilate for d02
-  if [ $n -gt 1 ]; then
-    #LITTLE_R format from obsproc
-    ln -fs $WORK/data/Patricia/obs/$DATE/obs_gts_`wrf_time_string $DATE`.3DVAR obs_3dvar_${DATE}00
-    #ln -fs $WORK_DIR/obs/$DATE/obs_gts_`wrf_time_string $DATE`.3DVAR obs_3dvar_${DATE}00
-    #airborne radar superobs
-    if [ -f $DATA_DIR/airborne_radar/SO/${DATE}_all.so_ass ]; then
-      ln -fs $DATA_DIR/airborne_radar/SO/${DATE}_all.so_ass airborne_${DATE}_so
-    else
-      echo > airborne_${DATE}_so
-    fi
-    #radiance obs
-    ln -fs $WORK/code/CRTM/crtm_wrf/coefficients
-    if [ -f $DATA_DIR/radiance/SO/radiance_d03_${DATE}_so ]; then
-      ln -fs $DATA_DIR/radiance/SO/radiance_d03_${DATE}_so radiance_${DATE}_so
-    else
-      echo > radiance_${DATE}_so
-    fi
+  ##link observations
+  #LITTLE_R format from obsproc
+  ln -fs $WORK/data/Patricia/obs/$DATE/obs_gts_`wrf_time_string $DATE`.3DVAR obs_3dvar_${DATE}00
+  #ln -fs $WORK_DIR/obs/$DATE/obs_gts_`wrf_time_string $DATE`.3DVAR obs_3dvar_${DATE}00
+  #airborne radar superobs
+  if [ -f $DATA_DIR/airborne_radar/SO/${DATE}_all.so_ass ]; then
+    ln -fs $DATA_DIR/airborne_radar/SO/${DATE}_all.so_ass airborne_${DATE}_so
+  else
+    echo > airborne_${DATE}_so
   fi
+  #radiance obs
+  ln -fs $WORK/code/CRTM/crtm_wrf/coefficients
+  if [ -f $DATA_DIR/radiance/SO/radiance_d03_${DATE}_so ]; then
+    ln -fs $DATA_DIR/radiance/SO/radiance_d03_${DATE}_so radiance_${DATE}_so
+  else
+    echo > radiance_${DATE}_so
+  fi
+
   cd ..
 done
 
@@ -182,9 +181,6 @@ for n in $domlist; do
   done
   #mkdir -p post; cp fort.9* post/.  ##save a copy of posteriors
 
-  ###relaxation after multiscale
-
-
   ###2. replacing mean with first guess (GFS/FNL) reanalysis
   if [[ $LBDATE == $DATE ]]; then
     echo "  Replacing ens mean for domain $dm"
@@ -214,11 +210,10 @@ for n in $domlist; do
     mv fort.`expr 90010 + $NE` $WORK_DIR/fc/$DATE/wrfinput_${dm}_$id
   done
   cp fort.`expr 90011 + $NUM_ENS` $WORK_DIR/fc/$DATE/wrfinput_${dm}_mean
-  if [ $n -gt 1 ]; then
-    mv fort.10000 $WORK_DIR/fc/$DATE/assim_obs_$dm
-    #cat enkf.log |grep lambda |grep mixing > $WORK_DIR/fc/$DATE/adapt_relax_$dm
-    cp enkf.log $WORK_DIR/fc/$DATE/enkf.log.$dm
-  fi
+  mv fort.10000 $WORK_DIR/fc/$DATE/assim_obs_$dm
+  cat enkf.log |grep lambda |grep mixing > $WORK_DIR/fc/$DATE/adapt_relax_$dm
+  cp enkf.log $WORK_DIR/fc/$DATE/enkf.log.$dm
+
   cd ..
 done
 
