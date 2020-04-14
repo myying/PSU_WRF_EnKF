@@ -42,7 +42,7 @@
 
 !----------------------------------------------------------------
 ! variables will be replaced
-  varnum = 18
+  varnum = 13
   allocate( varname (varnum) )
 !----------------------------------------------------------------
 ! Get ensemble number
@@ -56,16 +56,14 @@
      read(dum,'(f7.2)')slon
      call getarg(3, dum)
      read(dum,'(i4)')numbers_en
-  endif 
+  endif
 
   write(*,*)'numbers_en =', numbers_en
   write(*,*)'site lat/lon =', slat, slon
 
   varname = (/'U         ', 'V         ', 'W         ', 'P         ', &
-              'PH        ', 'T         ', 'MU        ',  &
-              'U10       ', 'V10       ', 'Q2        ', 'T2        ', 'PSFC      ', &
-              'QVAPOR    ', 'QCLOUD    ', 'QRAIN     ', &
-              'QICE      ', 'QSNOW     ', 'QGRAUP    '/)
+              'PH        ', 'T         ', 'MU        ', 'QVAPOR    ', &
+              'U10       ', 'V10       ', 'Q2        ', 'T2        ', 'PSFC      '/)
 
 !----------------------------------------------------------------
 ! Get WRF model dimension from the 1th member

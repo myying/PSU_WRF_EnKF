@@ -115,8 +115,8 @@ for r in 1; do
     if [ $DATE == $LBDATE ]; then
       for n in `seq 1 $MAX_DOM`; do
         dm=d`expr $n + 100 |cut -c2-`
-        $SCRIPT_DIR/diagnose/update_var.py ../../../../rc/$DATE/wrfinput_${dm}_sst wrfinput_$dm SST
-        $SCRIPT_DIR/diagnose/update_var.py ../../../../rc/$DATE/wrfinput_${dm}_sst wrfinput_$dm TSK
+        $SCRIPT_DIR/diagnose/update_var.py ../../../../rc/$DATE/wrfinput_${dm} wrfinput_$dm SST
+        $SCRIPT_DIR/diagnose/update_var.py ../../../../rc/$DATE/wrfinput_${dm} wrfinput_$dm TSK
       done
     fi
 

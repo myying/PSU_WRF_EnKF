@@ -138,7 +138,7 @@ echo complete > $rundir/stat
 #cat tmpfile |awk 'NR>21{print}' >> tmpfile1
 #mv tmpfile1 $WORK_DIR/obs/$DATE/obs_gts_`wrf_time_string $DATE`.3DVAR
 
-##if $CLEAN; then rm obs.raw; fi
+#if $CLEAN; then rm obs.raw; fi
 
 #echo complete > stat
 

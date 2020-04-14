@@ -175,11 +175,11 @@ obs_cycle: do ig=1,int(obs%num/nob)+1
        write( filename, '(a5,i5.5)') wrf_file(1:5), iunit+ie-1
        if ( obstype(1:5) == 'Radar' ) then
          call xb_to_rv(filename,proj,xob(:,:,:,:,n,sid+1),ix,jx,kx,nv,iob,xlong,znw,yasend(iob,ie),obs%position(iob,3),1)
-       else if ( obstype == 'longtitude' .or. obstype == 'latitude  ' .or. obstype == 'min_slp   ' ) then
+       else if ( obstype == 'longitude ' .or. obstype == 'latitude  ' .or. obstype == 'min_slp   ' ) then
          call hurricane_center_assimilation(filename,ix,jx,kx,int(obs%position(iob,1)),int(obs%position(iob,2)), center_xb,znu,znw,xlong,xlat,proj)
-         if ( obstype == 'longtitude' ) yasend(iob,ie) = center_xb(1)
+         if ( obstype == 'longitude ' ) yasend(iob,ie) = center_xb(1)
          if ( obstype == 'latitude  ' ) yasend(iob,ie) = center_xb(2)
-         if ( obstype == 'min_slp   ' ) yasend(iob,ie) = center_xb(3) - pr/100.
+         if ( obstype == 'min_slp   ' ) yasend(iob,ie) = center_xb(3)*100.
        else if ( obstype(1:1) == 'P' .or. obstype(1:1) == 'H'  ) then
          call xb_to_sounding (filename,proj,xob(:,:,:,:,n,sid+1),ix,jx,kx,nv,iob,xlong,znu,znw,p_top,yasend(iob,ie))
        else if ( obstype(1:1) == 'S' ) then
@@ -255,7 +255,7 @@ obs_assimilate_cycle : do it = 1,obs%num
       ' err=',error,' hroi=',obs%roi(iob,1),' vroi=',obs%roi(iob,2)
 
    if( abs(y_hxm)>(error*5.) .and. &
-      .not.(obstype=='min_slp   ' .or. obstype=='longtitude' .or. obstype=='latitude  ' &
+      .not.(obstype=='min_slp   ' .or. obstype=='longitude ' .or. obstype=='latitude  ' &
       .or. obstype=='slp       ' .or. obstype=='Radiance  ' &
       .or. obstype(1:5)=='Radar') ) then
       if ( my_proc_id==0 ) write(*,*)' ...kicked off for large error'
@@ -452,7 +452,7 @@ t0=MPI_Wtime()
      do j = ujst,ujed
      do i = uist,uied
        call corr(real(i-obs%position(iob,1)),real(j-obs%position(iob,2)),real(k-obs%position(iob,3)),obs%roi(iob,1),obs%roi(iob,2),corr_coef)
-       if ( obstype == 'longtitude' .or. obstype == 'latitude  ' ) corr_coef = 1.0
+       !if ( obstype == 'longitude ' .or. obstype == 'latitude  ' ) corr_coef = 1.0
        km(i-uist+1,j-ujst+1,k-kst+1) = km(i-uist+1,j-ujst+1,k-kst+1) * corr_coef
      enddo
      enddo

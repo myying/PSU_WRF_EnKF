@@ -44,7 +44,7 @@
            if( print_detail > 1)write(*,*)'truth hurricane position ', center_xb(1:2)
            do iob = 1, obs%num
               if( print_detail > 3)write(*,*)'real  obs position ', obs%position(iob,1),obs%position(iob,2)
-              if (obs%type(iob) == 'longtitude' )then
+              if (obs%type(iob) == 'longitude ' )then
                  obs%dat(iob)      = center_xb(1)
                  obs%position(iob,1)  = center_xb(1)
                  obs%position(iob,2)  = center_xb(2)

@@ -16,6 +16,7 @@ dx=`echo ${DX[$domain_id-1]}/1000 |bc -l`
 offset=`echo "(${DATE:8:2}*60+${DATE:10:2})%${OBSINT_ATOVS:-$CYCLE_PERIOD}" |bc`
 if [[ $offset != 0 ]]; then USE_ATOVS=false; fi
 
+if [ $DATE != $LBDATE ]; then USE_HURRICANE=false; fi
 ##This if statement swiths the radar rv data off for parent domains
 ##  the radar data is only assimilated for d03
 #if [[ $domain_id != 3 ]]; then USE_RADAR_RV=false; fi
@@ -86,9 +87,9 @@ use_simulated= .false.,
 /
 
 &hurricane_PI
-use_hurricane_PI  = .false.,
-hroi_hurricane_PI = 60,
-vroi_hurricane_PI = 35,
+use_hurricane_PI  = .$USE_HURRICANE.,
+hroi_hurricane_PI = $(printf %.0f `echo $HROI_HURRICANE*$srf/$dx |bc -l`),
+vroi_hurricane_PI = $VROI,
 /
 
 &surface_obs
@@ -176,7 +177,7 @@ radar_number   = 1,
 use_radar_rf   = .$USE_RADAR_RF.,
 use_radar_rv   = .$USE_RADAR_RV.,
 datathin_radar = $THIN_RADAR,
-hroi_radar     = $(printf %.0f `echo $HROI_RADAR*$srf/$dx |bc -l`),
+hroi_radar     = $(printf %.0f `echo $HROI_RADAR/$dx |bc -l`),
 vroi_radar     = $VROI_RADAR,
 /
 
@@ -184,7 +185,7 @@ vroi_radar     = $VROI_RADAR,
 use_airborne_rf   = .$USE_AIRBORNE_RF.,
 use_airborne_rv   = .$use_airborne_rv.,
 datathin_airborne = $THIN_RADAR,
-hroi_airborne     = $(printf %.0f `echo $HROI_RADAR*$srf/$dx |bc -l`),
+hroi_airborne     = $(printf %.0f `echo $HROI_RADAR/$dx |bc -l`),
 vroi_airborne     = $VROI_RADAR,
 /
 

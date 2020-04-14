@@ -20,10 +20,10 @@
 
 #experiment design
  EXP_NAME=Patricia/control              #name of experiment
- DATE_START=201510210000        #initial date, need to have available first guess (0 6 12 18 h)
+ DATE_START=201510210600        #initial date, need to have available first guess (0 6 12 18 h)
  DATE_END=201510241200          #end date
  DATE_CYCLE_START=201510211200  #date of first assimilation cycle, also need first guess available
- DATE_CYCLE_END=201510221800    #date of final assimilation cycle
+ DATE_CYCLE_END=201510231200    #date of final assimilation cycle
 
 #time control: unit=minutes
  CYCLE_PERIOD=60                #interval among cycles
@@ -54,27 +54,27 @@
  GEOG_DIR=$WORK/data/geog                  #path to geog, needed by WPS
  BE_DIR=$DATA_DIR                          #path to be.dat
  TCVITALS_DIR=$DATA_DIR/tcvitals          #tcvitals data files
- TCV_INTERVAL=60
+ TCV_INTERVAL=360
 
 #domain setup
  TWO_WAY_NESTING=true         #if true, set feedback=1 in namelist.input for WRF
- MAX_DOM=3                    #the following options are the same as in namelist.input for WRF
+ MAX_DOM=2                    #the following options are the same as in namelist.input for WRF
  TIME_STEP=(30 10 5)
  TIME_STEP_RATIO=(1 3 3)
- E_WE=(501 361 361)
- E_SN=(402 361 361)
+ E_WE=(301 301 301)
+ E_SN=(301 301 301)
  E_VERT=(43 43 43)
- DX=(9000 3000 1000)
- DY=(9000 3000 1000)
+ DX=(15000 3000 1000)
+ DY=(15000 3000 1000)
  PARENT_ID=(0 1 2)
- GRID_RATIO=(1 3 3)
- I_PARENT_START=(1 257 121)
- J_PARENT_START=(1 104 121)
+ GRID_RATIO=(1 5 3)
+ I_PARENT_START=(1 257 101)
+ J_PARENT_START=(1 104 101)
  NUM_METGRID_LEVELS=27
  MAP_PROJ="mercator"
- REF_LAT=16.0
- REF_LON=-103.0
- STAND_LON=-103.0
+ REF_LAT=16.8
+ REF_LON=-99.5
+ STAND_LON=-99.5
  TRUELAT1=16.0
  TRUELAT2=16.0
  P_TOP=1000
@@ -100,10 +100,10 @@
  NICPU=4
  NJCPU=4
  INFLATION_COEF=1.0
- RELAX_OPT=0
+ RELAX_OPT=1
  RELAX_ADAPTIVE=false
  RELAXATION_COEF=0.6
- REPLACE_MEAN=false
+ REPLACE_MEAN=true
 
 #data sources
  INCLUDE_LITTLE_R=true           #include LITTLE_R formatted data as input to obsproc.exe
@@ -187,9 +187,9 @@
  JE_FACTOR=1.25
 
 #CPU usage
- HOSTACCOUNT=P54048000
- HOSTPPN=16            #number of CPUs per node on host machines
- HOSTTYPE=cheyenne     #host type (used in job_submit.sh, currently supports "jet" and "stampede")
+ HOSTACCOUNT=TG-ATM190001
+ HOSTPPN=32            #number of CPUs per node on host machines
+ HOSTTYPE=stampede2     #host type (used in job_submit.sh, currently supports "jet" and "stampede")
  JOB_SUBMIT_MODE=2     # 1 - submit run_cycle.sh to queue as a single job. The scheduling of
                        #     each component is taken care of in each module script.
                        # 2 - execute run_cycle.sh as a bash script, each component is submitted

@@ -42,7 +42,7 @@ if [[ $HOSTTYPE == "cheyenne" ]]; then
     fi
     if [ $jobname == "enkf" ]; then
       queue="regular"
-      wtime="04:00:00"
+      wtime="06:00:00"
     fi
     cat << EOF > run_$jobname.sh
 #!/bin/bash
@@ -63,7 +63,7 @@ EOF
     jobid=`cat job_submit.log |cut -c1-15`
     jobstat=1
     until [[ $jobstat == 0 ]]; do
-      sleep 2m
+      sleep 1m
       jobstat=`qstat -x |grep $jobid |awk '{if($5==R || $5==Q) print 1; else print 0;}'`
       if [[ $jobstat == "" ]]; then
         jobstat=0
@@ -117,7 +117,7 @@ EOF
     jobid=`tail -n1 job_submit.log |cut -c20-`
     jobstat=1
     until [[ $jobstat == 0 ]]; do
-      sleep 10m
+      sleep 1m
       jobstat=`/bin/squeue |grep $jobid |awk '{if($5=="PD" || $5=="R") print 1; else print 0;}'`
       if [[ $jobstat == "" ]]; then
         jobstat=0
@@ -146,7 +146,7 @@ if [[ $HOSTTYPE == "jet" ]]; then
       wtime="0:30:00"
     else
       queue="batch"
-      wtime="4:00:00"
+      wtime="6:00:00"
 #      if [ $jobname == "wrf" ]; then
 #        wtime="0:30:00"
 #      fi
@@ -170,7 +170,7 @@ EOF
     jobid=`cat job_submit.log |awk -F. '{print $1}'`
     jobstat=1
     until [[ $jobstat == 0 ]]; do
-      sleep 10m
+      sleep 1m
       jobstat=`/apps/torque/default/bin/qstat |grep $jobid |awk '{if($5=="R" || $5=="Q") print 1; else print 0;}'`
     done
   fi

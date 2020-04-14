@@ -82,7 +82,7 @@ while [[ $NEXTDATE -le $DATE_CYCLE_END ]]; do  #CYCLE LOOP
     $SCRIPT_DIR/module_wrf_window.sh &
   fi
 
-  # Data assimilation for each cycle
+  ## Data assimilation for each cycle
   if [ $DATE -ge $DATE_CYCLE_START ] && [ $DATE -le $DATE_CYCLE_END ]; then
     # Processing observations
     if $RUN_ENKF || $RUN_4DVAR; then

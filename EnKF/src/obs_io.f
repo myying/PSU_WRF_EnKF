@@ -139,6 +139,53 @@ character (len=6)                    :: pfile         !! out_##
 !----------------------------------------------------------------------------
   obs%num = 0               ! obs%num for all observation, not only Rv
 !. save obs data to obs varry
+
+!... hurricane center lat, lon and minimum sea-level-pressure
+  if ( use_hurricane_PI ) then 
+     if( center(2) .ge. -180. .and. center(2) .le. 360. .and. &
+         center(1) .ge.  -90. .and. center(1) .le.  90. .and. &
+         center(3) .ge.  800. .and. center(3) .le. 1200. )then
+
+         !obs%num                 = obs%num + 1
+         !obs%dat(obs%num)      = center(3)*100.
+         !obs%type(obs%num) = 'min_slp   '
+         !obs%err(obs%num) = 300.
+         !obs%position(obs%num,1)  = center_io
+         !obs%position(obs%num,2)  = center_jo
+         !obs%position(obs%num,3)  = 1
+         !obs%roi     (obs%num,1)  = hroi_hurricane_PI 
+         !obs%roi     (obs%num,2)  = vroi_hurricane_PI
+
+         obs%num                 = obs%num + 1
+         obs%dat(obs%num)      = center_jo
+         obs%type(obs%num) = 'latitude  '
+         obs%err(obs%num) = 3.
+         obs%position(obs%num,1)  = center_io
+         obs%position(obs%num,2)  = center_jo
+         obs%position(obs%num,3)  = 1
+         obs%roi     (obs%num,1)  = hroi_hurricane_PI 
+         obs%roi     (obs%num,2)  = vroi_hurricane_PI
+
+         obs%num                 = obs%num + 1
+         obs%dat(obs%num)      = center_io
+         obs%type(obs%num) = 'longitude '
+         obs%err(obs%num) = 3.
+         obs%position(obs%num,1)  = center_io
+         obs%position(obs%num,2)  = center_jo
+         obs%position(obs%num,3)  = 1
+         obs%roi     (obs%num,1)  = hroi_hurricane_PI 
+         obs%roi     (obs%num,2)  = vroi_hurricane_PI
+
+      else
+         if(my_proc_id==0) then
+           write(*,*)'!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!'
+           write(*,*)'No hurricane center data will be assimilateed. '
+           write(*,*)'!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!'
+           write(*,*)
+         endif
+      endif
+  endif
+
 !....... Surface U, V, T, RH, SLP
   if ( use_surface ) then
      call sort_surface_data( wrf_file, ix, jx, kx, proj, 'surface ', &
@@ -223,33 +270,6 @@ character (len=6)                    :: pfile         !! out_##
       call sort_radarRV_data( wrf_file, ix, jx, kx, proj, 'AirborneRV', &
               datathin_airborne, hroi_airborne  , vroi_airborne  , grid_id )
    endif
-
-!... hurricane center lat, lon and minimum sea-level-pressure
-  if ( use_hurricane_PI ) then 
-     if( center(2) .ge. -180. .and. center(2) .le. 360. .and. &
-         center(1) .ge.  -90. .and. center(1) .le.  90. .and. &
-         center(3) .ge.  800. .and. center(3) .le. 1200. )then
-
-         obs%num                 = obs%num + 1
-         obs%dat(obs%num)      = center(3) - pr/100.
-         obs%type(obs%num) = 'min_slp   '
-         obs%err(obs%num) = 5.
-         obs%position(obs%num,1)  = center_io
-         obs%position(obs%num,2)  = center_jo
-         obs%position(obs%num,3)  = 1
-         obs%roi     (obs%num,1)  = hroi_hurricane_PI 
-         obs%roi     (obs%num,2)  = vroi_hurricane_PI
-
-      else
-         if(my_proc_id==0) then
-           write(*,*)'!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!'
-           write(*,*)'No hurricane center data will be assimilateed. '
-           write(*,*)'!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!'
-           write(*,*)
-         endif
-      endif
-  endif
-
   if(my_proc_id==0) write(*,*)obs%num,' observation data will be assimilated'
 
 end subroutine get_all_obs
