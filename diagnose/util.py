@@ -1,6 +1,32 @@
 ###Utility function for handling qgmodel fields
 import numpy as np
 
+def advance_time(timestart, incr_minute):
+  import datetime
+  ccyy = int(timestart[0:4])
+  mm = int(timestart[4:6])
+  dd = int(timestart[6:8])
+  hh = int(timestart[8:10])
+  ii = int(timestart[10:12])
+  t1 = datetime.datetime(ccyy, mm, dd, hh, ii, 0)
+  t2 = t1 + datetime.timedelta(minutes=incr_minute)
+  ccyy = t2.year
+  mm = t2.month
+  dd = t2.day
+  hh = t2.hour
+  ii = t2.minute
+  timeout = "{:04d}{:02d}{:02d}{:02d}{:02d}".format(ccyy, mm, dd, hh, ii)
+  return timeout
+
+def wrf_time_string(tstr):
+  ccyy = tstr[0:4]
+  mm = tstr[4:6]
+  dd = tstr[6:8]
+  hh = tstr[8:10]
+  ii = tstr[10:12]
+  wrf_tstr = ccyy+'-'+mm+'-'+dd+'_'+hh+':'+ii+':00'
+  return wrf_tstr
+
 ###spatial operation
 def deriv_x(f):
   fx = 0.5*(np.roll(f, -1, axis=0) - np.roll(f, 1, axis=0))

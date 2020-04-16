@@ -53,7 +53,7 @@ def getvar(infile, varname):
     nt, nz, ny, nx = dat.shape
     var = 0.5*(dat[:, 0:nz-1, :, :] + dat[:, 1:nz, :, :])
 
-  elif (varname == 'p'):
+  elif (varname == 'pres'):
     var = ncread(infile, 'P') + ncread(infile, 'PB')
 
   elif (varname == 'slp'):
@@ -71,8 +71,14 @@ def getvar(infile, varname):
     var = th * (p/100000.0) ** (Rd/Cp)
 
   elif (varname == 'wind'):
-    u = ncread(infile, 'U10')
-    v = ncread(infile, 'V10')
+    dat = ncread(infile, 'U')
+    nt, nz, ny, nx = dat.shape
+    u = 0.5*(dat[:, 0, :, 0:nx-1] + dat[:, 0, :, 1:nx])
+    dat = ncread(infile, 'V')
+    nt, nz, ny, nx = dat.shape
+    v = 0.5*(dat[:, 0, 0:ny-1, :] + dat[:, 0, 1:ny, :])
+    # u = ncread(infile, 'U10')
+    # v = ncread(infile, 'V10')
     var = np.sqrt(u**2 + v**2)
 
   else:
