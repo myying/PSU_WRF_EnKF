@@ -94,7 +94,7 @@ for n in $domlist; do
     #mv obs_3dvar_${DATE}00 obs_3dvar_tmp
     #mv airborne_${DATE}_so airborne_tmp; echo > airborne_${DATE}_so
     ###runing enkf.mpi multiscale scheme
-    for s in `seq 1 $((NUM_SCALES-1))`; do
+    for s in `seq 1 $NUM_SCALES`; do
       echo "scale $s for domain $n"
       if [[ ! -d scale$s ]]; then mkdir -p scale$s; fi
       if [ -f scale$s/${DATE}.finish_flag ]; then continue; fi
@@ -138,13 +138,13 @@ EOF
     #mv radiance_${DATE}_so radiance_tmp
     #mv obs_3dvar_tmp obs_3dvar_${DATE}00
     #mv airborne_tmp airborne_${DATE}_so
-    rm fort.5* fort.6* fort.7*
-    for NE in `seq 1 $((NUM_ENS+1))`; do
-      ln -fs fort.`expr 90010 + $NE` fort.`expr 50010 + $NE`
-      cp -L fort.`expr 90010 + $NE` fort.`expr 70010 + $NE`
-    done
-    $SCRIPT_DIR/namelist_enkf.sh $n $NUM_SCALES $NUM_SCALES > namelist.enkf
-    $SCRIPT_DIR/job_submit.sh $enkf_ntasks 0 $enkf_ppn ./enkf.mpi >& enkf.log
+    #rm fort.5* fort.6* fort.7*
+    #for NE in `seq 1 $((NUM_ENS+1))`; do
+      #ln -fs fort.`expr 90010 + $NE` fort.`expr 50010 + $NE`
+      #cp -L fort.`expr 90010 + $NE` fort.`expr 70010 + $NE`
+    #done
+    #$SCRIPT_DIR/namelist_enkf.sh $n $NUM_SCALES $NUM_SCALES > namelist.enkf
+    #$SCRIPT_DIR/job_submit.sh $enkf_ntasks 0 $enkf_ppn ./enkf.mpi >& enkf.log
   fi
   cd ..
 done
@@ -186,6 +186,9 @@ for n in $domlist; do
 
   ###relaxation to prior position
   if [ $NUM_SCALES -gt 1 ] && [ $n -gt 1 ]; then
+    rm fort.6*
+    rm fort.80071
+    ncea fort.800{11..70} fort.80071  ###TMP calculate prior mean, since msa hasn't done this
     rm -f run_relaxation_done
     cat > run_relaxation.sh << EOF
 #!/bin/bash
