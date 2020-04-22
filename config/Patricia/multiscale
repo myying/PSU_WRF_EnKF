@@ -9,7 +9,7 @@
  STORM_ID=PATRICIA           #storm id, format: basin (al) num (13) year (2010)
 
  NUM_SCALES=3                ###wheb > 1, run multiscale algorithms
- KRANGE=(6 22)
+ KRANGE=(5 21)
  RUN_ALIGNMENT=true              ###run alignment algorithm when true
 
  MULTI_PHYS_ENS=false         #if true, use a multi-physics ensemble
@@ -23,7 +23,7 @@
  DATE_START=201510210000        #initial date, need to have available first guess (0 6 12 18 h)
  DATE_END=201510241200          #end date
  DATE_CYCLE_START=201510211200  #date of first assimilation cycle, also need first guess available
- DATE_CYCLE_END=201510220000    #date of final assimilation cycle
+ DATE_CYCLE_END=201510221900    #date of final assimilation cycle
 
 #time control: unit=minutes
  CYCLE_PERIOD=60                #interval among cycles
@@ -102,7 +102,7 @@
  INFLATION_COEF=1.0
  RELAX_OPT=0
  RELAX_ADAPTIVE=false
- RELAXATION_COEF=(0.0 0.0)  ##MSA relax to prior position, handled by relax_position.py
+ RELAXATION_COEF=(0.0 0.0) ##relaxation handled by alignment.py
  REPLACE_MEAN=false
 
 #data sources

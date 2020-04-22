@@ -130,9 +130,16 @@ EOF
       echo "touch run_alignment_done" >> run_alignment.sh
       qsub run_alignment.sh
       until [ -f run_alignment_done ]; do sleep 1m; done
+      rm -f fort.90071
+      ncea fort.900{11..70} fort.90071  ###TMP calculate mean after alignment
       ##save copy
       mv ${DATE}.finish_flag scale$s/.
-      cp fort.1* enkf.log fort.5* fort.7* fort.9* scale$s/.
+      #cp fort.1* enkf.log fort.5* fort.7* fort.9* scale$s/.
+      cp fort.1* enkf.log scale$s/.
+      rm -f scale$s/prior.nc scale$s/post.nc
+      ncecat -vU10,V10,MU,T2,Q2 fort.5* scale$s/prior.nc
+      ncecat -vU10,V10,MU,T2,Q2 fort.7* scale$s/post.nc
+      if [ $s == $NUM_SCALES ]; then cp fort.9* scale$s/. ; fi
     done
 
     #mv radiance_${DATE}_so radiance_tmp
@@ -179,16 +186,75 @@ for n in $domlist; do
 
   for NE in `seq 1 $((NUM_ENS+1))`; do
     rm -f fort.`expr 50010 + $NE`
-    rm -f fort.`expr 90010 + $NE`
-    mv fort.`expr 70010 + $NE` fort.`expr 90010 + $NE`
+    if [ $NUM_SCALES -gt 1 ] && [ $n -gt 1 ]; then
+      rm -f fort.`expr 70010 + $NE`
+    else
+      rm -f fort.`expr 90010 + $NE`
+      mv fort.`expr 70010 + $NE` fort.`expr 90010 + $NE`
+    fi
   done
   #mkdir -p post; cp fort.9* post/.  ##save a copy of posteriors
 
-  ###relaxation to prior position
+  ###1. replacing mean with first guess (GFS/FNL) reanalysis
+  if [[ $LBDATE == $DATE ]]; then
+    echo "  Replacing ens mean for domain $dm"
+    ln -fs $WORK_DIR/rc/$DATE/wrfinput_$dm fort.20010
+    ln -fs $ENKF_DIR/replace_mean_outside_site.exe .
+    ##lat/lon of storm
+    tcvitals_data=$TCVITALS_DIR/${DATE:0:4}/${DATE}.${STORM_ID}-tcvitals.dat
+    latstr=`head -n1 $tcvitals_data |awk '{print $6}'`
+    lonstr=`head -n1 $tcvitals_data |awk '{print $7}'`
+    if [ ${latstr:3:1} == "N" ]; then
+      slat=`echo "${latstr:0:3}/10" |bc -l`
+    else
+      slat=`echo "-${latstr:0:3}/10" |bc -l`
+    fi
+    if [ ${lonstr:4:1} == "E" ]; then
+      slon=`echo "${lonstr:0:4}/10" |bc -l`
+    else
+      slon=`echo "-${lonstr:0:4}/10" |bc -l`
+    fi
+    ./replace_mean_outside_site.exe $slat $slon $NUM_ENS >& replace_mean.log
+    watch_log replace_mean.log Successful 1 $rundir
+  fi
+
+  ###2. relaxation to prior position and perturbation
   if [ $NUM_SCALES -gt 1 ] && [ $n -gt 1 ]; then
-    rm fort.6*
-    rm fort.80071
+    rm -f fort.6*
+    rm -f fort.80071
     ncea fort.800{11..70} fort.80071  ###TMP calculate prior mean, since msa hasn't done this
+    ###align members to mean, so that residual perturbations can be calculated in relaxation
+#    for m in `seq 1 $NUM_ENS`; do
+#      cp -L fort.`expr 80010 + $m` fort.`expr 30010 + $m`
+#      cp -L fort.`expr 90010 + $m` fort.`expr 40010 + $m`
+#    done
+#    rm -f run_align_member_to_mean_done
+#    cat > run_align_member_to_mean.sh << EOF
+##!/bin/bash
+##PBS -A $HOSTACCOUNT
+##PBS -N align_member_to_mean
+##PBS -l walltime=0:30:00
+##PBS -q regular
+##PBS -l select=1:ncpus=32:mpiprocs=32
+##PBS -j oe
+##PBS -o job_run.log
+#source ~/.bashrc
+#cd `pwd`
+#EOF
+#    for m in `seq 1 $NUM_ENS`; do
+#      echo "$SCRIPT_DIR/diagnose/align_member_to_mean.py $m &" >> run_align_member_to_mean.sh
+#      if [ $m == 30 ] || [ $m == $NUM_ENS ]; then
+#        echo "wait" >> run_align_member_to_mean.sh
+#      fi
+#    done
+#    echo "touch run_align_member_to_mean_done" >> run_align_member_to_mean.sh
+#    qsub run_align_member_to_mean.sh
+#    until [ -f run_align_member_to_mean_done ]; do sleep 1m; done
+#    rm -f fort.30071 fort.40071
+#    ncea fort.300{11..70} fort.30071  ###TMP calculate aligned mean
+#    ncea fort.400{11..70} fort.40071
+    ####
+    ####perform relaxation here:
     rm -f run_relaxation_done
     cat > run_relaxation.sh << EOF
 #!/bin/bash
@@ -211,29 +277,7 @@ EOF
     echo "touch run_relaxation_done" >> run_relaxation.sh
     qsub run_relaxation.sh
     until [ -f run_relaxation_done ]; do sleep 1m; done
-  fi
-
-  ###2. replacing mean with first guess (GFS/FNL) reanalysis
-  if [[ $LBDATE == $DATE ]]; then
-    echo "  Replacing ens mean for domain $dm"
-    ln -fs $WORK_DIR/rc/$DATE/wrfinput_$dm fort.20010
-    ln -fs $ENKF_DIR/replace_mean_outside_site.exe .
-    ##lat/lon of storm
-    tcvitals_data=$TCVITALS_DIR/${DATE:0:4}/${DATE}.${STORM_ID}-tcvitals.dat
-    latstr=`head -n1 $tcvitals_data |awk '{print $6}'`
-    lonstr=`head -n1 $tcvitals_data |awk '{print $7}'`
-    if [ ${latstr:3:1} == "N" ]; then
-      slat=`echo "${latstr:0:3}/10" |bc -l`
-    else
-      slat=`echo "-${latstr:0:3}/10" |bc -l`
-    fi
-    if [ ${lonstr:4:1} == "E" ]; then
-      slon=`echo "${lonstr:0:4}/10" |bc -l`
-    else
-      slon=`echo "-${lonstr:0:4}/10" |bc -l`
-    fi
-    ./replace_mean_outside_site.exe $slat $slon $NUM_ENS >& replace_mean.log
-    watch_log replace_mean.log Successful 1 $rundir
+    rm -f fort.3* fort.4*
   fi
 
   ##output

@@ -7,6 +7,8 @@ import sys
 m = int(sys.argv[1])
 current_scale = int(sys.argv[2])
 n = 360
+nens = 60
+relax_coef = 0.7
 
 workdir = './' #'/glade/scratch/mying/Patricia_multiscale/run/201510230600/enkf/d02/'
 
@@ -33,7 +35,8 @@ if(current_scale<3):
 for varname in ('U', 'V', 'W', 'P', 'PH', 'T', 'MU', 'QVAPOR', 'QCLOUD', 'QRAIN', 'QICE', 'QSNOW', 'QGRAUP', 'U10', 'V10', 'T2', 'Q2', 'PSFC'):
   xb = wrf.getvar(workdir+'fort.{}'.format(m+50010), varname)
   xa = wrf.getvar(workdir+'fort.{}'.format(m+70010), varname)
-  xs = wrf.getvar(workdir+'fort.{}'.format(m+60010), varname)
+  xb_mean = wrf.getvar(workdir+'fort.{}'.format(50011+nens), varname)
+  xa_mean = wrf.getvar(workdir+'fort.{}'.format(50011+nens), varname)
   xin = wrf.getvar(workdir+'fort.{}'.format(m+90010), varname)
 
   if(xb.ndim==4):
@@ -41,19 +44,22 @@ for varname in ('U', 'V', 'W', 'P', 'PH', 'T', 'MU', 'QVAPOR', 'QCLOUD', 'QRAIN'
   if(xb.ndim==3):
     nt, ny, nx = xb.shape
 
-  xsw = xs.copy()
+  xbw = xb.copy()
   xout = xin.copy()
 
   if(current_scale<3):
     if(xb.ndim==4):
-      xsw[0, :, 0:n, 0:n] = util.warp(xs[0, :, 0:n, 0:n], -u, -v)
-      # xout[0, :, 0:n, 0:n] = util.warp(xin[0, :, 0:n, 0:n], -u, -v)
+      xout[0, :, 0:n, 0:n] = util.warp(xin[0, :, 0:n, 0:n], -u, -v)
+      xbw[0, :, 0:n, 0:n] = util.warp(xb[0, :, 0:n, 0:n], -u, -v)
     if(xb.ndim==3):
-      xsw[0, 0:n, 0:n] = util.warp(xs[0, 0:n, 0:n], -u, -v)
-      # xout[0, 0:n, 0:n] = util.warp(xin[0, 0:n, 0:n], -u, -v)
-    xout = xin + xa - xb + xsw - xs
+      xout[0, 0:n, 0:n] = util.warp(xin[0, 0:n, 0:n], -u, -v)
+      xbw[0, 0:n, 0:n] = util.warp(xb[0, 0:n, 0:n], -u, -v)
+    xout = xout + xa - xbw
   else:
     xout = xin + xa - xb
+
+  ##relaxation
+  xout = xout + relax_coef*(xb - xb_mean - xa + xa_mean)
 
   wrf.writevar(workdir+'fort.{}'.format(m+90010), varname, xout)
 
