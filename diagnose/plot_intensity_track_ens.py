@@ -10,7 +10,8 @@ import cartopy.io.shapereader as shpreader
 diag_dir = '/glade/work/mying/data/Patricia/diag/'
 work_dir = '/glade/scratch/mying/Patricia/'
 t_start = '201510211200'
-nt = 24 #30
+nt = 30
+t1 = nt-1
 casename = 'multiscale'
 nens = 60
 
@@ -30,7 +31,11 @@ tc_lat[:, :] = np.nan
 tc_lon[:, :] = np.nan
 tc_vmax[:, :] = np.nan
 tc_pmin[:, :] = np.nan
-for t in range(21, nt):
+tc_lat[0:t1, :] = np.load(casename+'_ens_tc_lat.npy')
+tc_lon[0:t1, :] = np.load(casename+'_ens_tc_lon.npy')
+tc_pmin[0:t1, :] = np.load(casename+'_ens_tc_pmin.npy')
+tc_vmax[0:t1, :] = np.load(casename+'_ens_tc_vmax.npy')
+for t in range(t1, nt):
   t_str = util.advance_time(t_start, t*60)
   print(util.wrf_time_string(t_str))
   for m in range(nens):
@@ -38,7 +43,7 @@ for t in range(21, nt):
     # filename = work_dir+casename+'/run/201510212100/wrf_ens_fcst/{:03d}'.format(m+1)+'/wrfout_d03_'+util.wrf_time_string(t_str)
     lat = wrf.getvar(filename, 'XLAT')[0, :, :]
     lon = wrf.getvar(filename, 'XLONG')[0, :, :]
-    wind_speed = wrf.getvar(filename, 'wind')[0, :, :]
+    wind_speed = wrf.getvar(filename, 'wind')[0, 0, :, :]
     p_pert = wrf.getvar(filename, 'P')[0, 0, :, :]
     slp = wrf.getvar(filename, 'PSFC')[0, :, :]/100
     j, i = tc.find_center(p_pert)
@@ -46,6 +51,11 @@ for t in range(21, nt):
     tc_lon[t, m] = lon[j, i]
     tc_pmin[t, m] = slp[j, i]
     tc_vmax[t, m] = tc.maximum_wind(wind_speed, j, i)
+
+np.save(casename+'_ens_tc_lat', tc_lat)
+np.save(casename+'_ens_tc_lon', tc_lon)
+np.save(casename+'_ens_tc_pmin', tc_pmin)
+np.save(casename+'_ens_tc_vmax', tc_vmax)
 
 plt.switch_backend('Agg')
 plt.figure(figsize=(15, 5))

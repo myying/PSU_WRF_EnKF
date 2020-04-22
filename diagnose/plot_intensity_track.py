@@ -11,8 +11,8 @@ import cartopy.io.shapereader as shpreader
 diag_dir = '/glade/work/mying/data/Patricia/diag/'
 work_dir = '/glade/scratch/mying/Patricia/'
 t_start = '201510211200'
-nt = 11
-casename = 'control'
+nt = 28 #32
+casename = 'multiscale'
 
 ###observation: tcvitals best track
 obs_t_inv = 6
@@ -28,7 +28,11 @@ tc_lat = np.zeros(nt)
 tc_lon = np.zeros(nt)
 tc_vmax = np.zeros(nt)
 tc_pmin = np.zeros(nt)
-for t in range(nt):
+tc_lat[:] = np.nan
+tc_lon[:] = np.nan
+tc_vmax[:] = np.nan
+tc_pmin[:] = np.nan
+for t in range(0, nt):
   t_str = util.advance_time(t_start, t*60)
   print(t_str)
   filename = work_dir+casename+'/fc/'+t_str+'/wrfinput_d02_mean'
@@ -36,7 +40,7 @@ for t in range(nt):
     #skip
   lat = wrf.getvar(filename, 'XLAT')[0, :, :]
   lon = wrf.getvar(filename, 'XLONG')[0, :, :]
-  wind_speed = util.smooth(wrf.getvar(filename, 'wind')[0, :, :], 0)
+  wind_speed = util.smooth(wrf.getvar(filename, 'wind')[0, 0, :, :], 0)
   p_pert = wrf.getvar(filename, 'P')[0, 0, :, :]
   slp = wrf.getvar(filename, 'PSFC')[0, :, :]/100
   j, i = tc.find_center(p_pert)

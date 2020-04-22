@@ -73,10 +73,10 @@ def getvar(infile, varname):
   elif (varname == 'wind'):
     dat = ncread(infile, 'U')
     nt, nz, ny, nx = dat.shape
-    u = 0.5*(dat[:, 0, :, 0:nx-1] + dat[:, 0, :, 1:nx])
+    u = 0.5*(dat[:, :, :, 0:nx-1] + dat[:, :, :, 1:nx])
     dat = ncread(infile, 'V')
     nt, nz, ny, nx = dat.shape
-    v = 0.5*(dat[:, 0, 0:ny-1, :] + dat[:, 0, 1:ny, :])
+    v = 0.5*(dat[:, :, 0:ny-1, :] + dat[:, :, 1:ny, :])
     # u = ncread(infile, 'U10')
     # v = ncread(infile, 'V10')
     var = np.sqrt(u**2 + v**2)
