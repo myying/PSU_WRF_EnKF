@@ -3,12 +3,12 @@ source ~/.bashrc
 
 #load configuration files, functions, parameters
 cd $WORK/PSU_WRF_EnKF
-export CONFIG_FILE=$WORK/PSU_WRF_EnKF/config/Patricia/no_airborne
+export CONFIG_FILE=$WORK/PSU_WRF_EnKF/config/Patricia/control_fcst
 . $CONFIG_FILE
 . util.sh
 
-export DATE=201510212100
-export DATE_FORECAST_END=201510230000
+export DATE=201510221900
+export DATE_FORECAST_END=201510240600
 
 rundir=$WORK_DIR/run/$DATE/wrf_ens_fcst
 if [[ ! -d $rundir ]]; then mkdir -p $rundir; echo waiting > $rundir/stat; fi
@@ -68,7 +68,7 @@ for NE in `seq 1 $NUM_ENS`; do
     ln -fs ../../../../../rc/$DATE/wrfinput_${dm} wrfndi_d02
     cp -L wrfndi_d02 wrfinput_d02
     $SCRIPT_DIR/job_submit.sh $wps_ntasks 0 $HOSTPPN ./ndown.exe >& ndown.log &
-    #watch_log rsl.error.0000 SUCCESS 1 `pwd`
+    watch_log rsl.error.0000 SUCCESS 1 `pwd`
     cd ..
   done
   ln -fs d03/wrfinput_d02 wrfinput_d03
@@ -76,6 +76,7 @@ for NE in `seq 1 $NUM_ENS`; do
   ####Running model
   export start_date=$DATE
   export run_minutes=`diff_time $DATE $DATE_FORECAST_END`
+  export restart_interval=1440
   $SCRIPT_DIR/namelist_wrf.sh wrf_fcst > namelist.input
   for n in `seq 1 $MAX_DOM`; do
     dm=d`expr $n + 100 |cut -c2-`
