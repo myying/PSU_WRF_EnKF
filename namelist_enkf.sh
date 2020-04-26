@@ -7,8 +7,10 @@ scale_roi_factor=(2.0 1.0 0.5)
 thin_factor=(4 2 0)
 if [ $num_scales == 1 ]; then
   srf=1
+  thin=0
 else
   srf=${scale_roi_factor[$current_scale-1]}
+  thin=${thin_factor[$current_scale-1]}
 fi
 
 dx=`echo ${DX[$domain_id-1]}/1000 |bc -l`
@@ -154,7 +156,7 @@ vroi_atovs     = ${VROI_ATOVS:-$VROI},
 
 &satwnd_obs
 use_satwnd      = .$USE_GEOAMVOBS.,
-datathin_satwnd = ${thin_factor[$current_scale-1]},
+datathin_satwnd = `expr $THIN_SATWND + $thin`,
 hroi_satwnd     = $(printf %.0f `echo ${HROI_SATWND:-$HROI_UPPER}*$srf/$dx |bc -l`),
 vroi_satwnd     = ${VROI_SATWND:-$VROI},
 /
@@ -178,21 +180,21 @@ radar_number   = 1,
 use_radar_rf   = .$USE_RADAR_RF.,
 use_radar_rv   = .$USE_RADAR_RV.,
 datathin_radar = $THIN_RADAR,
-hroi_radar     = $(printf %.0f `echo $HROI_RADAR/$dx |bc -l`),
+hroi_radar     = $(printf %.0f `echo $HROI_RADAR*$srf/$dx |bc -l`),
 vroi_radar     = $VROI_RADAR,
 /
 
 &airborne_radar
 use_airborne_rf   = .$USE_AIRBORNE_RF.,
 use_airborne_rv   = .$use_airborne_rv.,
-datathin_airborne = ${thin_factor[$current_scale-1]},
-hroi_airborne     = $(printf %.0f `echo $HROI_RADAR/$dx |bc -l`),
+datathin_airborne = `expr $THIN_RADAR + $thin`,
+hroi_airborne     = $(printf %.0f `echo $HROI_RADAR*$srf/$dx |bc -l`),
 vroi_airborne     = $VROI_RADAR,
 /
 
 &radiance
 use_radiance      = .${USE_RADIANCE[$domain_id-1]:-false}.,
-datathin_radiance = ${thin_factor[$current_scale-1]},
+datathin_radiance = `expr ${THIN_RADIANCE[$domain_id-1]} + $thin`,
 hroi_radiance     = $(printf %.0f `echo ${HROI_RADIANCE:-$HROI_UPPER}*$srf/$dx |bc -l`),
 vroi_radiance     = ${VROI_RADIANCE:-99},
 /
