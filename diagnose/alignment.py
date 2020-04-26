@@ -8,14 +8,9 @@ m = int(sys.argv[1])
 current_scale = int(sys.argv[2])
 n = 360
 nens = 60
-relax_coef = 0.7
+relax_coef = 0.6
 
 workdir = './' #'/glade/scratch/mying/Patricia_multiscale/run/201510230600/enkf/d02/'
-
-# varname = 'P'
-# xb = wrf.getvar(workdir+'fort.{}'.format(m+50010), varname)
-# xa = wrf.getvar(workdir+'fort.{}'.format(m+70010), varname)
-# u, v = util.optical_flow_HS(np.mean(xb[0, :, 0:n, 0:n], axis=0), np.mean(xa[0, :, 0:n, 0:n], axis=0), 5)
 
 if(current_scale<3):
   land = wrf.getvar(workdir+'fort.80011', 'HGT')
@@ -36,7 +31,7 @@ for varname in ('U', 'V', 'W', 'P', 'PH', 'T', 'MU', 'QVAPOR', 'QCLOUD', 'QRAIN'
   xb = wrf.getvar(workdir+'fort.{}'.format(m+50010), varname)
   xa = wrf.getvar(workdir+'fort.{}'.format(m+70010), varname)
   xb_mean = wrf.getvar(workdir+'fort.{}'.format(50011+nens), varname)
-  xa_mean = wrf.getvar(workdir+'fort.{}'.format(50011+nens), varname)
+  xa_mean = wrf.getvar(workdir+'fort.{}'.format(70011+nens), varname)
   xin = wrf.getvar(workdir+'fort.{}'.format(m+90010), varname)
 
   if(xb.ndim==4):
