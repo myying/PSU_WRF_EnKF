@@ -566,19 +566,19 @@ t0=MPI_Wtime()
            max(jst,jstart)-jstart+1:min(jed,jend)-jstart+1, kst:ked,m) + km1 * y_hxm
 
        ! remove negative Q values
-       if(varname.eq.'QVAPOR    ') then
-         do n=1,nm
-           ie=(n-1)*nmcpu+gid+1
-           if(ie<=numbers_en) then
-             where( (xm(ist-istart+1:ied-istart+1,jst-jstart+1:jed-jstart+1,kst:ked,m)+&
-                     x (ist-istart+1:ied-istart+1,jst-jstart+1:jed-jstart+1,kst:ked,m,n))<0. ) &
-                   x (ist-istart+1:ied-istart+1,jst-jstart+1:jed-jstart+1,kst:ked,m,n) = &
-                0.-xm(ist-istart+1:ied-istart+1,jst-jstart+1:jed-jstart+1,kst:ked,m)
-           endif
-         enddo
-         where( xm(ist-istart+1:ied-istart+1,jst-jstart+1:jed-jstart+1,kst:ked,m)<0.) &
-                xm(ist-istart+1:ied-istart+1,jst-jstart+1:jed-jstart+1,kst:ked,m)=0.
-       endif
+       !if(varname.eq.'QVAPOR    ') then
+       !  do n=1,nm
+       !    ie=(n-1)*nmcpu+gid+1
+       !    if(ie<=numbers_en) then
+       !      where( (xm(ist-istart+1:ied-istart+1,jst-jstart+1:jed-jstart+1,kst:ked,m)+&
+       !              x (ist-istart+1:ied-istart+1,jst-jstart+1:jed-jstart+1,kst:ked,m,n))<0. ) &
+       !            x (ist-istart+1:ied-istart+1,jst-jstart+1:jed-jstart+1,kst:ked,m,n) = &
+       !         0.-xm(ist-istart+1:ied-istart+1,jst-jstart+1:jed-jstart+1,kst:ked,m)
+       !    endif
+       !  enddo
+       !  where( xm(ist-istart+1:ied-istart+1,jst-jstart+1:jed-jstart+1,kst:ked,m)<0.) &
+       !         xm(ist-istart+1:ied-istart+1,jst-jstart+1:jed-jstart+1,kst:ked,m)=0.
+       !endif
        deallocate(km1)
      endif
      deallocate(km)
@@ -646,7 +646,7 @@ t0=MPI_Wtime()
          if(ie<=numbers_en) &
             ya(iiob,ie)=ya(iiob,ie)-corr_coef*alpha*fac*cov*(ya(iob,ie)-ya(iob,numbers_en+1))/d !perturbation
          ya(iiob,ie)=ya(iiob,ie)+corr_coef*fac*cov*(obs%dat(iob)-ya(iob,numbers_en+1))/d        !mean
-         if(obstype(10:10)=='Q' .and. ya(iiob,ie)<0.) ya(iiob,ie)=0.  ! remove negative values of Q
+         !if(obstype(10:10)=='Q' .and. ya(iiob,ie)<0.) ya(iiob,ie)=0.  ! remove negative values of Q
       enddo
    end do update_y_cycle
 
@@ -773,40 +773,40 @@ do n = 1, nm
 enddo
 
 !!! Removing negative Q-value by Minamide 2015.5.26
-if ( my_proc_id==0 ) write(*,*) 'updating negative values'
-if(raw%radiance%num.ne.0) then
-  do m=1,nv
-    varname=enkfvar(m)
-    xq_p = 0.
-    xq_n = 0.
-    xq_psend = 0.
-    xq_nsend = 0.
-    if (varname=='QCLOUD    ' .or. varname=='QRAIN     ' .or. varname=='QICE      ' .or. &
-        varname=='QGRAUP    ' .or. varname=='QSNOW     ') then
-      do n=1,nm
-        ie=(n-1)*nmcpu+gid+1
-        if(ie==numbers_en+1) write(*,*)'original xq value',minval(x(:,:,:,m,n)),'~',maxval(x(:,:,:,m,n))
-        if(ie<=numbers_en) then
-          where(x(:,:,:,m,n) >= 0.) xq_psend(:,:,:,n) = x(:,:,:,m,n)
-          where(x(:,:,:,m,n) < 0.) xq_nsend(:,:,:,n) = x(:,:,:,m,n)
-        endif
-      enddo
-      call MPI_Allreduce(sum(xq_psend,4),xq_p,ni*nj*nk,MPI_REAL,MPI_SUM,comm,ierr)
-      call MPI_Allreduce(sum(xq_nsend,4),xq_n,ni*nj*nk,MPI_REAL,MPI_SUM,comm,ierr)
-      if ( my_proc_id==0 ) write(*,*) 'xq_p',minval(xq_p),'~',maxval(xq_p)
-      if ( my_proc_id==0 ) write(*,*) 'xq_n',minval(xq_n),'~',maxval(xq_n)
-      do n=1,nm
-        ie=(n-1)*nmcpu+gid+1
-        if(ie<=numbers_en) then
-          where(x(:,:,:,m,n) < 0.) x(:,:,:,m,n) = 0.
-          where(xq_p >= abs(xq_n).and.xq_p > 0.) x(:,:,:,m,n) = x(:,:,:,m,n)*(xq_p+xq_n)/xq_p
-          where(xq_p < abs(xq_n).or. xq_p == 0.) x(:,:,:,m,n) = 0.
-        endif
-        if(ie<=numbers_en+1) where(xm(:,:,:,m) < 0.) x(:,:,:,m,n) = 0.
-        if(ie==numbers_en+1) write(*,*)'non-negative xq value',minval(x(:,:,:,m,n)),'~',maxval(x(:,:,:,m,n))
-      enddo
-    endif
-  enddo
-endif
+!if ( my_proc_id==0 ) write(*,*) 'updating negative values'
+!if(raw%radiance%num.ne.0) then
+!  do m=1,nv
+!    varname=enkfvar(m)
+!    xq_p = 0.
+!    xq_n = 0.
+!    xq_psend = 0.
+!    xq_nsend = 0.
+!    if (varname=='QCLOUD    ' .or. varname=='QRAIN     ' .or. varname=='QICE      ' .or. &
+!        varname=='QGRAUP    ' .or. varname=='QSNOW     ') then
+!      do n=1,nm
+!        ie=(n-1)*nmcpu+gid+1
+!        if(ie==numbers_en+1) write(*,*)'original xq value',minval(x(:,:,:,m,n)),'~',maxval(x(:,:,:,m,n))
+!        if(ie<=numbers_en) then
+!          where(x(:,:,:,m,n) >= 0.) xq_psend(:,:,:,n) = x(:,:,:,m,n)
+!          where(x(:,:,:,m,n) < 0.) xq_nsend(:,:,:,n) = x(:,:,:,m,n)
+!        endif
+!      enddo
+!      call MPI_Allreduce(sum(xq_psend,4),xq_p,ni*nj*nk,MPI_REAL,MPI_SUM,comm,ierr)
+!      call MPI_Allreduce(sum(xq_nsend,4),xq_n,ni*nj*nk,MPI_REAL,MPI_SUM,comm,ierr)
+!      if ( my_proc_id==0 ) write(*,*) 'xq_p',minval(xq_p),'~',maxval(xq_p)
+!      if ( my_proc_id==0 ) write(*,*) 'xq_n',minval(xq_n),'~',maxval(xq_n)
+!      do n=1,nm
+!        ie=(n-1)*nmcpu+gid+1
+!        if(ie<=numbers_en) then
+!          where(x(:,:,:,m,n) < 0.) x(:,:,:,m,n) = 0.
+!          where(xq_p >= abs(xq_n).and.xq_p > 0.) x(:,:,:,m,n) = x(:,:,:,m,n)*(xq_p+xq_n)/xq_p
+!          where(xq_p < abs(xq_n).or. xq_p == 0.) x(:,:,:,m,n) = 0.
+!        endif
+!        if(ie<=numbers_en+1) where(xm(:,:,:,m) < 0.) x(:,:,:,m,n) = 0.
+!        if(ie==numbers_en+1) write(*,*)'non-negative xq value',minval(x(:,:,:,m,n)),'~',maxval(x(:,:,:,m,n))
+!      enddo
+!    endif
+!  enddo
+!endif
 
 end subroutine enkf
