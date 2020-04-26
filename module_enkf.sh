@@ -24,6 +24,7 @@ for n in $domlist; do
   dm=d`expr $n + 100 |cut -c2-`
   if [[ ! -d $dm ]]; then mkdir -p $dm; fi
   if [ -f $dm/${DATE}.finish_flag ]; then continue; fi
+  if [ -f $dm/scale1/${DATE}.finish_flag ]; then continue; fi
   cd $dm
 
   #link prior members
@@ -136,9 +137,11 @@ EOF
       mv ${DATE}.finish_flag scale$s/.
       #cp fort.1* enkf.log fort.5* fort.7* fort.9* scale$s/.
       cp fort.1* enkf.log scale$s/.
-      rm -f scale$s/prior.nc scale$s/post.nc
-      ncecat -vU10,V10,MU,T2,Q2 fort.5* scale$s/prior.nc
-      ncecat -vU10,V10,MU,T2,Q2 fort.7* scale$s/post.nc
+      rm -f scale$s/fort.5* scale$s/fort.7*
+      for m in `seq 1 $((NUM_ENS+1))`; do
+        ncks -vU,V,P,T,QVAPOR fort.`expr 50010 + $m` scale$s/fort.`expr 50010 + $m`
+        ncks -vU,V,P,T,QVAPOR fort.`expr 70010 + $m` scale$s/fort.`expr 70010 + $m`
+      done
       if [ $s == $NUM_SCALES ]; then cp fort.9* scale$s/. ; fi
     done
 
@@ -162,27 +165,6 @@ for n in $domlist; do
   dm=d`expr $n + 100 |cut -c2-`
   cd $dm
   watch_log enkf.log Successful 300 $rundir
-
-  #Replace mean
-  #1. replacing mean with 4DVar analysis (recentering) if running hybrid DA
-  #if $RUN_4DVAR; then
-  #  wait_for_module ../../4dvar ../../wrf_window
-  #  if [[ ! -d replace_mean ]]; then mkdir -p replace_mean; fi
-  #  cd replace_mean
-  #  echo "  Replacing ens mean with 4DVar analysis for domain $dm"
-  #  for NE in `seq 1 $((NUM_ENS+1))`; do
-  #    mv ../fort.`expr 90010 + $NE` fort.`expr 80010 + $NE`
-  #    cp fort.`expr 80010 + $NE` fort.`expr 90010 + $NE`
-  #  done
-  #  ln -fs $WORK_DIR/fc/$DATE/wrfinput_${dm}_`wrf_time_string $DATE` fort.70010
-  #  ln -fs $ENKF_DIR/replace_mean.exe .
-  #  ./replace_mean.exe $NUM_ENS >& replace_mean.log
-  #  watch_log replace_mean.log Successful 1 $rundir
-  #  for NE in `seq 1 $((NUM_ENS+1))`; do
-  #    mv fort.`expr 90010 + $NE` ../
-  #  done
-  #  cd ..
-  #fi
 
   for NE in `seq 1 $((NUM_ENS+1))`; do
     rm -f fort.`expr 50010 + $NE`
