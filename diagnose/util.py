@@ -217,7 +217,19 @@ def regrid(x1, ni, nj):
       x[i, j] = interp2d(x1, np.array([ii1[i, j], jj1[i, j]]))
   return x
 
-def smooth(x, smth):
+
+def runningsmooth(x):
+  nx = x.size
+  x2 = x.copy()
+  x2[1] = (x[0]+x[1]+x[2])/3.0
+  x2[2] = (x[1]+x[2]+x[3]+x[4]+x[5])/5.0
+  x2[nx-2] = (x[nx-3]+x[nx-2]+x[nx-1])/3.0
+  x2[nx-3] = (x[nx-5]+x[nx-4]+x[nx-3]+x[nx-2]+x[nx-1])/5.0
+  for i in np.arange(3, nx-3):
+    x2[i] = (x[i+3]+x[i+2]+x[i+1]+x[i]+x[i-1]+x[i-2]+x[i-3])/7.0
+  return x2
+
+def smooth2d(x, smth):
   if smth > 0:
     x_smooth = np.zeros(x.shape)
     cw = 0.0

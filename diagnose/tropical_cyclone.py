@@ -1,12 +1,13 @@
 ###Utility function for tropical cyclone diagnostics
 import numpy as np
+import util
 
 def find_center(pp):
   nj, ni = pp.shape
   min_pp = 1e10
   min_i = 0
   min_j = 0
-  buff = 10
+  buff = 20
   for i in range(buff, ni-buff):
     for j in range(buff, nj-buff):
       avg_pp = np.mean(pp[j-buff:j+buff, i-buff:i+buff])
@@ -18,7 +19,9 @@ def find_center(pp):
 
 def maximum_wind(wind_speed, min_j, min_i):
   nj, ni = wind_speed.shape
-  buff = 20
+  smth = 5
+  wind_speed = util.smooth2d(wind_speed, smth)
+  buff = 30
   vmax = 0
   for i in range(min_i-buff, min_i+buff):
     for j in range(min_j-buff, min_j+buff):
