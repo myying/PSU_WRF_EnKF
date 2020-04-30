@@ -37,11 +37,11 @@ if [[ $HOSTTYPE == "cheyenne" ]]; then
     queue="regular"
     wtime="01:00:00"
     if [ $jobname == "wrf" ]; then
-      queue="regular"
+      queue="economy"
       wtime="01:00:00"
     fi
     if [ $jobname == "enkf" ]; then
-      queue="regular"
+      queue="economy"
       wtime="06:00:00"
     fi
     cat << EOF > run_$jobname.sh

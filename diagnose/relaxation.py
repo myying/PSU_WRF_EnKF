@@ -7,7 +7,7 @@ import sys
 m = int(sys.argv[1])
 n = 360
 nens = 60
-relax_coef = 0.3
+relax_coef = 0.25
 
 workdir = './' #'/glade/scratch/mying/Patricia_multiscale/run/201510230600/enkf/d02/'
 

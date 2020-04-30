@@ -137,12 +137,15 @@ EOF
       mv ${DATE}.finish_flag scale$s/.
       #cp fort.1* enkf.log fort.5* fort.7* fort.9* scale$s/.
       cp fort.1* enkf.log scale$s/.
-      rm -f scale$s/fort.5* scale$s/fort.7*
-      for m in `seq 1 $((NUM_ENS+1))`; do
-        ncks -vU,V,P,T,QVAPOR fort.`expr 50010 + $m` scale$s/fort.`expr 50010 + $m`
-        ncks -vU,V,P,T,QVAPOR fort.`expr 70010 + $m` scale$s/fort.`expr 70010 + $m`
-      done
-      if [ $s == $NUM_SCALES ]; then cp fort.9* scale$s/. ; fi
+      rm -f scale$s/prior.nc scale$s/post.nc
+      ncecat -vU,V,P,T,QVAPOR fort.5* scale$s/prior.nc
+      ncecat -vU,V,P,T,QVAPOR fort.7* scale$s/post.nc
+      #rm -f scale$s/fort.5* scale$s/fort.7*
+      #for m in `seq 1 $((NUM_ENS+1))`; do
+      #  ncks -vU,V,P,T,QVAPOR fort.`expr 50010 + $m` scale$s/fort.`expr 50010 + $m`
+      #  ncks -vU,V,P,T,QVAPOR fort.`expr 70010 + $m` scale$s/fort.`expr 70010 + $m`
+      #done
+      #if [ $s == $NUM_SCALES ]; then cp fort.9* scale$s/. ; fi
     done
 
     #mv radiance_${DATE}_so radiance_tmp

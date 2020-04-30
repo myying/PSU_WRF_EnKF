@@ -9,7 +9,7 @@
  STORM_ID=PATRICIA           #storm id, format: basin (al) num (13) year (2010)
 
  NUM_SCALES=3                ###wheb > 1, run multiscale algorithms
- KRANGE=(5 21)
+ KRANGE=(5.4 13.5)
  RUN_ALIGNMENT=true              ###run alignment algorithm when true
 
  MULTI_PHYS_ENS=false         #if true, use a multi-physics ensemble
@@ -151,7 +151,7 @@
  THIN_ATOVS=0
  THIN_SATWND=0
  THIN_GPSPW=0
- THIN_RADAR=0
+ THIN_RADAR=3  ##0
  THIN_RADIANCE=(0 0)
 
 #localization distance (km for HROI, # of layers for VROI) for EnKF

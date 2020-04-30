@@ -151,7 +151,7 @@
  THIN_ATOVS=0
  THIN_SATWND=0
  THIN_GPSPW=0
- THIN_RADAR=0
+ THIN_RADAR=3
  THIN_RADIANCE=(0 0)
 
 #localization distance (km for HROI, # of layers for VROI) for EnKF
