@@ -38,7 +38,7 @@ if [[ $HOSTTYPE == "cheyenne" ]]; then
     wtime="01:00:00"
     if [ $jobname == "wrf" ]; then
       queue="economy"
-      wtime="01:00:00"
+      wtime="08:00:00"
     fi
     if [ $jobname == "enkf" ]; then
       queue="economy"

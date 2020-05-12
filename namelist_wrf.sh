@@ -218,7 +218,7 @@ maxens3            = 16,
 ensdim             = 144,
 seaice_threshold   = 271,
 sf_ocean_physics   = 0,
-isftcflx           = 1,
+isftcflx           = ${ISFTCFLX:-1},
 EOF
 echo "/"
 

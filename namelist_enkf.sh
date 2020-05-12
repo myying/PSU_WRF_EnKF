@@ -3,7 +3,7 @@
 domain_id=$1
 current_scale=$2
 num_scales=$3
-scale_roi_factor=(2.0 1.0 0.5)
+scale_roi_factor=(2.0 1.3 1.0)
 thin_factor=(4 2 0)
 if [ $num_scales == 1 ]; then
   srf=1
@@ -19,7 +19,7 @@ dx=`echo ${DX[$domain_id-1]}/1000 |bc -l`
 offset=`echo "(${DATE:8:2}*60+${DATE:10:2})%${OBSINT_ATOVS:-$CYCLE_PERIOD}" |bc`
 if [[ $offset != 0 ]]; then USE_ATOVS=false; fi
 
-if [ $DATE != $LBDATE ]; then USE_HURRICANE=false; fi
+#if [ $DATE != $LBDATE ]; then USE_HURRICANE=false; fi
 ##This if statement swiths the radar rv data off for parent domains
 ##  the radar data is only assimilated for d03
 #if [[ $domain_id != 3 ]]; then USE_RADAR_RV=false; fi
