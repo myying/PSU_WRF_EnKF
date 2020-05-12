@@ -91,6 +91,7 @@
  CU_PHYSICS=(3 0 0)
  CUDT=(5 5 5)
  SST_UPDATE=0
+ ISFTCFLX=1
 
 #EnKF options
  NUM_ENS=20                      #ensemble size
@@ -102,7 +103,7 @@
  INFLATION_COEF=1.0
  RELAX_OPT=0
  RELAX_ADAPTIVE=false
- RELAXATION_COEF=(0.0 0.7)
+ RELAXATION_COEF=(0.0 0.6)
  REPLACE_MEAN=false
 
 #data sources
@@ -137,7 +138,7 @@
  USE_BUOYOBS=false                #        /              use_buoyobs
  USE_SEAWIND=false           #CYGNSS sea surface wind
  USE_RADIANCE=(false true)
- USE_HURRICANE=true
+ USE_HURRICANE=false
 
 #data thinning coef for EnKF
  THIN_SURFACE=0
@@ -155,16 +156,16 @@
  THIN_RADIANCE=(0 0)
 
 #localization distance (km for HROI, # of layers for VROI) for EnKF
- HROI_SFC=300                 #horizontal radius of influence for surface obs
- HROI_SOUNDING=600
+ HROI_SFC=200                 #horizontal radius of influence for surface obs
+ HROI_SOUNDING=400
  HROI_UPPER=600               #horizontal radius of influence for upper air obs
- HROI_RADAR=15                #horizontal radius of influence for radar obs,
- HROI_RADIANCE=100
+ HROI_RADAR=45                #horizontal radius of influence for radar obs,
+ HROI_RADIANCE=90
  HROI_HURRICANE=300
  VROI=42                      #vertical radius of influence
- VROI_SOUNDING=5
+ VROI_SOUNDING=10
  VROI_RADAR=42                #vertical radius of influence for radar obs
- VROI_RADIANCE=99
+ VROI_RADIANCE=42
 
 #WRFDA options
  CV_OPTIONS=3                 #3 -   uses be.dat.cv3
