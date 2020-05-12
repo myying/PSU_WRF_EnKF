@@ -60,7 +60,9 @@ def getvar(infile, varname):
     var = ncread(infile, 'P')[:, 0, :, :] + ncread(infile, 'PB')[:, 0, :, :]
 
   elif (varname == 'z'):
-    var = (ncread(infile, 'P') + ncread(infile, 'PB')) / g
+    dat = (ncread(infile, 'PH') + ncread(infile, 'PHB')) / g
+    nt, nz, ny, nx = dat.shape
+    var = 0.5*(dat[:, 0:nz-1, :, :] + dat[:, 1:nz, :, :])
 
   elif (varname == 'th'):
     var = ncread(infile, 'T') + 300
@@ -86,3 +88,12 @@ def getvar(infile, varname):
 
   return var
 
+def vert_interp(xin, vin, vout):
+  nv, ny, nx = xin.shape
+  nz = vout.size
+  xout = np.zeros((nz, ny, nx))
+  xout[:, :, :] = np.nan
+  for i in range(nx):
+    for j in range(ny):
+      xout[:, j, i] = np.interp(vout, vin[:, j, i], xin[:, j, i])
+  return xout

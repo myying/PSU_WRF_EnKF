@@ -6,16 +6,18 @@ import wrf_functions as wrf
 import tropical_cyclone as tc
 
 workdir = '/glade/scratch/mying/Patricia/'
-casename = sys.argv[1] #'multiscale'
+casename = sys.argv[1] #'multiscale/fc'
 tstr = sys.argv[2] #'201510211200'
-nens = 60
+nens = int(sys.argv[3]) #60
+domain_id = 2
+print(tstr)
 
 tc_center = np.zeros((2, nens))
 tc_latlon = np.zeros((2, nens))
 tc_vmax = np.zeros(nens)
 tc_pmin = np.zeros(nens)
 for m in range(nens):
-  filename = workdir+casename+'/fc/'+tstr+'/wrfinput_d02_{:03d}'.format(m+1)
+  filename = workdir+casename+'/'+tstr+'/wrfinput_d{:02d}_{:03d}'.format(domain_id, m+1)
   lat = wrf.getvar(filename, 'XLAT')[0, :, :]
   lon = wrf.getvar(filename, 'XLONG')[0, :, :]
   wind_speed = wrf.getvar(filename, 'wind')[0, 0, :, :]
@@ -29,7 +31,7 @@ for m in range(nens):
   tc_pmin[m] = slp[j, i]
   tc_vmax[m] = tc.maximum_wind(wind_speed, j, i)
 
-np.save(workdir+casename+'/fc/'+tstr+'/tc_center_ens', tc_center)
-np.save(workdir+casename+'/fc/'+tstr+'/tc_latlon_ens', tc_latlon)
-np.save(workdir+casename+'/fc/'+tstr+'/tc_vmax_ens', tc_vmax)
-np.save(workdir+casename+'/fc/'+tstr+'/tc_pmin_ens', tc_pmin)
+np.save(workdir+casename+'/'+tstr+'/tc_center_ens', tc_center)
+np.save(workdir+casename+'/'+tstr+'/tc_latlon_ens', tc_latlon)
+np.save(workdir+casename+'/'+tstr+'/tc_vmax_ens', tc_vmax)
+np.save(workdir+casename+'/'+tstr+'/tc_pmin_ens', tc_pmin)

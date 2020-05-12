@@ -2,14 +2,15 @@
 import numpy as np
 import util
 import os
+import sys
 import matplotlib.pyplot as plt
 import cartopy.crs as ccrs
 import cartopy.io.shapereader as shpreader
 
 workdir = '/glade/scratch/mying/Patricia/'
-casename = 'control'
+casename = sys.argv[1] #'control/fc'
 t_start = '201510211200'
-nt = 37
+nt = 67
 nens = 60
 
 ###observation: tcvitals best track
@@ -30,13 +31,13 @@ tc_vmax[:, :] = np.nan
 tc_pmin[:, :] = np.nan
 for t in range(0, nt):
   t_str = util.advance_time(t_start, t*60)
-  tdir = workdir+casename+'/fc/'+t_str
+  tdir = workdir+casename+'/'+t_str
   if (os.path.exists(tdir+'/tc_center_ens.npy')):
     latlon = np.load(tdir+'/tc_latlon_ens.npy')
-    tc_lat[t, :] = latlon[0, :]
-    tc_lon[t, :] = latlon[1, :]
-    tc_vmax[t, :] = np.load(tdir+'/tc_vmax_ens.npy')
-    tc_pmin[t, :] = np.load(tdir+'/tc_pmin_ens.npy')
+    tc_lat[t, :] = latlon[0, 0:nens]
+    tc_lon[t, :] = latlon[1, 0:nens]
+    tc_vmax[t, :] = np.load(tdir+'/tc_vmax_ens.npy')[0:nens]
+    tc_pmin[t, :] = np.load(tdir+'/tc_pmin_ens.npy')[0:nens]
 
 plt.switch_backend('Agg')
 plt.figure(figsize=(15, 5))
@@ -70,4 +71,4 @@ ax.set_xticks(np.arange(0, 73, 12))
 ax.set_xticklabels(np.array(['21/12', '22/00', '22/12', '23/00', '23/12', '24/00', '24/12']))
 
 plt.tight_layout()
-plt.savefig(casename+'_intensity_track_ens.png', dpi=100)
+plt.savefig(workdir+casename+'/intensity_track_ens.png', dpi=100)
