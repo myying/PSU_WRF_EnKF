@@ -35,7 +35,7 @@ integer   :: ngx, ngz, kzdamp
 integer   :: i, j, k, m, n, iob, iiob, nob, ie, iunit,ounit,ii, jj, kk, is, it, ig, iv, i1,j1, itot
 integer   :: ist,ied,jst,jed,kst,ked, istart,iend,jstart,jend, uist,uied,ujst,ujed
 integer   :: sist,sied,sjst,sjed, sistart,siend,sjstart,sjend,sis,sie,sjs,sje
-real      :: gaussdev, error, xb
+real      :: obs_radius, gaussdev, error, xb
 integer, dimension(8)  :: values
 character (len=10) :: filename, date, time, zone, varname
 character (len=20) :: format1
@@ -253,6 +253,17 @@ obs_assimilate_cycle : do it = 1,obs%num
    if ( my_proc_id==0 ) write(*,'(a,i6,a,f10.2,a,f10.2,a,f8.2,a,f8.2,a,i4,a,i4)') &
       'No.',iob,' '//obstype//' =',obs%dat(iob), ' ya=', ya(iob,numbers_en+1), ' y-ya=', y_hxm, &
       ' err=',error,' hroi=',obs%roi(iob,1),' vroi=',obs%roi(iob,2)
+
+   if ( obstype(2:9)=='sounding' .or. obstype(1:7)=='RadarRV' ) then
+      !if ( obstype(10:10).ne.'U' .and. obstype(10:10).ne.'V' .and. obstype(1:7).ne.'RadarRV' ) then  !!dynamic_only
+      !if ( obstype(10:10).ne.'T' .and. obstype(10:10).ne.'Q' ) then  !!thermal_only
+      !if ( obs%position(iob,3).gt.27 ) then  !!below10km_only
+      obs_radius=sqrt((obs%position(iob,1)-ix/2)**2+(obs%position(iob,2)-jx/2)**2)
+      if ( obs_radius.ge.34 ) then  !!inside100km_only
+          kick_flag(iob)=1
+          cycle obs_assimilate_cycle
+      end if
+   end if
 
    if( abs(y_hxm)>(error*5.) .and. &
       .not.(obstype=='min_slp   ' .or. obstype=='longitude ' .or. obstype=='latitude  ' &

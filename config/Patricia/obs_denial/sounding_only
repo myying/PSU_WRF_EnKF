@@ -1,0 +1,208 @@
+##The following is a detailed description of each configuration file entry
+#work flow control
+ RUN_ENKF=true               #if true, run EnKF component
+ RUN_4DVAR=false	             #if true, run 4DVar component
+                             #if both RUN_ENKF and RUN_4DVAR are true, run a hybrid E4DVar
+ RUN_ENVAR=false             #if true, run 4DEnVar instead of E4DVar
+
+ FOLLOW_STORM=true           #if true, nested domain will be preset to move following the path of
+ STORM_ID=PATRICIA           #storm id, format: basin (al) num (13) year (2010)
+
+ NUM_SCALES=1                ###wheb > 1, run multiscale algorithms
+ KRANGE=(0)
+ RUN_ALIGNMENT=false              ###run alignment algorithm when true
+
+ MULTI_PHYS_ENS=false         #if true, use a multi-physics ensemble
+ MULTI_INC=true              #if true, run a multi-incremental version of 4DVar
+ DECIMATION_FACTOR=3         #ratio of high/low resolution in multi-incremental 4DVar
+
+ CLEAN=false                  #if true, delete unwanted wrfout files in rundir
+
+#experiment design
+ EXP_NAME=Patricia/obs_denial/sounding_only      #name of experiment
+ DATE_START=201510211800        #initial date, need to have available first guess (0 6 12 18 h)
+ DATE_END=201510212200          #end date
+ DATE_CYCLE_START=201510211900  #date of first assimilation cycle, also need first guess available
+ DATE_CYCLE_END=201510222100    #date of final assimilation cycle
+
+#time control: unit=minutes
+ CYCLE_PERIOD=60                #interval among cycles
+ WRFOUT_INTERVAL=(60 60 60)     #interval of wrfout times
+ LBC_INTERVAL=360               #interval of available first guess files
+
+ OBS_WIN_MIN=-30                #observation window start offset
+ OBS_WIN_MAX=30                 #observation window end offset
+ MINUTES_PER_SLOT=10            #bin size, defines how may time slots are there in a window
+                                #Observation window is usually set to +-1/2 CYCLE_PERIOD, so that
+                                #EnKF analysis date locates in the center of the window.
+
+ FORECAST_TO_END=false          #if true, determ forecast will run from analysis time to DATE_END
+ FORECAST_MINUTES=360           #default length of forecast from analysis
+
+#directories
+ WORK_DIR=$SCRATCH/$EXP_NAME               #path to your experiment work directory
+ SCRIPT_DIR=$WORK/PSU_WRF_EnKF             #path to this script set
+ CODE_DIR=$WORK/code                       #path to codes
+ DATA_DIR=$WORK/data/Patricia              #path to observations
+ WPS_DIR=$CODE_DIR/WPSV3.9                 #WPS package (contains geogrid.exe, ungrib.exe, metgrid.exe)
+ WRF_DIR=$CODE_DIR/WRFV3.9_presetmove      #WRF package (contains real.exe, wrf.exe, ndown.exe and runtime files)
+ WRF_BC_DIR=$CODE_DIR/WRF_BC_v2.1_alltime  #path to update_wrf_bc.exe
+ WRFDA_DIR=$CODE_DIR/WRFDAV3.9           #WRFDA package (contains da_wrfvar.exe and runtime files)
+ MULTI_INC_DIR=$CODE_DIR/MULTI_INC         #path to da_decimation.exe, da_bdy.exe
+ ENKF_DIR=$SCRIPT_DIR/EnKF/src/versions/normal             #path to enkf.mpi
+ FG_DIR=$DATA_DIR/fnl                      #path to first guess files
+ GEOG_DIR=$WORK/data/geog                  #path to geog, needed by WPS
+ BE_DIR=$DATA_DIR                          #path to be.dat
+ TCVITALS_DIR=$DATA_DIR/tcvitals          #tcvitals data files
+ TCV_INTERVAL=60
+
+#domain setup
+ TWO_WAY_NESTING=true         #if true, set feedback=1 in namelist.input for WRF
+ MAX_DOM=2                    #the following options are the same as in namelist.input for WRF
+ TIME_STEP=(30 10 5)
+ TIME_STEP_RATIO=(1 3 3)
+ E_WE=(501 361 361)
+ E_SN=(402 361 361)
+ E_VERT=(43 43 43)
+ DX=(9000 3000 1000)
+ DY=(9000 3000 1000)
+ PARENT_ID=(0 1 2)
+ GRID_RATIO=(1 3 3)
+ I_PARENT_START=(1 257 121)
+ J_PARENT_START=(1 104 121)
+ NUM_METGRID_LEVELS=27
+ MAP_PROJ="mercator"
+ REF_LAT=16.0
+ REF_LON=-103.0
+ STAND_LON=-103.0
+ TRUELAT1=16.0
+ TRUELAT2=16.0
+ P_TOP=1000
+
+#physics
+ MP_PHYSICS=(6 6 6)
+ RA_LW_PHYSICS=(1 1 1)
+ RA_SW_PHYSICS=(1 1 1)
+ RADT=(27 9 3)
+ SF_SFCLAY_PHYSICS=(1 1 1)
+ SF_SURFACE_PHYSICS=(1 1 1)
+ BL_PBL_PHYSICS=(1 1 1)
+ BLDT=(0 0 0)
+ CU_PHYSICS=(3 0 0)
+ CUDT=(5 5 5)
+ SST_UPDATE=0
+
+#EnKF options
+ NUM_ENS=60                      #ensemble size
+ ADAPTIVE_INFLATION=false
+ UPDATE_VAR=(U V W P PH T MU QVAPOR QCLOUD QRAIN QICE QSNOW QGRAUP U10 V10 T2 Q2 PSFC)
+ NMCPU=32
+ NICPU=4
+ NJCPU=4
+ INFLATION_COEF=1.0
+ RELAX_OPT=0
+ RELAX_ADAPTIVE=false
+ RELAXATION_COEF=(0.0 0.7)
+ REPLACE_MEAN=false
+
+#data sources
+ INCLUDE_LITTLE_R=true           #include LITTLE_R formatted data as input to obsproc.exe
+ INCLUDE_MADIS=false
+ INCLUDE_BUFR=false
+
+#Some of the following switches are shared in namelist_enkf and namelist_wrfvar to select certain observation types
+#                              in  namelist.enkf      in wrfvar namelist.input
+ USE_SYNOPOBS=false               #        /              use_synopobs
+ USE_SURFOBS=true               #  use_surface               /
+ USE_SOUNDOBS=true               #  use_sounding         use_soundobs
+ USE_PILOTOBS=false               #        /              use_pilotobs
+ USE_PROFILEROBS=false            #  use_profiler         use_profilerobs
+ USE_AIREPOBS=true               #  use_aircft           use_airepobs
+ USE_METAROBS=true               #  use_metar            use_metarobs
+ USE_SHIPSOBS=true               #  use_sfcshp           use_shipsobs
+ USE_SSMIOBS=false               #  use_spssmi                /
+ USE_SATEMOBS=false              #        /              use_satemobs
+ USE_GPSPWOBS=false              #  use_gpspw            use_gpspwobs
+ USE_GPSREFOBS=false             #        /              use_gpsrefobs
+ USE_ATOVS=false                 #  use_atovs                 /
+ USE_GEOAMVOBS=true              #  use_satwnd           use_geoamvobs
+ USE_POLARAMVOBS=false           #        /              use_polaramvobs
+ USE_QSCATOBS=false              #        /              use_qscatobs
+ USE_RADAROBS=false              #        /              use_radarobs
+ USE_RADAR_RF=false              #  use_radar_rf              /
+ USE_RADAR_RV=false              #  use_radar_rv              /
+ USE_AIRBORNE_RF=false           #  use_airborne_rf           /
+ USE_AIRBORNE_RV=(false false)           #  use_airborne_rv           /
+ USE_BOGUSOBS=false              #        /              use_bogusobs
+ USE_BUOYOBS=false                #        /              use_buoyobs
+ USE_SEAWIND=false           #CYGNSS sea surface wind
+ USE_RADIANCE=(false true)
+ USE_HURRICANE=true
+
+#data thinning coef for EnKF
+ THIN_SURFACE=0
+ THIN_SOUNDING=0
+ THIN_SOUNDING_VERT=0
+ THIN_PROFILER=0
+ THIN_AIRCFT=0
+ THIN_METAR=0
+ THIN_SFCSHP=0
+ THIN_SPSSMI=0
+ THIN_ATOVS=0
+ THIN_SATWND=0
+ THIN_GPSPW=0
+ THIN_RADAR=0
+ THIN_RADIANCE=(0 0)
+
+#localization distance (km for HROI, # of layers for VROI) for EnKF
+ HROI_SFC=300                 #horizontal radius of influence for surface obs
+ HROI_SOUNDING=600
+ HROI_UPPER=600               #horizontal radius of influence for upper air obs
+ HROI_RADAR=15                #horizontal radius of influence for radar obs,
+ HROI_RADIANCE=100
+ HROI_HURRICANE=300
+ VROI=42                      #vertical radius of influence
+ VROI_SOUNDING=5
+ VROI_RADAR=42                #vertical radius of influence for radar obs
+ VROI_RADIANCE=99
+
+#WRFDA options
+ CV_OPTIONS=3                 #3 -   uses be.dat.cv3
+                              #5/6 - uses be.dat from run_gen_be.sh ($BE_DIR)
+ VAR_SCALING1=1.0
+ VAR_SCALING2=1.0
+ VAR_SCALING3=1.0
+ VAR_SCALING4=1.0
+ VAR_SCALING5=1.0
+ LEN_SCALING1=1.0
+ LEN_SCALING2=1.0
+ LEN_SCALING3=1.0
+ LEN_SCALING4=1.0
+ LEN_SCALING5=1.0
+
+#WRFDA options (for 4DVar)
+ MAX_EXT_ITS=1
+ NTMAX=80
+ VAR4D_LBC=false
+#HYBRID options (alpha cv method related)
+ ALPHACV_METHOD=2
+ JE_FACTOR=1.25
+
+#CPU usage
+ HOSTACCOUNT=TG-ATM190001
+ HOSTPPN=32            #number of CPUs per node on host machines
+ HOSTTYPE=stampede2     #host type (used in job_submit.sh, currently supports "jet" and "stampede")
+ JOB_SUBMIT_MODE=2     # 1 - submit run_cycle.sh to queue as a single job. The scheduling of
+                       #     each component is taken care of in each module script.
+                       # 2 - execute run_cycle.sh as a bash script, each component is submitted
+                       #     as a separate job in the queue, scheduling is done by the queue.
+
+ wps_ntasks=32                # number of processes for WPS programs and real.exe
+ wrf_ntasks=128                # ..    ..  ..  ..  WRF run       (wrf.exe)
+ var3d_ntasks=128              # ..    ..  ..  ..  3DVar component (perturb_ic da_wrfvar.exe)
+ var3d_ppn=16
+ var4d_ntasks=(128 128 128)     # ..    ..  ..  ..  4DVar component (da_wrfvar.exe) (for each domain)
+ var4d_ppn=16
+ enkf_ntasks=512                # ..    ..  ..  ..  EnKF component (enkf.mpi)
+ enkf_ppn=32
+
