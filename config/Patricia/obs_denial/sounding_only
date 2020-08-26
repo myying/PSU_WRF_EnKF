@@ -23,7 +23,7 @@
  DATE_START=201510211800        #initial date, need to have available first guess (0 6 12 18 h)
  DATE_END=201510212200          #end date
  DATE_CYCLE_START=201510211900  #date of first assimilation cycle, also need first guess available
- DATE_CYCLE_END=201510222100    #date of final assimilation cycle
+ DATE_CYCLE_END=201510212100    #date of final assimilation cycle
 
 #time control: unit=minutes
  CYCLE_PERIOD=60                #interval among cycles
