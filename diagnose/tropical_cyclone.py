@@ -19,12 +19,12 @@ def find_center(pp):
 
 def maximum_wind(wind_speed, min_j, min_i):
   nj, ni = wind_speed.shape
-  smth = 5
+  smth = 1
   wind_speed = util.smooth2d(wind_speed, smth)
   buff = 30
   vmax = 0
-  for i in range(min_i-buff, min_i+buff):
-    for j in range(min_j-buff, min_j+buff):
+  for i in range(max(0, min_i-buff), min(ni, min_i+buff)):
+    for j in range(max(0, min_j-buff), min(nj, min_j+buff)):
       if(wind_speed[j, i] > vmax):
         vmax = wind_speed[j, i]
   return vmax

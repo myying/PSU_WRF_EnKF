@@ -20,9 +20,9 @@
 
 #experiment design
  EXP_NAME=Patricia/control      #name of experiment
- DATE_START=201510210000        #initial date, need to have available first guess (0 6 12 18 h)
+ DATE_START=201510220600        #initial date, need to have available first guess (0 6 12 18 h)
  DATE_END=201510241200          #end date
- DATE_CYCLE_START=201510211200  #date of first assimilation cycle, also need first guess available
+ DATE_CYCLE_START=201510220900  #date of first assimilation cycle, also need first guess available
  DATE_CYCLE_END=201510221900    #date of final assimilation cycle
 
 #time control: unit=minutes
@@ -138,7 +138,7 @@
  USE_BUOYOBS=false                #        /              use_buoyobs
  USE_SEAWIND=false           #CYGNSS sea surface wind
  USE_RADIANCE=(false true)
- USE_HURRICANE=false
+ USE_HURRICANE=true
 
 #data thinning coef for EnKF
  THIN_SURFACE=0
@@ -156,14 +156,14 @@
  THIN_RADIANCE=(0 0)
 
 #localization distance (km for HROI, # of layers for VROI) for EnKF
- HROI_SFC=200                 #horizontal radius of influence for surface obs
- HROI_SOUNDING=400
+ HROI_SFC=300                 #horizontal radius of influence for surface obs
+ HROI_SOUNDING=300
  HROI_UPPER=600               #horizontal radius of influence for upper air obs
  HROI_RADAR=45                #horizontal radius of influence for radar obs,
  HROI_RADIANCE=90
  HROI_HURRICANE=300
  VROI=42                      #vertical radius of influence
- VROI_SOUNDING=10
+ VROI_SOUNDING=5
  VROI_RADAR=42                #vertical radius of influence for radar obs
  VROI_RADIANCE=42
 

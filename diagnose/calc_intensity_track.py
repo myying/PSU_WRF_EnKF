@@ -9,7 +9,7 @@ workdir = '/glade/scratch/mying/Patricia/'
 casename = sys.argv[1] #'multiscale/fc'
 tstr = sys.argv[2] #'201510211200'
 nens = int(sys.argv[3]) #60
-domain_id = 2
+domain_id = int(sys.argv[4]) #2
 print(tstr)
 
 tc_center = np.zeros((2, nens))
@@ -22,7 +22,7 @@ for m in range(nens):
   lon = wrf.getvar(filename, 'XLONG')[0, :, :]
   wind_speed = wrf.getvar(filename, 'wind')[0, 0, :, :]
   p_pert = wrf.getvar(filename, 'MU')[0, :, :]
-  slp = wrf.getvar(filename, 'PSFC')[0, :, :]/100
+  slp = wrf.getvar(filename, 'slp')[0, :, :]/100
   j, i = tc.find_center(p_pert)
   tc_center[0, m] = j
   tc_center[1, m] = i
