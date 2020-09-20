@@ -499,7 +499,7 @@ update_x_var : do m=1,nv
          if(gamma_corr(i,j,k,m)>0.) then
            dist_2=y_hxm**2
            sigma_p_2=var*fac
-           sigma_o_2=1 !!error*error
+           sigma_o_2=error*error
            inf_mean_old=inf_mean(i,j,k,m)
            call change_GA_IG(inf_mean(i,j,k,m),inf_sd(i,j,k,m),rate)
            call linear_bayes(dist_2,sigma_p_2,sigma_o_2,inf_mean_old, &
