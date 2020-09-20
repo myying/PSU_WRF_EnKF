@@ -3,7 +3,7 @@
 FC=mpif90
 FCFLAG=-f90=ifort -i4 -w -ftz -align all -fno-alias -fp-model precise -assume realloc_lhs -convert big_endian -traceback
 
-all: enkf.mpi ensemble_mean.exe replace_mean.exe replace_mean_outside_site.exe scale_decompose.exe alignment.exe
+all: enkf.mpi ensemble_mean.exe replace_mean.exe replace_mean_outside_site.exe scale_decompose.exe alignment.exe inflation.mpi
 
 clean:
 	rm -f *.o *.mod *.mpi *.exe
@@ -30,10 +30,10 @@ xb.o:
 	$(FC) -c $(FCFLAG) -FR -I$(NETCDF)/include -I$(CRTM_DIR)/include xb.f
 sub_enkf_util.o:
 	$(FC) -c $(FCFLAG) -FR sub_enkf_util.f
+inflation_mod.o:
+	$(FC) -c $(FCFLAG) -FR inflation_mod.f
 enkf.o:
 	$(FC) -c $(FCFLAG) -FR enkf.f
-main.o:
-	$(FC) -c $(FCFLAG) -FR main.f
 ensemble_mean.o:
 	$(FC) -c $(FCFLAG) -FR ensemble_mean.f
 replace_mean.o:
@@ -45,6 +45,9 @@ multiscale_utils.o:
 
 enkf.mpi: module_structure.o mpi_module.o module_netcdf.o module_map_utils.o module_wrf_tools.o module_radar.o cal_roi.o hurricane_center.o obs_io.o xb.o sub_enkf_util.o enkf.o
 	$(FC) -o enkf.mpi $(FCFLAG) -FR -I$(NETCDF)/include  module_structure.o mpi_module.o module_netcdf.o module_map_utils.o module_wrf_tools.o module_radar.o cal_roi.o hurricane_center.o obs_io.o xb.o sub_enkf_util.o enkf.o -L$(CRTM_DIR)/lib -lCRTM -L$(NETCDF)/lib -lnetcdff main.f
+
+inflation.mpi: module_structure.o mpi_module.o module_netcdf.o module_map_utils.o module_wrf_tools.o module_radar.o cal_roi.o hurricane_center.o obs_io.o xb.o sub_enkf_util.o inflation_mod.o
+	$(FC) -o inflation.mpi $(FCFLAG) -FR -I$(NETCDF)/include  module_structure.o mpi_module.o module_netcdf.o module_map_utils.o module_wrf_tools.o module_radar.o cal_roi.o hurricane_center.o obs_io.o xb.o sub_enkf_util.o inflation_mod.o -L$(CRTM_DIR)/lib -lCRTM -L$(NETCDF)/lib -lnetcdff inflation.f
 
 ensemble_mean.exe: module_structure.o mpi_module.o module_netcdf.o module_map_utils.o module_wrf_tools.o sub_enkf_util.o
 	$(FC) -o ensemble_mean.exe $(FCFLAG) -FR -I$(NETCDF)/include module_structure.o mpi_module.o module_netcdf.o module_map_utils.o module_wrf_tools.o sub_enkf_util.o -L$(CRTM_DIR)/lib -lCRTM -L$(NETCDF)/lib -lnetcdff ensemble_mean.f

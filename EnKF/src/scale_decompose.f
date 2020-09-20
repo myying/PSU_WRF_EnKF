@@ -27,9 +27,9 @@ call read_namelist(ix, jx, kx)
 
 !!only using nmcpu=nens here, no domain decomposition (because fft2 requires whole domain)
 !!ignore namelist parallel options
-if(nprocs .ne. numbers_en) then
-  if(my_proc_id==0) print*,'ERROR: nprocs/=numbers_en'
-endif
+!if(nprocs .ne. numbers_en) then
+!  if(my_proc_id==0) print*,'ERROR: nprocs/=numbers_en'
+!endif
 
 nv = 0
 do m=1,30
