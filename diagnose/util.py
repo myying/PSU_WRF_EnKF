@@ -87,7 +87,7 @@ def optical_flow_HS(Im1, Im2, nlevel, mask):
     maskc, off = coarsen(mask, lev)
 
     niter = 100
-    w1 = 1000
+    w1 = 100
     w2 = 0
     Ix = 0.5*(deriv_x(Im1c) + deriv_x(Im2c))
     Iy = 0.5*(deriv_y(Im1c) + deriv_y(Im2c))
