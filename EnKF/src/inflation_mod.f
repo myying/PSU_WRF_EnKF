@@ -34,19 +34,19 @@ real, dimension(3)      :: center_xb
 real, dimension(ni,nj,nk,nv,nm), intent(inout) :: x,xo
 real, dimension(ni,nj,nk,nv), intent(inout)    :: xm,xom,inf_mean,inf_sd
 real, dimension(ni,nj,nk,nv,nm)                :: xf
-real, dimension(ni,nj,nk,nv)                   :: x_t, std_x,std_xf, xmf, gamma_corr
+real, dimension(ni,nj,nk,nv)                   :: x_t, std_x,std_xf, xmf
 real, dimension(3,3,nk,nv,nm,nicpu*njcpu) :: xobsend, xob
 real, dimension(3,3,nk,nv) :: tmp, tmpsend
 real, dimension(obs%num,numbers_en+1) :: ya, yasend, yf
 real, dimension(obs%num) :: obs_kk, obs_kk_send
 integer, dimension(obs%num) :: kick_flag
-real, allocatable, dimension(:,:,:)   :: m1,m1send,m2,m2send,km,km1,km1send
+real, allocatable, dimension(:,:,:)   :: m1,m1send,m2,m2send,km,km1,km1send,inf1
 real, allocatable, dimension(:,:,:,:) :: x1
 integer :: iob_radmin,iob_radmax
 real, dimension(obs%num) :: yasend_tb, ym_radiance
 real, dimension(ni,nj,nk)     :: xq_n,xq_p
 real, dimension(ni,nj,nk,nm)  :: xq_nsend,xq_psend
-real :: rate,dist_2,sigma_p_2,sigma_o_2,inf_mean_old
+real :: rate,dist_2,sigma_p_2,sigma_o_2,gamma_corr
 
 
 read(wrf_file(6:10),'(i5)')iunit
@@ -209,7 +209,7 @@ yf=ya  !save a copy of observation prior (for error statistics)
 if(my_proc_id==0) write(*,*) 'Assimilating obs...'
 
 assimilated_obs_num=0
-obs_assimilate_cycle : do it = 1,obs%num
+obs_assimilate_cycle : do it = 1, obs%num
 ! 0. get basic information of the obs being assimilated
    iob=ind(it)
    kick_flag(iob)=0
@@ -256,6 +256,17 @@ obs_assimilate_cycle : do it = 1,obs%num
    fac  = 1./real(numbers_en-1)
    d    = fac * var + error * error
    alpha = 1.0/(1.0+sqrt(error*error/d))
+!!---Observation Error Inflation & Successive Covariance Localization (Zhang et al. 2009)
+!!      for Radiance assimilation by Minamide 2015.3.14
+   if (obstype=='Radiance  ' .or. obstype(1:5)=='Radar') then
+     d = max(fac * var + error * error, y_hxm * y_hxm)
+     alpha = 1.0/(1.0+sqrt((d-fac * var)/d))
+     if ( sqrt(d-fac*var) > error ) then
+       error = sqrt(d-fac*var)
+       if (my_proc_id == 0) &
+          write(*,*) 'observation-error inflated to ',error
+     endif
+   endif
 
 ! cycle through variables to process, in x, 2D variables are stored in 3D form (with values only on
 ! k=1), when sending them among cpus, only the lowest layer (:,:,1) are sent and received.
@@ -265,6 +276,22 @@ update_x_var : do m=1,nv
    do iv = 1, num_update_var
      if ( varname .eq. updatevar(iv) ) update_flag = 1
    enddo
+!
+   if (obstype=='Radiance  ') then
+     if (varname=='P         ' .or. varname=='PH        ' .or. varname=='MU        ' .or. varname=='PSFC      ') then
+       update_flag=0
+     else
+       update_flag=1
+     end if
+   end if
+   !if (obstype=='Radiance  ') then
+   !  if (varname=='QCLOUD    ' .or. varname=='QRAIN     ' .or. varname=='QICE      ' .or. &
+   !    varname=='QGRAUP    ' .or. varname=='QSNOW     ') then
+   !    update_flag=1
+   !  else
+   !    update_flag=0
+   !  end if
+   !end if
 
    if ( update_flag==0 ) cycle update_x_var
 
@@ -296,7 +323,9 @@ update_x_var : do m=1,nv
        endif
      endif
      allocate(x1(uied-uist+1, ujed-ujst+1, ked-kst+1, nm))
+     allocate(inf1(uied-uist+1, ujed-ujst+1, ked-kst+1))
      x1=0.
+     inf1=1.
 
 ! 1. send and recv x from all sid to the slab a cpu need for later use.
 !    if data needed from/to sid, we determine the indices of data sent/received by the
@@ -317,6 +346,10 @@ update_x_var : do m=1,nv
                          max(ujst,sjstart)-ujst+1:min(ujed,sjend)-ujst+1, 1:ked-kst+1,:), &
                         (min(uied,siend)-max(uist,sistart)+1)*(min(ujed,sjend)-max(ujst,sjstart)+1)*(ked-kst+1)*nm, &
                          MPI_REAL, is, 0, s_comm, status, ierr )
+            call MPI_RECV(inf1(max(uist,sistart)-uist+1:min(uied,siend)-uist+1, &
+                         max(ujst,sjstart)-ujst+1:min(ujed,sjend)-ujst+1, 1:ked-kst+1), &
+                        (min(uied,siend)-max(uist,sistart)+1)*(min(ujed,sjend)-max(ujst,sjstart)+1)*(ked-kst+1), &
+                         MPI_REAL, is, 0, s_comm, status, ierr )
          endif
        endif
      enddo
@@ -336,10 +369,18 @@ update_x_var : do m=1,nv
               max(sjst,jstart)-sjst+1:min(sjed,jend)-sjst+1, 1:ked-kst+1,:) = &
            x( max(sist,istart)-istart+1:min(sied,iend)-istart+1, &
               max(sjst,jstart)-jstart+1:min(sjed,jend)-jstart+1, kst:ked,m,:)
+           inf1(max(sist,istart)-sist+1:min(sied,iend)-sist+1, &
+              max(sjst,jstart)-sjst+1:min(sjed,jend)-sjst+1, 1:ked-kst+1) = &
+           inf_mean( max(sist,istart)-istart+1:min(sied,iend)-istart+1, &
+              max(sjst,jstart)-jstart+1:min(sjed,jend)-jstart+1, kst:ked,m)
          else
            call MPI_SEND(x(max(sist,istart)-istart+1:min(sied,iend)-istart+1, &
                          max(sjst,jstart)-jstart+1:min(sjed,jend)-jstart+1,kst:ked,m,:), &
                          (min(sied,iend)-max(sist,istart)+1)*(min(sjed,jend)-max(sjst,jstart)+1)*(ked-kst+1)*nm, &
+                         MPI_REAL, is, 0, s_comm, ierr)
+           call MPI_SEND(inf_mean(max(sist,istart)-istart+1:min(sied,iend)-istart+1, &
+                         max(sjst,jstart)-jstart+1:min(sjed,jend)-jstart+1,kst:ked,m), &
+                         (min(sied,iend)-max(sist,istart)+1)*(min(sjed,jend)-max(sjst,jstart)+1)*(ked-kst+1), &
                          MPI_REAL, is, 0, s_comm, ierr)
          endif
        endif
@@ -359,11 +400,15 @@ update_x_var : do m=1,nv
                              max(ujst,sjstart)-ujst+1:min(ujed,sjend)-ujst+1, 1:ked-kst+1,:), &
                           (min(uied,siend)-max(uist,sistart)+1)*(min(ujed,sjend)-max(ujst,sjstart)+1)*(ked-kst+1)*nm, &
                           MPI_REAL, is, 0, s_comm, status, ierr )
+            call MPI_RECV(inf1(max(uist,sistart)-uist+1:min(uied,siend)-uist+1, &
+                             max(ujst,sjstart)-ujst+1:min(ujed,sjend)-ujst+1, 1:ked-kst+1), &
+                          (min(uied,siend)-max(uist,sistart)+1)*(min(ujed,sjend)-max(ujst,sjstart)+1)*(ked-kst+1), &
+                          MPI_REAL, is, 0, s_comm, status, ierr )
          endif
        endif
      enddo
 
-! 2. calculate correlation
+! 2. calculate correlation stored in m1
 !    the summation among ensemble members is done by allreduce within the g_comm group (members are
 !    distributed among cpus with different gid.
      allocate ( m1     (uied-uist+1, ujed-ujst+1, ked-kst+1) )
@@ -386,19 +431,29 @@ update_x_var : do m=1,nv
      call MPI_Allreduce(m1send,m1,(uied-uist+1)*(ujed-ujst+1)*(ked-kst+1),MPI_REAL,MPI_SUM,g_comm,ierr)
      call MPI_Allreduce(m2send,m2,(uied-uist+1)*(ujed-ujst+1)*(ked-kst+1),MPI_REAL,MPI_SUM,g_comm,ierr)
      if(var<=0.) then
-       km=0.
+       m1=0.
      else
-       km=abs(m1/sqrt(m2*var))
+       m1=abs(m1/sqrt(m2*var))
      endif
 
 ! 3. calculate corr_coef=localization factor, 1 at obs position, reduce to 0 at roi
 !    2-D variables are treated as at surface k=1
+!!!!update inflation stored in km
      do k = kst,ked
      do j = ujst,ujed
      do i = uist,uied
        call corr(real(i-obs%position(iob,1)),real(j-obs%position(iob,2)),real(k-obs%position(iob,3)),obs%roi(iob,1),obs%roi(iob,2),corr_coef)
        !if ( obstype == 'longitude ' .or. obstype == 'latitude  ' ) corr_coef = 1.0
-       km(i-uist+1,j-ujst+1,k-kst+1) = km(i-uist+1,j-ujst+1,k-kst+1) * corr_coef
+       km(i-uist+1,j-ujst+1,k-kst+1) = inf1(i-uist+1,j-ujst+1,k-kst+1)
+       gamma_corr = m1(i-uist+1,j-ujst+1,k-kst+1) * corr_coef
+       if(gamma_corr>0.) then
+         dist_2=y_hxm**2
+         sigma_p_2=var*fac
+         sigma_o_2=error*error
+         call change_GA_IG(inf1(i-uist+1,j-ujst+1,k-kst+1),1.0,rate)
+         call linear_bayes(dist_2,sigma_p_2,sigma_o_2,inf1(i-uist+1,j-ujst+1,k-kst+1), &
+                           gamma_corr,numbers_en,rate,km(i-uist+1,j-ujst+1,k-kst+1))
+       endif
      enddo
      enddo
      enddo
@@ -488,31 +543,15 @@ update_x_var : do m=1,nv
        enddo
      endif
 
-!! 5. Update inf_mean
-     gamma_corr=0.
+!! 5. output inf_mean
      if( ist<=iend .and. ied>=istart .and. jst<=jend .and. jed>=jstart ) then
-       gamma_corr(max(ist,istart)-istart+1:min(ied,iend)-istart+1, &
-                  max(jst,jstart)-jstart+1:min(jed,jend)-jstart+1, kst:ked, m) = km1
-       do i=max(ist,istart)-istart+1, min(ied,iend)-istart+1
-       do j=max(jst,jstart)-jstart+1, min(jed,jend)-jstart+1
-       do k=kst, ked
-         if(gamma_corr(i,j,k,m)>0.) then
-           dist_2=y_hxm**2
-           sigma_p_2=var*fac
-           sigma_o_2=error*error
-           inf_mean_old=inf_mean(i,j,k,m)
-           call change_GA_IG(inf_mean(i,j,k,m),inf_sd(i,j,k,m),rate)
-           call linear_bayes(dist_2,sigma_p_2,sigma_o_2,inf_mean_old, &
-                             gamma_corr(i,j,k,m),numbers_en,rate,inf_mean(i,j,k,m))
-         endif
-       enddo
-       enddo
-       enddo
+       inf_mean(max(ist,istart)-istart+1:min(ied,iend)-istart+1, &
+                max(jst,jstart)-jstart+1:min(jed,jend)-jstart+1, kst:ked, m) = km1
        deallocate(km1)
      endif
      deallocate(km)
      deallocate(m1,m1send,m2,m2send)
-     deallocate(x1)
+     deallocate(x1,inf1)
 
    enddo update_x_var
 end do obs_assimilate_cycle
@@ -522,7 +561,7 @@ if ( my_proc_id==0 ) write(*,*)'Add the mean back to the analysis field...'
 do n = 1, nm
    ie = (n-1)*nmcpu+gid+1
    if( ie<=numbers_en+1 )  &
-      x(:,:,:,:,n) = inf_mean*x(:,:,:,:,n) + xm
+      x(:,:,:,:,n) = sqrt(inf_mean)*x(:,:,:,:,n) + xm
 enddo
 
 end subroutine update_inflation
