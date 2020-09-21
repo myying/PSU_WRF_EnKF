@@ -37,11 +37,15 @@ if [[ $HOSTTYPE == "cheyenne" ]]; then
     queue="regular"
     wtime="01:00:00"
     if [ $jobname == "wrf" ]; then
-      queue="economy"
-      wtime="08:00:00"
+      queue="regular"
+      wtime="00:30:00"
+    fi
+    if [ $jobname == "inflation" ]; then
+      queue="regular"
+      wtime="06:00:00"
     fi
     if [ $jobname == "enkf" ]; then
-      queue="economy"
+      queue="regular"
       wtime="06:00:00"
     fi
     cat << EOF > run_$jobname.sh
@@ -64,8 +68,14 @@ EOF
     jobstat=1
     until [[ $jobstat == 0 ]]; do
       sleep 1m
-      jobstat=`qstat -x |grep $jobid |awk '{if($5==R || $5==Q) print 1; else print 0;}'`
-      if [[ $jobstat == "" ]]; then
+      qstat=`qstat -x |grep $jobid |awk '{print $5}'`
+      if [[ $qstat == "R" ]]; then
+        jobstat=1
+      fi
+      if [[ $qstat == "Q" ]]; then
+        jobstat=1
+      fi
+      if [[ $qstat == "F" ]]; then
         jobstat=0
       fi
       #########BUGGY

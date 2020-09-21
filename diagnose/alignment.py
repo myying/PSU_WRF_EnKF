@@ -6,13 +6,14 @@ import sys
 
 m = int(sys.argv[1])
 current_scale = int(sys.argv[2])
+total_num_scale = int(sys.argv[3])
 n = 360
-nens = 60
-relax_coef = 0.7
+nens = 40
+relax_coef = 0.0
 
 workdir = './' #'/glade/scratch/mying/Patricia_multiscale/run/201510230600/enkf/d02/'
 
-if(current_scale<3):
+if(current_scale < total_num_scale):
   land = wrf.getvar(workdir+'fort.80011', 'HGT')
   varname = 'U10'
   xb = wrf.getvar(workdir+'fort.{}'.format(m+50010), varname)
@@ -42,7 +43,7 @@ for varname in ('U', 'V', 'W', 'P', 'PH', 'T', 'MU', 'QVAPOR', 'QCLOUD', 'QRAIN'
   xbw = xb.copy()
   xout = xin.copy()
 
-  if(current_scale<3):
+  if(current_scale < total_num_scale):
     if(xb.ndim==4):
       xout[0, :, 0:n, 0:n] = util.warp(xin[0, :, 0:n, 0:n], -u, -v)
       xbw[0, :, 0:n, 0:n] = util.warp(xb[0, :, 0:n, 0:n], -u, -v)
@@ -54,14 +55,14 @@ for varname in ('U', 'V', 'W', 'P', 'PH', 'T', 'MU', 'QVAPOR', 'QCLOUD', 'QRAIN'
     xout = xin + xa - xb
 
   ##relaxation
-  xa_pert = xa - xa_mean
-  xb_pert = xb - xb_mean
-  if(current_scale<3):
-    if(xb.ndim==4):
-      xb_pert[0, :, 0:n, 0:n] = util.warp(xb_pert[0, :, 0:n, 0:n], -u, -v)
-    if(xb.ndim==3):
-      xb_pert[0, 0:n, 0:n] = util.warp(xb_pert[0, 0:n, 0:n], -u, -v)
-  xout = xout + relax_coef*(xb_pert - xa_pert)
+  # xa_pert = xa - xa_mean
+  # xb_pert = xb - xb_mean
+  # if(current_scale < total_num_scale):
+  #   if(xb.ndim==4):
+  #     xb_pert[0, :, 0:n, 0:n] = util.warp(xb_pert[0, :, 0:n, 0:n], -u, -v)
+  #   if(xb.ndim==3):
+  #     xb_pert[0, 0:n, 0:n] = util.warp(xb_pert[0, 0:n, 0:n], -u, -v)
+  # xout = xout + relax_coef*(xb_pert - xa_pert)
 
   wrf.writevar(workdir+'fort.{}'.format(m+90010), varname, xout)
 

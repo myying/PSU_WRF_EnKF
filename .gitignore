@@ -6,3 +6,4 @@ out*
 *.mpi
 log
 slurm*out
+*/__pycache__
