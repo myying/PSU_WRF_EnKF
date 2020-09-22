@@ -304,7 +304,7 @@ t0=MPI_Wtime()
 !!      for Radiance assimilation by Minamide 2015.3.14
    d    = fac * var + error * error
    alpha = 1.0/(1.0+sqrt(error*error/d))
-   if (obstype=='Radiance  ' .or. obstype(1:5)=='Radar') then
+   if (obstype=='Radiance  ') then
      d = max(fac * var + error * error, y_hxm * y_hxm)
      alpha = 1.0/(1.0+sqrt((d-fac * var)/d))
      !obs%err(iob) = sqrt(d-fac * var)
