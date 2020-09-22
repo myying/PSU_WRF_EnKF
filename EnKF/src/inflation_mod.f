@@ -256,17 +256,6 @@ obs_assimilate_cycle : do it = 1, obs%num
    fac  = 1./real(numbers_en-1)
    d    = fac * var + error * error
    alpha = 1.0/(1.0+sqrt(error*error/d))
-!!---Observation Error Inflation & Successive Covariance Localization (Zhang et al. 2009)
-!!      for Radiance assimilation by Minamide 2015.3.14
-   if (obstype=='Radiance  ' .or. obstype(1:5)=='Radar') then
-     d = max(fac * var + error * error, y_hxm * y_hxm)
-     alpha = 1.0/(1.0+sqrt((d-fac * var)/d))
-     if ( sqrt(d-fac*var) > error ) then
-       error = sqrt(d-fac*var)
-       if (my_proc_id == 0) &
-          write(*,*) 'observation-error inflated to ',error
-     endif
-   endif
 
 ! cycle through variables to process, in x, 2D variables are stored in 3D form (with values only on
 ! k=1), when sending them among cpus, only the lowest layer (:,:,1) are sent and received.
