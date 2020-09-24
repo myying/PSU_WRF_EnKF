@@ -3,10 +3,18 @@
 domain_id=$1
 current_scale=$2
 num_scales=$3
+use_for=$4
 
 local_factor=${LOCAL_FACTOR[$current_scale-1]}
 thin_factor=${THIN_FACTOR[$current_scale-1]}
 dx=`echo ${DX[$domain_id-1]}/1000 |bc -l`
+
+use_airborne_rv=$USE_AIRBORNE_RV
+use_radiance=$USE_RADIANCE
+if [[ $use_for == "inflation" ]]; then
+  use_airborne_rv=false
+  use_radiance=false
+fi
 
 ##switch certain obs type off if OBSINT (obs interval) is set less frequent than CYCLE_PERIOD
 #offset=`echo "(${DATE:8:2}*60+${DATE:10:2})%${OBSINT_ATOVS:-$CYCLE_PERIOD}" |bc`
@@ -163,14 +171,14 @@ vroi_radar     = $VROI_RADAR,
 
 &airborne_radar
 use_airborne_rf   = .$USE_AIRBORNE_RF.,
-use_airborne_rv   = .$USE_AIRBORNE_RV.,
+use_airborne_rv   = .$use_airborne_rv.,
 datathin_airborne = `expr ${THIN_RADAR:-0} + $thin_factor`,
 hroi_airborne     = $(printf %.0f `echo $HROI_RADAR*$local_factor/$dx |bc -l`),
 vroi_airborne     = $VROI_RADAR,
 /
 
 &radiance
-use_radiance      = .$USE_RADIANCE.,
+use_radiance      = .$use_radiance.,
 datathin_radiance = `expr ${THIN_RADIANCE:-0} + $thin_factor`,
 hroi_radiance     = $(printf %.0f `echo ${HROI_RADIANCE:-$HROI_UPPER}*$local_factor/$dx |bc -l`),
 vroi_radiance     = ${VROI_RADIANCE:-99},

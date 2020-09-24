@@ -3,12 +3,12 @@ source ~/.bashrc
 
 #load configuration files, functions, parameters
 cd $WORK/PSU_WRF_EnKF
-export CONFIG_FILE=$WORK/PSU_WRF_EnKF/config/Patricia/control_fcst
+export CONFIG_FILE=$WORK/PSU_WRF_EnKF/config/Patricia/EnSRF_s1_fcst
 . $CONFIG_FILE
 . util.sh
 
-export DATE=201510221900
-export DATE_FORECAST_END=201510240600
+export DATE=201510212100
+export DATE_FORECAST_END=201510230000
 
 rundir=$WORK_DIR/run/$DATE/wrf_ens_fcst
 if [[ ! -d $rundir ]]; then mkdir -p $rundir; echo waiting > $rundir/stat; fi
@@ -83,7 +83,7 @@ for NE in `seq 1 $NUM_ENS`; do
     echo "+:h:0:H_DIABATIC" > my_output_${dm}.txt
   done
 
-  $SCRIPT_DIR/job_submit.sh $wrf_ntasks $((tid*$wrf_ntasks)) $HOSTPPN ./wrf.exe >& wrf.log &
+  $SCRIPT_DIR/job_submit.sh $wrf_ntasks $((tid*$wrf_ntasks)) $HOSTPPN ./wrf.exe '08:00:00' >& wrf.log &
 
   tid=$((tid+1))
   if [[ $tid == $nt ]]; then

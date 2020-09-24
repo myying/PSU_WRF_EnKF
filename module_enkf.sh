@@ -85,18 +85,20 @@ for n in 2; do
     if [[ ! -d scale$s ]]; then mkdir -p scale$s; fi
     if [ -f scale$s/${DATE}.finish_flag ]; then continue; fi
     echo "  scale decompose"
-    $SCRIPT_DIR/namelist_enkf.sh $n $s $NUM_SCALES> namelist.enkf
+    $SCRIPT_DIR/namelist_enkf.sh $n $s $NUM_SCALES scale_decompose > namelist.enkf
     $SCRIPT_DIR/job_submit.sh $NUM_ENS 0 $enkf_ppn ./scale_decompose.exe >& scale_decompose.log
     watch_log scale_decompose.log Successful 5 $rundir
     echo "  adaptive inflation"
     cp -L fort.80011 fort.20011
+    $SCRIPT_DIR/namelist_enkf.sh $n $s $NUM_SCALES inflation > namelist.enkf
     $SCRIPT_DIR/job_submit.sh $enkf_ntasks 0 $enkf_ppn ./inflation.mpi >& inflation.log
     watch_log inflation.log Successful 300 $rundir
     for NE in `seq 1 $NUM_ENS`; do
       cp -L fort.`expr 70010 + $NE` fort.`expr 50010 + $NE`
     done
-    mv fort.20011 inflation.s${s}.nc
+    mv fort.20011 scale$s/inflation.nc
     echo "  enkf step"
+    $SCRIPT_DIR/namelist_enkf.sh $n $s $NUM_SCALES enkf > namelist.enkf
     $SCRIPT_DIR/job_submit.sh $enkf_ntasks 0 $enkf_ppn ./enkf.mpi >& enkf.log
     watch_log enkf.log Successful 300 $rundir
     echo "  alignment step"
@@ -108,7 +110,7 @@ for n in 2; do
 #PBS -A $HOSTACCOUNT
 #PBS -N alignment
 #PBS -l walltime=0:30:00
-#PBS -q regular
+#PBS -q premium
 #PBS -l select=1:ncpus=32:mpiprocs=32
 #PBS -j oe
 #PBS -o job_run.log
@@ -116,16 +118,16 @@ source ~/.bashrc
 cd `pwd`
 EOF
     for m in `seq 1 $NUM_ENS`; do
-      echo "$SCRIPT_DIR/diagnose/alignment.py $m $s $NUM_SCALES &" >> run_alignment.sh
-      if [ $m == 20 ] || [ $m == $NUM_ENS ]; then
+      echo "$SCRIPT_DIR/diagnose/alignment.py $m $s $NUM_SCALES $NUM_ENS &" >> run_alignment.sh
+      if [ $m == 30 ] || [ $m == $NUM_ENS ]; then
         echo "wait" >> run_alignment.sh
       fi
     done
     echo "touch run_alignment_done" >> run_alignment.sh
     qsub run_alignment.sh
     until [ -f run_alignment_done ]; do sleep 1m; done
-    rm -f fort.90071
-    ncea fort.900{11..70} fort.90071  ###TMP calculate mean after alignment
+    #rm -f fort.`expr 90011 + $NUM_ENS`
+    #ncea fort.900{11..$((NUM_ENS+11))} fort.`expr 90011 + $NUM_ENS`  ###TMP calculate mean after alignment
     ##save copy
     mv ${DATE}.finish_flag scale$s/.
     #cp fort.1* enkf.log fort.5* fort.7* fort.9* scale$s/.
@@ -175,74 +177,47 @@ for n in $domlist; do
     watch_log replace_mean.log Successful 1 $rundir
   fi
 
-  ###2. relaxation to prior position and perturbation
-#  if [ $NUM_SCALES -gt 1 ] && [ $n -gt 1 ]; then
-#    rm -f fort.6*
-#    rm -f fort.80071
-#    ncea fort.800{11..70} fort.80071  ###TMP calculate prior mean, since msa hasn't done this
-#    ###align members to mean, so that residual perturbations can be calculated in relaxation
-##    for m in `seq 1 $NUM_ENS`; do
-##      cp -L fort.`expr 80010 + $m` fort.`expr 30010 + $m`
-##      cp -L fort.`expr 90010 + $m` fort.`expr 40010 + $m`
-##    done
-##    rm -f run_align_member_to_mean_done
-##    cat > run_align_member_to_mean.sh << EOF
-###!/bin/bash
-###PBS -A $HOSTACCOUNT
-###PBS -N align_member_to_mean
-###PBS -l walltime=0:30:00
-###PBS -q regular
-###PBS -l select=1:ncpus=32:mpiprocs=32
-###PBS -j oe
-###PBS -o job_run.log
-##source ~/.bashrc
-##cd `pwd`
-##EOF
-##    for m in `seq 1 $NUM_ENS`; do
-##      echo "$SCRIPT_DIR/diagnose/align_member_to_mean.py $m &" >> run_align_member_to_mean.sh
-##      if [ $m == 30 ] || [ $m == $NUM_ENS ]; then
-##        echo "wait" >> run_align_member_to_mean.sh
-##      fi
-##    done
-##    echo "touch run_align_member_to_mean_done" >> run_align_member_to_mean.sh
-##    qsub run_align_member_to_mean.sh
-##    until [ -f run_align_member_to_mean_done ]; do sleep 1m; done
-##    rm -f fort.30071 fort.40071
-##    ncea fort.300{11..70} fort.30071  ###TMP calculate aligned mean
-##    ncea fort.400{11..70} fort.40071
-#    ####
-#    ####perform relaxation here:
-#    rm -f run_relaxation_done
-#    cat > run_relaxation.sh << EOF
-##!/bin/bash
-##PBS -A $HOSTACCOUNT
-##PBS -N relaxation
-##PBS -l walltime=0:30:00
-##PBS -q regular
-##PBS -l select=1:ncpus=32:mpiprocs=32
-##PBS -j oe
-##PBS -o job_run.log
-#source ~/.bashrc
-#cd `pwd`
-#EOF
-#    for m in `seq 1 $NUM_ENS`; do
-#      echo "$SCRIPT_DIR/diagnose/relaxation.py $m &" >> run_relaxation.sh
-#      if [ $m == 30 ] || [ $m == $NUM_ENS ]; then
-#        echo "wait" >> run_relaxation.sh
-#      fi
-#    done
-#    echo "touch run_relaxation_done" >> run_relaxation.sh
-#    qsub run_relaxation.sh
-#    until [ -f run_relaxation_done ]; do sleep 1m; done
-#    rm -f fort.3* fort.4*
-#  fi
+  ###2. relaxation to prior perturbation
+  if [ $n -gt 1 ]; then
+    ###compute prior post mean
+    rm -f fort.$((NUM_ENS+80011))
+    list=''; for m in `seq 1 $NUM_ENS`; do list=$list' fort.'$(($m+80010)); done
+    ncea $list fort.$((NUM_ENS+80011))
+    rm -f fort.$((NUM_ENS+90011))
+    list=''; for m in `seq 1 $NUM_ENS`; do list=$list' fort.'$(($m+90010)); done
+    ncea $list fort.$((NUM_ENS+90011))
+    ####perform relaxation here:
+    rm -f run_relaxation_done
+    cat > run_relaxation.sh << EOF
+#!/bin/bash
+#PBS -A $HOSTACCOUNT
+#PBS -N relaxation
+#PBS -l walltime=0:30:00
+#PBS -q premium
+#PBS -l select=1:ncpus=32:mpiprocs=32
+#PBS -j oe
+#PBS -o job_run.log
+source ~/.bashrc
+cd `pwd`
+EOF
+    for m in `seq 1 $NUM_ENS`; do
+      echo "$SCRIPT_DIR/diagnose/relaxation.py $m $NUM_ENS $RELAXATION_COEF &" >> run_relaxation.sh
+      if [ $m == 30 ] || [ $m == $NUM_ENS ]; then
+        echo "wait" >> run_relaxation.sh
+      fi
+    done
+    echo "touch run_relaxation_done" >> run_relaxation.sh
+    qsub run_relaxation.sh
+    until [ -f run_relaxation_done ]; do sleep 1m; done
+  fi
 
   ##output
   for NE in `seq 1 $NUM_ENS`; do
     id=`expr $NE + 1000 |cut -c2-`
     mv fort.`expr 90010 + $NE` $WORK_DIR/fc/$DATE/wrfinput_${dm}_$id
   done
-  cp fort.`expr 90011 + $NUM_ENS` $WORK_DIR/fc/$DATE/wrfinput_${dm}_mean
+  mv fort.`expr 80011 + $NUM_ENS` $WORK_DIR/fc/$PREVDATE/wrfinput_${dm}_`wrf_time_string $DATE`_mean
+  mv fort.`expr 90011 + $NUM_ENS` $WORK_DIR/fc/$DATE/wrfinput_${dm}_mean
   if [ $n -gt 1 ]; then
     #mv fort.10000 $WORK_DIR/fc/$DATE/assim_obs_$dm
     #cat enkf.log |grep lambda |grep mixing > $WORK_DIR/fc/$DATE/adapt_relax_$dm

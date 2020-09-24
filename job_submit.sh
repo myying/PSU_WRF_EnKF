@@ -13,6 +13,7 @@ n=$1  # num of tasks job uses
 o=$2  # offset location in task list, useful for several jobs to run together
 ppn=$3  # proc per node for the job
 exe=$4  # executable
+wtime=$5
 
 ###yellowstone/cheyenne NCAR CISL
 if [[ $HOSTTYPE == "cheyenne" ]]; then
@@ -34,19 +35,18 @@ if [[ $HOSTTYPE == "cheyenne" ]]; then
   elif [ $JOB_SUBMIT_MODE == 2 ]; then
     nodes=`echo "($n+$ppn-1)/$ppn" |bc`
     jobname=`basename $exe |awk -F. '{print $1}'`
-    queue="regular"
-    wtime="01:00:00"
-    if [ $jobname == "wrf" ]; then
-      queue="regular"
-      wtime="00:30:00"
-    fi
-    if [ $jobname == "inflation" ]; then
-      queue="regular"
-      wtime="06:00:00"
-    fi
-    if [ $jobname == "enkf" ]; then
-      queue="regular"
-      wtime="06:00:00"
+    queue="premium"
+    if [ -z $wtime ]; then
+      wtime="01:00:00"
+      if [ $jobname == "wrf" ]; then
+        wtime="00:30:00"
+      fi
+      if [ $jobname == "inflation" ]; then
+        wtime="02:00:00"
+      fi
+      if [ $jobname == "enkf" ]; then
+        wtime="02:00:00"
+      fi
     fi
     cat << EOF > run_$jobname.sh
 #!/bin/bash

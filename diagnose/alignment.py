@@ -7,9 +7,9 @@ import sys
 m = int(sys.argv[1])
 current_scale = int(sys.argv[2])
 total_num_scale = int(sys.argv[3])
+nens = int(sys.argv[4]) ##40
 n = 360
-nens = 40
-relax_coef = 0.0
+# relax_coef = 0.0
 
 workdir = './' #'/glade/scratch/mying/Patricia_multiscale/run/201510230600/enkf/d02/'
 
