@@ -23,7 +23,7 @@ for m in range(nens):
   wind_speed = wrf.getvar(filename, 'wind')[0, 0, :, :]
   p_pert = wrf.getvar(filename, 'MU')[0, :, :]
   slp = wrf.getvar(filename, 'slp')[0, :, :]/100
-  j, i = tc.find_center(p_pert)
+  j, i = tc.find_center(p_pert, domain_id)
   tc_center[0, m] = j
   tc_center[1, m] = i
   tc_latlon[0, m] = lat[j, i]

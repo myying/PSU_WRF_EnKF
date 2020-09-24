@@ -9,9 +9,9 @@ import cartopy.io.shapereader as shpreader
 
 workdir = '/glade/scratch/mying/Patricia/'
 casename = sys.argv[1] #'control/fc'
+nens = int(sys.argv[2]) ##40
 t_start = '201510211200'
 nt = 67
-nens = 60
 
 ###observation: tcvitals best track
 obs_t_inv = 6

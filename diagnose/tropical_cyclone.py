@@ -2,12 +2,12 @@
 import numpy as np
 import util
 
-def find_center(pp):
+def find_center(pp, domain_id):
   nj, ni = pp.shape
   min_pp = 1e10
   min_i = 0
   min_j = 0
-  buff = 20
+  buff = 10*(3**(domain_id-1))
   for i in range(buff, ni-buff):
     for j in range(buff, nj-buff):
       avg_pp = np.mean(pp[j-buff:j+buff, i-buff:i+buff])
@@ -19,7 +19,7 @@ def find_center(pp):
 
 def maximum_wind(wind_speed, min_j, min_i):
   nj, ni = wind_speed.shape
-  smth = 1
+  smth = 3
   wind_speed = util.smooth2d(wind_speed, smth)
   buff = 30
   vmax = 0
