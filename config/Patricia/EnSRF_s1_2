@@ -20,10 +20,10 @@
  CLEAN=false                  #if true, delete unwanted wrfout files in rundir
 
 #experiment design
- EXP_NAME=Patricia/EnSRF_s1     #name of experiment
- DATE_START=201510210000        #initial date, need to have available first guess (0 6 12 18 h)
+ EXP_NAME=Patricia/EnSRF_s1_2     #name of experiment
+ DATE_START=201510212100        #initial date, need to have available first guess (0 6 12 18 h)
  DATE_END=201510241200          #end date
- DATE_CYCLE_START=201510211200  #date of first assimilation cycle, also need first guess available
+ DATE_CYCLE_START=201510220900  #date of first assimilation cycle, also need first guess available
  DATE_CYCLE_END=201510221900    #date of final assimilation cycle
 
 #time control: unit=minutes
@@ -104,7 +104,7 @@
  INFLATION_COEF=1.0
  RELAX_OPT=0
  RELAX_ADAPTIVE=false
- RELAXATION_COEF=0.5
+ RELAXATION_COEF=(0.0 0.0)
  REPLACE_MEAN=false
 
 #data sources

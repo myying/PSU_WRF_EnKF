@@ -9,8 +9,9 @@
  STORM_ID=PATRICIA           #storm id, format: basin (al) num (13) year (2010)
 
  NUM_SCALES=3                ###wheb > 1, run multiscale algorithms
- KRANGE=(5 21)
- RUN_ALIGNMENT=true              ###run alignment algorithm when true
+ KRANGE=(3 6 12)
+ THIN_FACTOR=(2 1 0)
+ LOCAL_FACTOR=(2.0 1.5 1.0)
 
  MULTI_PHYS_ENS=false         #if true, use a multi-physics ensemble
  MULTI_INC=true              #if true, run a multi-incremental version of 4DVar
@@ -19,11 +20,11 @@
  CLEAN=false                  #if true, delete unwanted wrfout files in rundir
 
 #experiment design
- EXP_NAME=Patricia/multiscale   #name of experiment
+ EXP_NAME=Patricia/EnSRF_s3     #name of experiment
  DATE_START=201510210000        #initial date, need to have available first guess (0 6 12 18 h)
  DATE_END=201510241200          #end date
  DATE_CYCLE_START=201510211200  #date of first assimilation cycle, also need first guess available
- DATE_CYCLE_END=201510212100    #date of final assimilation cycle
+ DATE_CYCLE_END=201510221900    #date of final assimilation cycle
 
 #time control: unit=minutes
  CYCLE_PERIOD=60                #interval among cycles
@@ -94,16 +95,16 @@
  ISFTCFLX=1
 
 #EnKF options
- NUM_ENS=10                      #ensemble size
+ NUM_ENS=30                      #ensemble size
  ADAPTIVE_INFLATION=false
  UPDATE_VAR=(U V W P PH T MU QVAPOR QCLOUD QRAIN QICE QSNOW QGRAUP U10 V10 T2 Q2 PSFC)
- NMCPU=16
+ NMCPU=32
  NICPU=4
  NJCPU=4
  INFLATION_COEF=1.0
  RELAX_OPT=0
  RELAX_ADAPTIVE=false
- RELAXATION_COEF=(0.0 0.0 0.0)
+ RELAXATION_COEF=(0.0 0.0)
  REPLACE_MEAN=false
 
 #data sources
@@ -133,12 +134,12 @@
  USE_RADAR_RF=false              #  use_radar_rf              /
  USE_RADAR_RV=false              #  use_radar_rv              /
  USE_AIRBORNE_RF=false           #  use_airborne_rf           /
- USE_AIRBORNE_RV=(false true)           #  use_airborne_rv           /
+ USE_AIRBORNE_RV=true           #  use_airborne_rv           /
  USE_BOGUSOBS=false              #        /              use_bogusobs
  USE_BUOYOBS=false                #        /              use_buoyobs
  USE_SEAWIND=false           #CYGNSS sea surface wind
- USE_RADIANCE=(false true)
- USE_HURRICANE=false
+ USE_RADIANCE=true
+ USE_HURRICANE=true
 
 #data thinning coef for EnKF
  THIN_SURFACE=0
@@ -153,19 +154,19 @@
  THIN_SATWND=0
  THIN_GPSPW=0
  THIN_RADAR=3
- THIN_RADIANCE=(0 0)
+ THIN_RADIANCE=0
 
 #localization distance (km for HROI, # of layers for VROI) for EnKF
  HROI_SFC=300                 #horizontal radius of influence for surface obs
- HROI_SOUNDING=600
+ HROI_SOUNDING=300
  HROI_UPPER=600               #horizontal radius of influence for upper air obs
  HROI_RADAR=45                #horizontal radius of influence for radar obs,
- HROI_RADIANCE=100
+ HROI_RADIANCE=90
  HROI_HURRICANE=300
  VROI=42                      #vertical radius of influence
  VROI_SOUNDING=5
  VROI_RADAR=42                #vertical radius of influence for radar obs
- VROI_RADIANCE=99
+ VROI_RADIANCE=42
 
 #WRFDA options
  CV_OPTIONS=3                 #3 -   uses be.dat.cv3
@@ -204,6 +205,6 @@
  var3d_ppn=16
  var4d_ntasks=(128 128 128)     # ..    ..  ..  ..  4DVar component (da_wrfvar.exe) (for each domain)
  var4d_ppn=16
- enkf_ntasks=256                # ..    ..  ..  ..  EnKF component (enkf.mpi)
+ enkf_ntasks=512                # ..    ..  ..  ..  EnKF component (enkf.mpi)
  enkf_ppn=32
 
