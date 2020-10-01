@@ -623,6 +623,7 @@ endif
 ! if the positive root is far away from it.
 ! As such, keep the current factor value
 if(new_cov_inflate <= 0.0 .OR. new_cov_inflate /= new_cov_inflate) new_cov_inflate = lambda_mean
+if(new_cov_inflate < 1.0) new_cov_inflate = 1.0
 
 end subroutine linear_bayes
 
