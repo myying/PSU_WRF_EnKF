@@ -9,18 +9,21 @@ local_factor=${LOCAL_FACTOR[$current_scale-1]}
 thin_factor=${THIN_FACTOR[$current_scale-1]}
 dx=`echo ${DX[$domain_id-1]}/1000 |bc -l`
 
-use_airborne_rv=$USE_AIRBORNE_RV
-use_radiance=$USE_RADIANCE
 if [[ $use_for == "inflation" ]]; then
-  use_airborne_rv=false
-  use_radiance=false
+  USE_HURRICANE=false
+  USE_SURFOBS=false
+  USE_METAROBS=false
+  USE_AIRBORNE_RV=false
+  USE_RADIANCE=false
+  local_factor=1
+  thin_factor=0
 fi
+#if [ $DATE != $LBDATE ]; then USE_HURRICANE=false; fi
 
 ##switch certain obs type off if OBSINT (obs interval) is set less frequent than CYCLE_PERIOD
 #offset=`echo "(${DATE:8:2}*60+${DATE:10:2})%${OBSINT_ATOVS:-$CYCLE_PERIOD}" |bc`
 #if [[ $offset != 0 ]]; then USE_ATOVS=false; fi
 
-#if [ $DATE != $LBDATE ]; then USE_HURRICANE=false; fi
 ##This if statement swiths the radar rv data off for parent domains
 ##  the radar data is only assimilated for d03
 #if [[ $domain_id != 3 ]]; then USE_RADAR_RV=false; fi
@@ -171,14 +174,14 @@ vroi_radar     = $VROI_RADAR,
 
 &airborne_radar
 use_airborne_rf   = .$USE_AIRBORNE_RF.,
-use_airborne_rv   = .$use_airborne_rv.,
+use_airborne_rv   = .$USE_AIRBORNE_RV.,
 datathin_airborne = `expr ${THIN_RADAR:-0} + $thin_factor`,
 hroi_airborne     = $(printf %.0f `echo $HROI_RADAR*$local_factor/$dx |bc -l`),
 vroi_airborne     = $VROI_RADAR,
 /
 
 &radiance
-use_radiance      = .$use_radiance.,
+use_radiance      = .$USE_RADIANCE.,
 datathin_radiance = `expr ${THIN_RADIANCE:-0} + $thin_factor`,
 hroi_radiance     = $(printf %.0f `echo ${HROI_RADIANCE:-$HROI_UPPER}*$local_factor/$dx |bc -l`),
 vroi_radiance     = ${VROI_RADIANCE:-99},

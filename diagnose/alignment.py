@@ -10,6 +10,7 @@ total_num_scale = int(sys.argv[3])
 nens = int(sys.argv[4]) ##40
 n = 360
 # relax_coef = 0.0
+scale_damp = (0.0, 0.0, 1.0)
 
 workdir = './' #'/glade/scratch/mying/Patricia_multiscale/run/201510230600/enkf/d02/'
 
@@ -31,8 +32,8 @@ if(current_scale < total_num_scale):
 for varname in ('U', 'V', 'W', 'P', 'PH', 'T', 'MU', 'QVAPOR', 'QCLOUD', 'QRAIN', 'QICE', 'QSNOW', 'QGRAUP', 'U10', 'V10', 'T2', 'Q2', 'PSFC'):
   xb = wrf.getvar(workdir+'fort.{}'.format(m+50010), varname)
   xa = wrf.getvar(workdir+'fort.{}'.format(m+70010), varname)
-  xb_mean = wrf.getvar(workdir+'fort.{}'.format(50011+nens), varname)
-  xa_mean = wrf.getvar(workdir+'fort.{}'.format(70011+nens), varname)
+  # xb_mean = wrf.getvar(workdir+'fort.{}'.format(50011+nens), varname)
+  # xa_mean = wrf.getvar(workdir+'fort.{}'.format(70011+nens), varname)
   xin = wrf.getvar(workdir+'fort.{}'.format(m+90010), varname)
 
   if(xb.ndim==4):
@@ -50,7 +51,7 @@ for varname in ('U', 'V', 'W', 'P', 'PH', 'T', 'MU', 'QVAPOR', 'QCLOUD', 'QRAIN'
     if(xb.ndim==3):
       xout[0, 0:n, 0:n] = util.warp(xin[0, 0:n, 0:n], -u, -v)
       xbw[0, 0:n, 0:n] = util.warp(xb[0, 0:n, 0:n], -u, -v)
-    xout = xout + xa - xbw
+    xout = xout + scale_damp[current_scale-1] * (xa - xbw)
   else:
     xout = xin + xa - xb
 

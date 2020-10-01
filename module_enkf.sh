@@ -79,24 +79,24 @@ for n in 2; do
   if [ -f $dm/${DATE}.finish_flag ]; then continue; fi
   cd $dm
   echo "domain $dm"
+  #echo "adaptive inflation"
+  #cp -L fort.80011 fort.20011
+  #$SCRIPT_DIR/namelist_enkf.sh $n 1 1 inflation > namelist.enkf
+  #$SCRIPT_DIR/job_submit.sh $enkf_ntasks 0 $enkf_ppn ./inflation.mpi >& inflation.log
+  #watch_log inflation.log Successful 300 $rundir
+  #for NE in `seq 1 $NUM_ENS`; do
+  #  cp -L fort.`expr 70010 + $NE` fort.`expr 90010 + $NE`
+  #done
+  #mv fort.20011 inflation.nc
   ###runing enkf.mpi multiscale scheme
   for s in `seq 1 $NUM_SCALES`; do
-    echo "scale $s for domain $n"
+    echo "scale $s/$NUM_SCALES for domain $n"
     if [[ ! -d scale$s ]]; then mkdir -p scale$s; fi
     if [ -f scale$s/${DATE}.finish_flag ]; then continue; fi
     echo "  scale decompose"
     $SCRIPT_DIR/namelist_enkf.sh $n $s $NUM_SCALES scale_decompose > namelist.enkf
     $SCRIPT_DIR/job_submit.sh $NUM_ENS 0 $enkf_ppn ./scale_decompose.exe >& scale_decompose.log
     watch_log scale_decompose.log Successful 5 $rundir
-    echo "  adaptive inflation"
-    cp -L fort.80011 fort.20011
-    $SCRIPT_DIR/namelist_enkf.sh $n $s $NUM_SCALES inflation > namelist.enkf
-    $SCRIPT_DIR/job_submit.sh $enkf_ntasks 0 $enkf_ppn ./inflation.mpi >& inflation.log
-    watch_log inflation.log Successful 300 $rundir
-    for NE in `seq 1 $NUM_ENS`; do
-      cp -L fort.`expr 70010 + $NE` fort.`expr 50010 + $NE`
-    done
-    mv fort.20011 scale$s/inflation.nc
     echo "  enkf step"
     $SCRIPT_DIR/namelist_enkf.sh $n $s $NUM_SCALES enkf > namelist.enkf
     $SCRIPT_DIR/job_submit.sh $enkf_ntasks 0 $enkf_ppn ./enkf.mpi >& enkf.log

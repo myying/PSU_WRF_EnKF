@@ -54,7 +54,7 @@ subroutine scale_bandpass(u,krange,s,us,us1)
   ny=size(u,2)
   ns=size(krange)+1
   call init_fft(nx,ny)
-  if(ns.eq.1) then
+  if(ns.eq.s) then
     us=u
   else
     if(mod(nx,2).eq.0) then
