@@ -29,7 +29,7 @@
 #time control: unit=minutes
  CYCLE_PERIOD=60                #interval among cycles
  WRFOUT_INTERVAL=(60 60 60)     #interval of wrfout times
- LBC_INTERVAL=360               #interval of available first guess files
+ LBC_INTERVAL=180               #interval of available first guess files
 
  OBS_WIN_MIN=-30                #observation window start offset
  OBS_WIN_MAX=30                 #observation window end offset
@@ -191,7 +191,7 @@
  JE_FACTOR=1.25
 
 #CPU usage
- HOSTACCOUNT=P54048000
+ HOSTACCOUNT=NMMM0021
  HOSTPPN=16            #number of CPUs per node on host machines
  HOSTTYPE=cheyenne     #host type (used in job_submit.sh, currently supports "jet" and "stampede")
  JOB_SUBMIT_MODE=2     # 1 - submit run_cycle.sh to queue as a single job. The scheduling of
@@ -200,7 +200,7 @@
                        #     as a separate job in the queue, scheduling is done by the queue.
 
  wps_ntasks=32                # number of processes for WPS programs and real.exe
- wrf_ntasks=128                # ..    ..  ..  ..  WRF run       (wrf.exe)
+ wrf_ntasks=64                # ..    ..  ..  ..  WRF run       (wrf.exe)
  var3d_ntasks=128              # ..    ..  ..  ..  3DVar component (perturb_ic da_wrfvar.exe)
  var3d_ppn=16
  var4d_ntasks=(128 128 128)     # ..    ..  ..  ..  4DVar component (da_wrfvar.exe) (for each domain)

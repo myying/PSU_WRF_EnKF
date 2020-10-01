@@ -95,7 +95,7 @@
  ISFTCFLX=1
 
 #EnKF options
- NUM_ENS=30                      #ensemble size
+ NUM_ENS=40                      #ensemble size
  ADAPTIVE_INFLATION=false
  UPDATE_VAR=(U V W P PH T MU QVAPOR QCLOUD QRAIN QICE QSNOW QGRAUP U10 V10 T2 Q2 PSFC)
  NMCPU=32
@@ -191,7 +191,7 @@
  JE_FACTOR=1.25
 
 #CPU usage
- HOSTACCOUNT=P54048000
+ HOSTACCOUNT=NMMM0021
  HOSTPPN=16            #number of CPUs per node on host machines
  HOSTTYPE=cheyenne     #host type (used in job_submit.sh, currently supports "jet" and "stampede")
  JOB_SUBMIT_MODE=2     # 1 - submit run_cycle.sh to queue as a single job. The scheduling of
