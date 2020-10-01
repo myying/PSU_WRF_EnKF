@@ -9,8 +9,12 @@ workdir = '/glade/scratch/mying/Patricia/'
 casename = sys.argv[1] #'multiscale/fc'
 tstr = sys.argv[2] #'201510211200'
 nens = int(sys.argv[3]) #60
-domain_id = 2
-dx = 3 #km
+domain_id = int(sys.argv[4])
+print(tstr)
+if (domain_id==2):
+  dx = 3 #km
+if (domain_id==3):
+  dx = 1
 z_coord = np.arange(0, 20.1, 0.5)*1000 #m
 dr = 5 #km
 r_coord = np.arange(0, 201, dr)

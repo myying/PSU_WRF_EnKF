@@ -7,7 +7,12 @@ workdir = '/glade/scratch/mying/Patricia/'
 casename = sys.argv[1] #'multiscale/fc'
 tstr = sys.argv[2] #'201510211200'
 nens = int(sys.argv[3]) #60
-dx = 3 #km
+domain_id = int(sys.argv[4])
+
+if (domain_id==2):
+  dx = 3 #km
+if (domain_id==3):
+  dx = 1
 z_coord = np.arange(0, 20.1, 0.5)*1000 #m
 dr = 5 #km
 r_coord = np.arange(0, 201, dr)
@@ -23,7 +28,7 @@ nz, nr, nq, nens = Vt.shape
 Vt_mean = np.mean(np.mean(Vt[:, :, :, 0:nens], axis=2), axis=2)
 Vr_mean = np.mean(np.mean(Vr[:, :, :, 0:nens], axis=2), axis=2)
 ax = plt.subplot(111)
-c = ax.contourf(Vt_mean, np.arange(0, 40, 5), cmap='rainbow')
+c = ax.contourf(Vt_mean, np.arange(10, 70, 5), cmap='rainbow')
 plt.colorbar(c)
 ax.set_xticks(np.arange(0, nr, 5))
 ax.set_xticklabels(r_coord[::5])

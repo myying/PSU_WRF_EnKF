@@ -41,13 +41,14 @@ for t in range(0, nt):
 
 plt.switch_backend('Agg')
 plt.figure(figsize=(15, 5))
-cmap = [plt.cm.jet(m) for m in np.linspace(0, 1, nens)]
+cmap = [plt.cm.jet(m) for m in np.linspace(0.3, 0.7, nens)]
 
 ###track plots
 ax = plt.subplot(1,3,1,projection=ccrs.PlateCarree())
-for m in range(nens):
+for m in range(0, nens):
   ax.plot(tc_lon[:, m], tc_lat[:, m], color=cmap[m][0:3]) #, marker='.')
 ax.plot(lon_obs, lat_obs, color='k', marker='o')
+ax.plot(np.mean(tc_lon, axis=1), np.mean(tc_lat, axis=1), color='g', marker='o')
 ax.set_extent([-108, -96, 12, 24])
 ax.coastlines(resolution='50m')
 ax.set_xticks(np.arange(-108, -95, 2), crs=ccrs.PlateCarree())
@@ -55,17 +56,19 @@ ax.set_yticks(np.arange(12, 25, 2), crs=ccrs.PlateCarree())
 
 ###intensity: wind max and pres min
 ax = plt.subplot(1,3,2)
-for m in range(nens):
+for m in range(0, nens):
   ax.plot(np.arange(0, nt), tc_vmax[:, m], color=cmap[m][0:3]) #, marker='.')
 ax.plot(t_obs, vmax_obs, color='k', marker='o')
+ax.plot(np.arange(0, nt), np.mean(tc_vmax, axis=1), color='g', marker='o')
 ax.set_ylim(0, 110)
 ax.set_xticks(np.arange(0, 73, 12))
 ax.set_xticklabels(np.array(['21/12', '22/00', '22/12', '23/00', '23/12', '24/00', '24/12']))
 
 ax = plt.subplot(1,3,3)
-for m in range(nens):
+for m in range(0, nens):
   ax.plot(np.arange(0, nt), tc_pmin[:, m], color=cmap[m][0:3]) #, marker='.')
 ax.plot(t_obs, pmin_obs, color='k', marker='o')
+ax.plot(np.arange(0, nt), np.mean(tc_pmin, axis=1), color='g', marker='o')
 ax.set_ylim(860, 1020)
 ax.set_xticks(np.arange(0, 73, 12))
 ax.set_xticklabels(np.array(['21/12', '22/00', '22/12', '23/00', '23/12', '24/00', '24/12']))

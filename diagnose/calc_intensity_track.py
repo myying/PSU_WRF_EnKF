@@ -28,7 +28,7 @@ for m in range(nens):
   tc_center[1, m] = i
   tc_latlon[0, m] = lat[j, i]
   tc_latlon[1, m] = lon[j, i]
-  tc_pmin[m] = slp[j, i]
+  tc_pmin[m] = tc.minimum_pres(slp, j, i)
   tc_vmax[m] = tc.maximum_wind(wind_speed, j, i)
 
 np.save(workdir+casename+'/'+tstr+'/tc_center_ens', tc_center)

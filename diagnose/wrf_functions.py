@@ -57,7 +57,8 @@ def getvar(infile, varname):
     var = ncread(infile, 'P') + ncread(infile, 'PB')
 
   elif (varname == 'slp'):
-    var = ncread(infile, 'P')[:, 0, :, :] + ncread(infile, 'PB')[:, 0, :, :]
+    # var = ncread(infile, 'P')[:, 0, :, :] + ncread(infile, 'PB')[:, 0, :, :]
+    var = ncread(infile, 'PSFC')
 
   elif (varname == 'z'):
     dat = (ncread(infile, 'PH') + ncread(infile, 'PHB')) / g
