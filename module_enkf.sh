@@ -123,7 +123,7 @@ EOF
       fi
     done
     echo "touch run_alignment_done" >> run_alignment.sh
-    /bin/sbatch run_alignment.sh
+    /bin/sbatch run_alignment.sh > job_submit.log
     until [ -f run_alignment_done ]; do sleep 1m; done
     #rm -f fort.`expr 90011 + $NUM_ENS`
     #ncea fort.900{11..$((NUM_ENS+11))} fort.`expr 90011 + $NUM_ENS`  ###TMP calculate mean after alignment
@@ -205,7 +205,7 @@ EOF
       fi
     done
     echo "touch run_relaxation_done" >> run_relaxation.sh
-    /bin/sbatch run_relaxation.sh
+    /bin/sbatch run_relaxation.sh > job_submit.log
     until [ -f run_relaxation_done ]; do sleep 1m; done
   fi
 

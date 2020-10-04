@@ -120,12 +120,12 @@ def warp(Im, u, v):
     ni, nj = Im.shape
   if(Im.ndim==3):
     nz, ni, nj = Im.shape
-  for i in range(ni):
-    for j in range(nj):
-      if(Im.ndim==2):
-        warp_Im[i, j] = interp2d(Im, (i+u[i, j], j+v[i, j]))
-      if(Im.ndim==3):
-        warp_Im[:, i, j] = interp2d(Im, (i+u[i, j], j+v[i, j]))
+  ii, jj = np.mgrid[0:ni, 0:nj]
+  if(Im.ndim==2):
+    warp_Im = interp2d(Im, ii+u, jj+v)
+  if(Im.ndim==3):
+    for z in range(nz):
+      warp_Im[z, :, :] = interp2d(Im[z, :, :], ii+u, jj+v)
   return warp_Im
 
 def warp_spacetime(f, u, v, q):
@@ -170,23 +170,15 @@ def sharpen(Im, level, off):
     Im = Im2
   return Im
 
-def interp2d(x, loc):
-  if(x.ndim==2):
-    ni, nj = x.shape
-  if(x.ndim==3):
-    nz, ni, nj = x.shape
-  io = loc[0]
-  jo = loc[1]
-  io1 = int(np.floor(io)) % ni
-  jo1 = int(np.floor(jo)) % nj
-  io2 = int(np.floor(io+1)) % ni
-  jo2 = int(np.floor(jo+1)) % nj
+def interp2d(x, io, jo):
+  ni, nj = x.shape
+  io1 = np.floor(io).astype(int) % ni
+  jo1 = np.floor(jo).astype(int) % nj
+  io2 = np.floor(io+1).astype(int) % ni
+  jo2 = np.floor(jo+1).astype(int) % nj
   di = io - np.floor(io)
   dj = jo - np.floor(jo)
-  if(x.ndim==2):
-    xo = (1-di)*(1-dj)*x[io1, jo1] + di*(1-dj)*x[io2, jo1] + (1-di)*dj*x[io1, jo2] + di*dj*x[io2, jo2]
-  if(x.ndim==3):
-    xo = (1-di)*(1-dj)*x[:, io1, jo1] + di*(1-dj)*x[:, io2, jo1] + (1-di)*dj*x[:, io1, jo2] + di*dj*x[:, io2, jo2]
+  xo = (1-di)*(1-dj)*x[io1, jo1] + di*(1-dj)*x[io2, jo1] + (1-di)*dj*x[io1, jo2] + di*dj*x[io2, jo2]
   return xo
 
 def interp3d(x, loc):
@@ -208,15 +200,14 @@ def interp3d(x, loc):
   xo = (1-dk)*xo1 + dk*xo2
   return xo
 
-def regrid(x1, ni, nj):
-  ni1, nj1 = x1.shape
-  ii1, jj1 = np.mgrid[0:ni1:1.0*ni1/ni, 0:nj1:1.0*nj1/nj]
-  x = np.zeros((ni, nj))
-  for i in range(ni):
-    for j in range(nj):
-      x[i, j] = interp2d(x1, np.array([ii1[i, j], jj1[i, j]]))
-  return x
-
+# def regrid(x1, ni, nj):
+#   ni1, nj1 = x1.shape
+#   ii1, jj1 = np.mgrid[0:ni1:1.0*ni1/ni, 0:nj1:1.0*nj1/nj]
+#   x = np.zeros((ni, nj))
+#   for i in range(ni):
+#     for j in range(nj):
+#       x[i, j] = itnterp2d(x1, np.array([ii1[i, j], jj1[i, j]]))
+#   return x
 
 def runningsmooth(x):
   nx = x.size
