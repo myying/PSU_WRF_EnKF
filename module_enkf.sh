@@ -107,24 +107,23 @@ for n in 2; do
     rm -f run_alignment_done
     cat > run_alignment.sh << EOF
 #!/bin/bash
-#PBS -A $HOSTACCOUNT
-#PBS -N alignment
-#PBS -l walltime=0:30:00
-#PBS -q premium
-#PBS -l select=1:ncpus=32:mpiprocs=32
-#PBS -j oe
-#PBS -o job_run.log
+#SBATCH -A $HOSTACCOUNT
+#SBATCH -J alignment
+#SBATCH -n 30 -N 1
+#SBATCH -p normal
+#SBATCH -t 0:30:00
+#SBATCH -o job_run.log
 source ~/.bashrc
 cd `pwd`
 EOF
     for m in `seq 1 $NUM_ENS`; do
       echo "$SCRIPT_DIR/diagnose/alignment.py $m $s $NUM_SCALES $NUM_ENS &" >> run_alignment.sh
-      if [ $m == 30 ] || [ $m == $NUM_ENS ]; then
+      if [ $m == $NUM_ENS ]; then
         echo "wait" >> run_alignment.sh
       fi
     done
     echo "touch run_alignment_done" >> run_alignment.sh
-    qsub run_alignment.sh
+    /bin/sbatch run_alignment.sh
     until [ -f run_alignment_done ]; do sleep 1m; done
     #rm -f fort.`expr 90011 + $NUM_ENS`
     #ncea fort.900{11..$((NUM_ENS+11))} fort.`expr 90011 + $NUM_ENS`  ###TMP calculate mean after alignment
@@ -190,24 +189,23 @@ for n in $domlist; do
     rm -f run_relaxation_done
     cat > run_relaxation.sh << EOF
 #!/bin/bash
-#PBS -A $HOSTACCOUNT
-#PBS -N relaxation
-#PBS -l walltime=0:30:00
-#PBS -q premium
-#PBS -l select=1:ncpus=32:mpiprocs=32
-#PBS -j oe
-#PBS -o job_run.log
+#SBATCH -A $HOSTACCOUNT
+#SBATCH -J relaxation
+#SBATCH -n 30 -N 1
+#SBATCH -p normal
+#SBATCH -t 1:00:00
+#SBATCH -o job_run.log
 source ~/.bashrc
 cd `pwd`
 EOF
     for m in `seq 1 $NUM_ENS`; do
       echo "$SCRIPT_DIR/diagnose/relaxation.py $m $NUM_ENS $RELAXATION_COEF &" >> run_relaxation.sh
-      if [ $m == 30 ] || [ $m == $NUM_ENS ]; then
+      if [ $m == $NUM_ENS ]; then
         echo "wait" >> run_relaxation.sh
       fi
     done
     echo "touch run_relaxation_done" >> run_relaxation.sh
-    qsub run_relaxation.sh
+    /bin/sbatch run_relaxation.sh
     until [ -f run_relaxation_done ]; do sleep 1m; done
   fi
 

@@ -9,7 +9,7 @@
  STORM_ID=PATRICIA           #storm id, format: basin (al) num (13) year (2010)
 
  NUM_SCALES=3                ###wheb > 1, run multiscale algorithms
- KRANGE=(3 6 12) ##(3 6 12) before 201510212100; (5 12 20) before 201510220900
+ KRANGE=(5 12 20) ##(3 6 12) before 201510212100; (5 12 20) before 201510220900
  THIN_FACTOR=(4 2 0)
  LOCAL_FACTOR=(2.0 1.5 1.0)
 
@@ -157,12 +157,12 @@
  THIN_RADIANCE=0
 
 #localization distance (km for HROI, # of layers for VROI) for EnKF
- HROI_SFC=300                 #horizontal radius of influence for surface obs
- HROI_SOUNDING=300
- HROI_UPPER=600               #horizontal radius of influence for upper air obs
+ HROI_SFC=100                 #horizontal radius of influence for surface obs
+ HROI_SOUNDING=100
+ HROI_UPPER=200               #horizontal radius of influence for upper air obs
  HROI_RADAR=45                #horizontal radius of influence for radar obs,
  HROI_RADIANCE=90
- HROI_HURRICANE=300
+ HROI_HURRICANE=60
  VROI=42                      #vertical radius of influence
  VROI_SOUNDING=5
  VROI_RADAR=42                #vertical radius of influence for radar obs
@@ -191,16 +191,16 @@
  JE_FACTOR=1.25
 
 #CPU usage
- HOSTACCOUNT=NMMM0021
- HOSTPPN=16            #number of CPUs per node on host machines
- HOSTTYPE=cheyenne     #host type (used in job_submit.sh, currently supports "jet" and "stampede")
+ HOSTACCOUNT=TG-ATM190001
+ HOSTPPN=32            #number of CPUs per node on host machines
+ HOSTTYPE=stampede2     #host type (used in job_submit.sh, currently supports "jet" and "stampede")
  JOB_SUBMIT_MODE=2     # 1 - submit run_cycle.sh to queue as a single job. The scheduling of
                        #     each component is taken care of in each module script.
                        # 2 - execute run_cycle.sh as a bash script, each component is submitted
                        #     as a separate job in the queue, scheduling is done by the queue.
 
  wps_ntasks=32                # number of processes for WPS programs and real.exe
- wrf_ntasks=64                # ..    ..  ..  ..  WRF run       (wrf.exe)
+ wrf_ntasks=128                # ..    ..  ..  ..  WRF run       (wrf.exe)
  var3d_ntasks=128              # ..    ..  ..  ..  3DVar component (perturb_ic da_wrfvar.exe)
  var3d_ppn=16
  var4d_ntasks=(128 128 128)     # ..    ..  ..  ..  4DVar component (da_wrfvar.exe) (for each domain)

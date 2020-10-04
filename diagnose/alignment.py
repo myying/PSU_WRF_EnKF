@@ -10,7 +10,7 @@ total_num_scale = int(sys.argv[3])
 nens = int(sys.argv[4]) ##40
 n = 360
 # relax_coef = 0.0
-scale_damp = (0.0, 0.0, 1.0)
+# scale_damp = (0.0, 0.0, 1.0)
 
 workdir = './' #'/glade/scratch/mying/Patricia_multiscale/run/201510230600/enkf/d02/'
 
@@ -47,11 +47,11 @@ for varname in ('U', 'V', 'W', 'P', 'PH', 'T', 'MU', 'QVAPOR', 'QCLOUD', 'QRAIN'
   if(current_scale < total_num_scale):
     if(xb.ndim==4):
       xout[0, :, 0:n, 0:n] = util.warp(xin[0, :, 0:n, 0:n], -u, -v)
-      xbw[0, :, 0:n, 0:n] = util.warp(xb[0, :, 0:n, 0:n], -u, -v)
+      # xbw[0, :, 0:n, 0:n] = util.warp(xb[0, :, 0:n, 0:n], -u, -v)
     if(xb.ndim==3):
       xout[0, 0:n, 0:n] = util.warp(xin[0, 0:n, 0:n], -u, -v)
-      xbw[0, 0:n, 0:n] = util.warp(xb[0, 0:n, 0:n], -u, -v)
-    xout = xout + scale_damp[current_scale-1] * (xa - xbw)
+      # xbw[0, 0:n, 0:n] = util.warp(xb[0, 0:n, 0:n], -u, -v)
+    # xout = xout + scale_damp[current_scale-1] * (xa - xbw)
   else:
     xout = xin + xa - xb
 

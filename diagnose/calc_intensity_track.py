@@ -5,7 +5,7 @@ import util
 import wrf_functions as wrf
 import tropical_cyclone as tc
 
-workdir = '/glade/scratch/mying/Patricia/'
+workdir = '/scratch/02135/yingyue/Patricia/'
 casename = sys.argv[1] #'multiscale/fc'
 tstr = sys.argv[2] #'201510211200'
 nens = int(sys.argv[3]) #60

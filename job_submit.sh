@@ -99,7 +99,7 @@ if [[ $HOSTTYPE == "stampede2" ]]; then
   elif [ $JOB_SUBMIT_MODE == 2 ]; then
     nodes=`echo "($n+$ppn-1)/$ppn" |bc`
     jobname=`basename $exe |awk -F. '{print $1}'`
-    queue="development"
+    queue="normal"
     wtime="00:30:00"
     if [ $jobname == "wrf" ]; then
       queue="normal"
@@ -107,7 +107,7 @@ if [[ $HOSTTYPE == "stampede2" ]]; then
     fi
     if [ $jobname == "enkf" ]; then
       queue="normal"
-      wtime="04:00:00"
+      wtime="03:00:00"
     fi
     cat << EOF > run_$jobname.sh
 #!/bin/bash
